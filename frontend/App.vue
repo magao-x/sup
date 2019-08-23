@@ -1,5 +1,5 @@
 <template>
-  <div>Howdy</div>
+  <div>{{updates}}</div>
 </template>
 
 <script>
@@ -10,11 +10,15 @@ export default Vue.extend({
   sockets: {
     connect: function () {
         console.log('socket connected')
+    },
+    indi_update: function (d) {
+      console.log(d);
+      this.updates += JSON.stringify(d);
     }
   },
   data() {
     return {
-      bundler: "Parcel"
+      updates: ""
     };
   }
 });

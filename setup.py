@@ -17,7 +17,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=[PROJECT],
     python_requires='>=3.6, <4',
-    install_requires=['Flask', 'Flask-SocketIO', 'eventlet'],
+    install_requires=['sanic', 'python-socketio'],
     package_data={
         PROJECT: ['VERSION', 'static'],
     },
