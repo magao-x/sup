@@ -8,11 +8,14 @@ from sanic import Sanic
 from sanic.response import raw, json, file
 from pathlib import Path
 from purepyindi.eventful import AsyncINDIClient
-from purepyindi.constants import INDIPropertyKind
+from purepyindi.constants import INDIPropertyKind, INDIActions
+from purepyindi.generator import format_datetime_as_iso
 from copy import deepcopy
 
 def convert_indi_update_for_json(update):
     modified = deepcopy(update)
+    # Convert datetime to string ISO timestamp
+    modified['timestamp'] = format_datetime_as_iso(modified['timestamp'])
     # Convert Enums to strings
     modified['action'] = update['action'].value
     modified['kind'] = update['kind'].value
@@ -56,11 +59,14 @@ async def index(request):
     return await file(static_path / 'index.html')
 
 @sio.event
-def connect(sid, environ):
+async def connect(sid, environ):
     print('connect ', sid)
+    the_dict = app.indi.to_dict()
+    print(the_dict)
+    await sio.emit('indi_init', the_dict)
 
 @sio.event
-def disconnect(sid):
+async def disconnect(sid):
     print('disconnect ', sid)
 
 @sio.on('my event')
@@ -69,14 +75,26 @@ def handle_my_custom_event(sid, data):
 
 async def relay_indi_updates(update):
     modified_update = convert_indi_update_for_json(update)
-    print("got update", modified_update)
-    await sio.emit('indi_update', {'indi_update': modified_update})
+    if update['action'] == INDIActions.PROPERTY_DEF:
+        await sio.emit('indi_def', modified_update)
+    elif update['action'] == INDIActions.PROPERTY_SET:
+        await sio.emit('indi_set', modified_update)
+    elif update['action'] == INDIActions.PROPERTY_NEW:
+        await sio.emit('indi_new', modified_update)
+    elif update['action'] == INDIActions.PROPERTY_DEL:
+        await sio.emit('indi_del', modified_update)
+    else:
+        print("Unknown update:", modified_update)
 
 @app.listener('after_server_start')
 async def init_connections(sanic, loop):
     sanic.indi = AsyncINDIClient('localhost', 7624)
     sanic.indi.add_async_watcher(relay_indi_updates)
-    app.add_task(sanic.indi.run())
+    app.add_task(sanic.indi.run(reconnect_automatically=True))
+
+@app.listener("before_server_stop")
+async def close_connections(sanic, loop):
+    await sanic.indi.stop()
 
 def main():
     app.run(debug=True)
