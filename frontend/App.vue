@@ -1,14 +1,9 @@
 <template>
   <div>
     <!-- {{ indi }} -->
-    <div v-for="(dev, devName) in devices">
+    <div v-for="(dev, devName) in devices" :key="devName">
       <!-- {{ devName }} -->
-      <div v-for="(prop, propName) in dev">
-        <!-- {{ propName }} -->
-        <div v-for="(elem, elemName) in prop">
-          <div v-if="elemName[0] !== '_'">{{ devName }}.{{ propName }}.{{ elemName }}={{ elem.value }}</div>
-        </div>
-      </div>
+      <indi-device :name="devName" :device="dev" @deviceChange="deviceChange" />
     </div>
   </div>
 </template>
@@ -16,8 +11,17 @@
 <script>
 import Vue from "vue";
 import io from 'socket.io-client';
+import IndiDevice from "./IndiDevice.vue";
 
 export default Vue.extend({
+  components: {
+    IndiDevice
+  },
+  methods: {
+    deviceChange: function (e) {
+      console.log("Device change:", e);
+    }
+  },
   data() {
     return {
       updates: ""
@@ -27,7 +31,9 @@ export default Vue.extend({
     count () {
       return this.$store.state.count
     },
-    devices() { return this.$store.state.devices }
+    devices() {
+      return this.$store.state.devices
+    }
   }
 });
 </script>

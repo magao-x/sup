@@ -20,6 +20,42 @@ const store = new Vuex.Store({
         state.devices = payload;
         console.log('indi_init mutation end')
       },
+      indi_def(state, payload) {
+        const deviceName = payload.device;
+        const propertyName = payload.name;
+        if (typeof state.devices[deviceName] === "undefined") {
+          // create device entry if necessary
+          console.log("Creating device", deviceName);
+          Vue.set(state.devices, deviceName, {});
+        }
+        Vue.set(state.devices[deviceName], propertyName, payload.property);
+        // state.devices[deviceName][propertyName] = payload.property;
+        console.log('indi_def end, assigned to', deviceName, propertyName);
+      },
+      indi_set(state, payload) {
+        console.log('started indi_set');
+        const deviceName = payload.device;
+        const propertyName = payload.name;
+        const elements = payload.property.elements;
+
+        let currentElements = Object.keys(state.devices[deviceName][propertyName].elements);
+        for(let el of currentElements) {
+          let theElem = state.devices[deviceName][propertyName].elements[el];
+          const matchElem = elements[el];
+          if (typeof matchElem !== "undefined") {
+            console.log("Updating", theElem.name, 'to', matchElem.value);
+            theElem.value = matchElem.value;
+          }
+        }
+      },
+      indi_del(state, payload) {
+        const deviceName = payload.device;
+        if ('name' in payload) {
+          Vue.delete(state.devices[deviceName], payload.name);
+        } else {
+          Vue.delete(state.devices, deviceName);
+        }
+      }
     },
     actions: {
         srv_indi_init({ commit }, payload) {
@@ -28,19 +64,15 @@ const store = new Vuex.Store({
         },
         srv_indi_def({ commit }, payload) {
           console.log('def', payload);
-          commit('increment');
+          commit('indi_def', payload);
         },
         srv_indi_set({ commit }, payload) {
           console.log('set', payload);
-          commit('increment');
-        },
-        srv_indi_new({ commit }, payload) {
-          console.log('new', payload);
-          commit('increment');
+          commit('indi_set', payload);
         },
         srv_indi_del({ commit }, payload) {
           console.log('del', payload);
-          commit('increment');
+          commit('indi_del', payload);
         }
     }
   });
