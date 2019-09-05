@@ -22,25 +22,39 @@ const store = new Vuex.Store({
       },
       indi_def(state, payload) {
         const deviceName = payload.device;
-        const propertyName = payload.name;
+        const propertyName = payload.property.name;
         if (typeof state.devices[deviceName] === "undefined") {
           // create device entry if necessary
           console.log("Creating device", deviceName);
-          Vue.set(state.devices, deviceName, {});
+          Vue.set(state.devices, deviceName, {
+            "name": deviceName,
+            "properties": {}
+          });
         }
-        Vue.set(state.devices[deviceName], propertyName, payload.property);
+        Vue.set(state.devices[deviceName].properties, propertyName, payload.property);
+        console.log("payload.property = ", payload.property);
         // state.devices[deviceName][propertyName] = payload.property;
         console.log('indi_def end, assigned to', deviceName, propertyName);
+        console.log('state.devices[deviceName].properties[propertyName] =', state.devices[deviceName].properties[propertyName]);
       },
       indi_set(state, payload) {
         console.log('started indi_set');
         const deviceName = payload.device;
-        const propertyName = payload.name;
+        const propertyName = payload.property.name;
         const elements = payload.property.elements;
+        const propertyKeysToUpdate = Object.keys(payload.property).filter(
+          (name) => (
+            name != 'name' &&
+            name != 'elements' &&
+            payload.property[name] !== undefined
+          )
+        ).map(function (key) {
+          Vue.set(state.devices[deviceName].properties[propertyName], key, payload.property[key]);
+        });
 
-        let currentElements = Object.keys(state.devices[deviceName][propertyName].elements);
+        let currentElements = Object.keys(state.devices[deviceName].properties[propertyName].elements);
         for(let el of currentElements) {
-          let theElem = state.devices[deviceName][propertyName].elements[el];
+          let theElem = state.devices[deviceName].properties[propertyName].elements[el];
           const matchElem = elements[el];
           if (typeof matchElem !== "undefined") {
             console.log("Updating", theElem.name, 'to', matchElem.value);
@@ -51,7 +65,7 @@ const store = new Vuex.Store({
       indi_del(state, payload) {
         const deviceName = payload.device;
         if ('name' in payload) {
-          Vue.delete(state.devices[deviceName], payload.name);
+          Vue.delete(state.devices[deviceName].properties, payload.name);
         } else {
           Vue.delete(state.devices, deviceName);
         }

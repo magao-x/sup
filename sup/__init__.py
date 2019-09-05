@@ -9,20 +9,20 @@ from sanic import Sanic
 from sanic.response import raw, json, file
 from pathlib import Path
 from purepyindi.eventful import AsyncINDIClient
-from purepyindi.constants import INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT
+from purepyindi.constants import INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT, parse_string_into_enum, SwitchState
 from purepyindi.generator import format_datetime_as_iso
+import purepyindi.log
 from copy import deepcopy
 
 def convert_indi_update_for_json(update):
     modified = deepcopy(update)
     # Convert Enums to strings
     modified['action'] = update['action'].value
-    if 'kind' in update:
-        modified['kind'] = update['kind'].value
     # Convert datetime to string ISO timestamp
     if 'timestamp' in update:
         modified['timestamp'] = format_datetime_as_iso(modified['timestamp'])
     if 'property' in update:
+        modified['property']['kind'] = update['property']['kind'].value
         update_prop = update['property']
         modified_prop = modified['property']
         modified_prop['timestamp'] = format_datetime_as_iso(modified_prop['timestamp'])
@@ -33,9 +33,9 @@ def convert_indi_update_for_json(update):
             modified_prop['state'] = update_prop['state'].value
         if 'rule' in update_prop:
             modified_prop['rule'] = update_prop['rule'].value
-        if update['kind'] in (INDIPropertyKind.SWITCH, INDIPropertyKind.LIGHT):
+        if update_prop['kind'] in (INDIPropertyKind.SWITCH, INDIPropertyKind.LIGHT):
             for key in update_prop['elements']:
-                modified_prop['elements'][key] = update_prop['elements'][key]['value'].value
+                modified_prop['elements'][key]['value'] = update_prop['elements'][key]['value'].value
     return modified
 
 static_folder_name = "static"
@@ -47,13 +47,6 @@ sio.attach(app)
 static_path = Path(__file__).parent / static_folder_name
 
 app.config['SECRET_KEY'] = 'secret!'
-
-@app.route('/api/properties')
-async def api_properties(request):
-    return raw(
-        app.indi.to_json(),
-        content_type='application/json',
-    )
 
 @app.route('/<path:path>')
 async def catch_all(request, path):
@@ -79,9 +72,16 @@ async def connect(sid, environ):
 async def disconnect(sid):
     print('disconnect ', sid)
 
-@sio.on('my event')
-def handle_my_custom_event(sid, data):
-    print('received json: ' + str(json))
+@sio.on('indi_new')
+def handle_indi_new(sid, data):
+    prop = app.indi.devices[data['device']].properties[data['property']]
+    if prop.KIND == INDIPropertyKind.NUMBER:
+        prop.elements[data['element']].value = float(data['value'])
+    elif prop.KIND == INDIPropertyKind.SWITCH:
+        prop.elements[data['element']].value = parse_string_into_enum(data['value'], SwitchState)
+    elif prop.KIND == INDIPropertyKind.TEXT:
+        prop.elements[data['element']].value = data['value']
+    print('received json: ' + str(data))
 
 async def relay_indi_updates(update):
     print("Got update", update)
@@ -97,10 +97,10 @@ async def relay_indi_updates(update):
 
 @app.listener('after_server_start')
 async def init_connections(sanic, loop):
-    logging.basicConfig(level=logging.DEBUG)
-    sanic.indi = AsyncINDIClient('localhost', 7624)
-    sanic.indi.add_async_watcher(relay_indi_updates)
-    app.add_task(sanic.indi.run(reconnect_automatically=True))
+    purepyindi.log.set_log_level('INFO')
+    app.indi = AsyncINDIClient('localhost', 7624)
+    app.indi.add_async_watcher(relay_indi_updates)
+    app.add_task(app.indi.run(reconnect_automatically=True))
 
 @app.listener("before_server_stop")
 async def close_connections(sanic, loop):

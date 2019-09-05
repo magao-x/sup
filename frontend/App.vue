@@ -1,9 +1,9 @@
 <template>
   <div>
     <!-- {{ indi }} -->
-    <div v-for="(dev, devName) in devices" :key="devName">
+    <div v-for="dev in devices" :key="dev.name">
       <!-- {{ devName }} -->
-      <indi-device :name="devName" :device="dev" @deviceChange="deviceChange" />
+      <indi-device :device="dev" @deviceChange="deviceChange" />
     </div>
   </div>
 </template>
@@ -18,8 +18,9 @@ export default Vue.extend({
     IndiDevice
   },
   methods: {
-    deviceChange: function (e) {
-      console.log("Device change:", e);
+    deviceChange: function (payload) {
+      console.log("Device change:", payload);
+      this.$socket.emit('indi_new', payload);
     }
   },
   data() {

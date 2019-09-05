@@ -1,27 +1,23 @@
 <template>
   <div>
-    <p>{{ name }}</p>
-    <div v-for="(prop, propName) in device">
-      {{ prop._kind }}
-      <div v-if="prop._kind == 'SWITCH'">switch component here</div>
-      <div v-if="prop._kind == 'NUMBER'">number component here</div>
-      <div v-if="prop._kind == 'LIGHT'">light component here</div>
-      <div v-if="prop._kind == 'TEXT'">text component here</div>
-      <div v-for="(elem, elemName) in prop.elements">
-        <div>
-          {{ prop.state }} {{ prop.group }} {{ prop.label }} {{ name }}.{{ propName }}.{{ elemName }}={{ elem.value }} {{ prop.perm }}
-          <input v-if="prop.perm == 'rw'" :placeholder="elem.value">
-        </div>
-      </div>
+    <p>{{ device.name }}</p>
+    <div v-for="prop in device.properties" :key="device.name + '.' + prop.name">
+      <p>{{ device.name }}.{{ prop.name }} ({{ prop.kind }}, {{ prop.state }})</p>
+      <p v-if="prop.message">{{ prop.message }}</p>
+      <indi-property :device="device" :property="prop" />
     </div>
-    <button @click="$emit('deviceChange')">emit deviceChange</button>
   </div>
 </template>
 <style scoped>
 
 </style>
 <script>
+import IndiProperty from "./IndiProperty.vue";
+
 export default {
-  props: ["name", "device"]
+  props: ["device"],
+  components: {
+    IndiProperty
+  }
 }
 </script>
