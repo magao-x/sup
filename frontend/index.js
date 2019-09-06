@@ -40,6 +40,9 @@ const store = new Vuex.Store({
       indi_set(state, payload) {
         console.log('started indi_set');
         const deviceName = payload.device;
+        if (state.devices[deviceName] === undefined) {
+          return;
+        }
         const propertyName = payload.property.name;
         const elements = payload.property.elements;
         const propertyKeysToUpdate = Object.keys(payload.property).filter(
@@ -57,7 +60,7 @@ const store = new Vuex.Store({
           let theElem = state.devices[deviceName].properties[propertyName].elements[el];
           const matchElem = elements[el];
           if (typeof matchElem !== "undefined") {
-            console.log("Updating", theElem.name, 'to', matchElem.value);
+            console.log("Updating", theElem.name, '=', theElem.value, 'to', matchElem.value);
             theElem.value = matchElem.value;
           }
         }
@@ -93,7 +96,7 @@ const store = new Vuex.Store({
 
 Vue.use(new VueSocketIO({
     debug: true,
-    connection: io(),
+    connection: io("http://localhost:8000"),
     vuex: {
         store,
         actionPrefix: 'srv_'
