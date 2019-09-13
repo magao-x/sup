@@ -1,18 +1,31 @@
 <template>
     <div class="property">
-        <p>{{ device.name }}.{{ property.name }} ({{ property.kind }}, <indi-light :state="property.state"></indi-light>)</p>
-        <p v-if="property.message">{{ property.message }}</p>
+        <div class="name" :class="{'idle': property.state == 'Idle', 'ok': property.state == 'Ok', 'busy': property.state == 'Busy', 'alert': property.state == 'Alert'}">{{ device.name }}.{{ property.name }}</div>
+        <p v-if="property.message !== null">{{ property.message }}</p>
         <template v-if="property.kind == 'swt'">
             <indi-switch-multi-element :device="device" :property="property" />
         </template><template v-else>
+            {{ isPairedCurrentTarget }}
             <indi-element v-for="elem in objectAsSortedArray(property.elements)" :key="elem.name" :device="device" :property="property" :element="elem" />
         </template>
     </div>
 </template>
-<style scoped>
-.property {
-    border: 1px solid lightgreen;
-    padding: 1rem;
+<style lang="scss" scoped>
+@import './css/variables.scss';
+
+.alert {
+  color: $orange;
+  border-color: darken($orange, 15);
+}
+.ok {
+  color: $green;
+  border-color: darken($green, 15);
+}
+.busy {
+  color: $base2;
+}
+.idle {
+    color: $base1;
 }
 </style>
 <script>
@@ -28,6 +41,14 @@ export default {
         IndiLight
     },
     props: ["device", "property"],
-    mixins: [utils]
+    mixins: [utils],
+    computed: {
+        isPairedCurrentTarget: function () {
+            if (this.property.elements.target !== undefined && this.property.elements.current !== undefined) {
+                return true;
+            }
+            return false;
+        }
+    }
 }
 </script>

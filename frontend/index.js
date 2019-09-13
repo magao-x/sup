@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex'
+import { DateTime } from "luxon";
 
 Vue.use(Vuex)
 
@@ -9,17 +10,27 @@ import VueSocketIO from 'vue-socket.io';
 
 const store = new Vuex.Store({
     state: {
-      count: 0,
+      connection: {
+        connected: false,
+        lastUpdate: null
+      },
       devices: {}
     },
     mutations: {
-      increment (state) {
-        state.count++
+      heartbeat (state) {
+        state.connection.connected = true;
+        state.connection.lastUpdate = DateTime.utc();
+      },
+      disconnected (state) {
+        state.connection.connected = false;
       },
       indi_init(state, payload) {
         state.devices = payload;
         console.log('indi_init mutation end')
       },
+      // indi_batch_update(state, payload) {
+
+      // },
       indi_def(state, payload) {
         const deviceName = payload.device;
         const propertyName = payload.property.name;
@@ -75,28 +86,58 @@ const store = new Vuex.Store({
       }
     },
     actions: {
+        srv_heartbeat({ commit }, payload) {
+          commit('heartbeat');
+        },
+        srv_disconnected({ commit }, payload) {
+          commit('disconnected');
+        },
         srv_indi_init({ commit }, payload) {
           console.log('init', payload);
           commit('indi_init', payload);
         },
-        srv_indi_def({ commit }, payload) {
-          console.log('def', payload);
-          commit('indi_def', payload);
+        srv_indi_batch_update({ commit }, payload) {
+          console.log('batch_update', payload);
+          const updates = payload.indi_updates;
+          for (let update of updates) {
+            if (update['action'] === 'def') {
+              commit('indi_def', update);
+            } else if (update['action'] === 'set') {
+              commit('indi_set', update);
+            } else if (update['action'] === 'del') {
+              commit('indi_del', update);
+            }
+          }
+          commit('heartbeat');
         },
-        srv_indi_set({ commit }, payload) {
-          console.log('set', payload);
-          commit('indi_set', payload);
-        },
-        srv_indi_del({ commit }, payload) {
-          console.log('del', payload);
-          commit('indi_del', payload);
-        }
+        // srv_indi_def({ commit }, payload) {
+        //   console.log('def', payload);
+        //   commit('indi_def', payload);
+        // },
+        // srv_indi_set({ commit }, payload) {
+        //   console.log('set', payload);
+        //   commit('indi_set', payload);
+        // },
+        // srv_indi_del({ commit }, payload) {
+        //   console.log('del', payload);
+        //   commit('indi_del', payload);
+        // }
     }
   });
 
+const socket = io("http://localhost:8000");
+for (let evt of ['pong', 'connect']) {
+  socket.on(evt, () => {store.commit('heartbeat'); console.log('Heart beat')});
+}
+for (let evt of ['connect_error', 'connect_timeout', 'disconnect']) {
+  socket.on(evt, () => store.commit('disconnected'));
+}
+
+socket.on('connect_error', (err) => console.error("socket.io connection error", err));
+
 Vue.use(new VueSocketIO({
     debug: true,
-    connection: io("http://localhost:8000"),
+    connection: socket,
     vuex: {
         store,
         actionPrefix: 'srv_'
@@ -105,6 +146,29 @@ Vue.use(new VueSocketIO({
 
 new Vue({
     store,
-    render: h => h(App)
+    render: h => h(App),
+    methods: {
+      updateCurrentTime: function () {
+        this.currentTime = DateTime.utc();
+        setTimeout(() => { this.updateCurrentTime(); }, 1000);
+      }
+    },
+    data() {
+      return {
+        currentTime: DateTime.utc()
+      };
+    },
+    mounted() {
+      this.updateCurrentTime();
+    },
+    provide: function () {
+      // return {currentTime: this.currentTime};
+      const time = {}
+      Object.defineProperty(time, 'currentTime', {
+         enumerable: true,
+         get: () => this.currentTime,
+      })
+      return { time }
+    }
   }).$mount('#app')
 

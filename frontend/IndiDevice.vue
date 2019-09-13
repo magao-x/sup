@@ -9,9 +9,12 @@
   </div>
 </template>
 <style lang="scss" scoped>
+@import './css/variables.scss';
+
 .device {
-  border: 1px solid #ee6f31;
+  margin: 1rem;
   padding: 1rem;
+  flex: 1;
 }
 </style>
 <script>
@@ -20,6 +23,7 @@ import utils from "./utils.js";
 
 export default {
   props: ["device"],
+  inject: ["time"],
   components: {
     IndiProperty
   },

@@ -1,26 +1,31 @@
 <template>
-  <div class="light" :class="{'idle': state == 'Idle', 'ok': state == 'Ok', 'busy': state == 'Busy', 'alert': state == 'Alert'}">
+  <div class="light" :class="state">
     {{ state }}
   </div>
 </template>
 <style lang="scss" scoped>
+@import './css/variables.scss';
+
 .light {
-  border: 1px solid black;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
+  border: 1px solid;
+  line-height: 1.0;
+  padding: 0.3 * $unit 0.6 * $unit;
   display: inline-block;
+  color: $base03;
 }
-.alert {
-    color: orange;
+.Alert {
+  background-color: $orange;
+  border-color: darken($orange, 15);
 }
-.ok {
-    color: lightgreen;
+.Ok {
+  background-color: $green;
+  border-color: darken($green, 15);
 }
-.busy {
-    color: gray;
+.Busy {
+  color: $base2;
 }
-.idle {
-    color: white;
+.Idle {
+    color: $base1;
 }
 </style>
 <script>

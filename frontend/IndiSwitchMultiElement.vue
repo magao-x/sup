@@ -1,6 +1,5 @@
 <template>
   <div>
-    {{ property.rule }}
     <div class="current">
       Current:
       <span v-for="elem in property.elements" :key="elem.name">

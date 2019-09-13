@@ -16,12 +16,39 @@ from purepyindi.generator import format_datetime_as_iso
 import purepyindi.log
 from copy import deepcopy
 from .log import debug, info, warn, error, critical, set_log_level
+import datetime
+
+from collections.abc import MutableMapping, MutableSequence
+
+BATCH_UPDATE_INTERVAL = 1 # second
+PING_INTERVAL = 10
+
+def merge_dicts(d1, d2):
+    '''
+    Merge dict keys and concatenate lists
+    '''
+    for k, v in d1.items():
+        if k in d2:
+            if isinstance(v, MutableMapping) and isinstance(d2[k], MutableMapping):
+                d2[k] = merge_dicts(v, d2[k])
+            elif isinstance(v, MutableSequence) and isinstance(d2[k], MutableSequence):
+                d2[k] = v + d2[k]
+    d3 = d1.copy()
+    d3.update(d2)
+    return d3
+
+def utc_now():
+    dt = datetime.datetime.utcnow()
+    dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
 
 def log_updates(update):
-    debug(update)
-    for elemname in update['property']['elements']:
-        elem = update['property']['elements'][elemname]
-        debug(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
+    if 'property' in update:
+        for elemname in update['property']['elements']:
+            elem = update['property']['elements'][elemname]
+            debug(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
+    else:
+        debug(update)
 
 def convert_indi_update_for_json(update):
     modified = deepcopy(update)
@@ -48,7 +75,6 @@ def convert_indi_update_for_json(update):
         if update_prop['kind'] is INDIPropertyKind.NUMBER:
             for key in update_prop['elements']:
                 the_value = update_prop['elements'][key]['value']
-                warn(f'{key} = {the_value}')
                 modified_prop['elements'][key]['value'] = (
                     the_value
                     if the_value is not None and math.isfinite(the_value)
@@ -59,8 +85,12 @@ def convert_indi_update_for_json(update):
 static_folder_name = "static"
 app = Sanic('sup')
 
-# TODO only CORS in dev
-sio = socketio.AsyncServer(async_mode='sanic', cors_allowed_origins="*")
+
+sio = socketio.AsyncServer(
+    async_mode='sanic',
+    cors_allowed_origins="*", # TODO only CORS in dev
+    ping_interval=PING_INTERVAL,
+)
 sio.attach(app)
 
 static_path = Path(__file__).parent / static_folder_name
@@ -71,16 +101,11 @@ app.config['SECRET_KEY'] = 'secret!'
 async def indi(request):
     c = app.indi
     for device in c.devices:
-        warn(f'on device {device}')
         d = c.devices[device]
-        # json(d.to_dict())
         for prop in d.properties:
             p = d.properties[prop]
-            warn(f'on prop {device}.{prop}')
             for el in p.elements:
                 e = p.elements[el]
-                warn(f'on elem {device}.{prop}.{el}')
-                warn(e.to_dict())
                 json(e.to_dict())
     return json(app.indi.to_dict())
 
@@ -122,23 +147,26 @@ def handle_indi_new(sid, data):
         prop.elements[data['element']].value = data['value']
 
 async def relay_indi_updates(update):
-    modified_update = convert_indi_update_for_json(update)
-    if update['action'] == INDIActions.PROPERTY_DEF:
-        await sio.emit('indi_def', modified_update)
-    elif update['action'] == INDIActions.PROPERTY_SET:
-        await sio.emit('indi_set', modified_update)
-    elif update['action'] == INDIActions.PROPERTY_DEL:
-        await sio.emit('indi_del', modified_update)
-    else:
-        debug(f"Unknown action to relay from relay_indi_updates: {pformat(update)}")
+    await app.update_queue.put(convert_indi_update_for_json(update))
+
+async def emit_updates():
+    while True:
+        if not app.update_queue.empty():
+            updates = {'indi_updates': []}
+            while not app.update_queue.empty():
+                updates['indi_updates'].append(app.update_queue.get_nowait())
+            await sio.emit('indi_batch_update', updates)
+        await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
 @app.listener('after_server_start')
 async def init_connections(sanic, loop):
     purepyindi.log.set_log_level('INFO')
     app.indi = AsyncINDIClient(app.config.indi_host, app.config.indi_port)
     app.indi.add_async_watcher(relay_indi_updates)
+    app.update_queue = asyncio.Queue()
     app.indi.add_watcher(log_updates)
     app.add_task(app.indi.run(reconnect_automatically=True))
+    app.add_task(emit_updates())
 
 @app.listener("before_server_stop")
 async def close_connections(sanic, loop):
@@ -148,7 +176,7 @@ def main(indi_host, indi_port):
     logging.basicConfig(level='WARN')
     app.config.indi_host = indi_host
     app.config.indi_port = indi_port
-    app.run(debug=True)
+    app.run()
 
 def console_entrypoint():
     import argparse

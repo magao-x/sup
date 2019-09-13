@@ -1,21 +1,45 @@
 <template>
-    <div>
-        <span v-if="property.perm != 'ro'">
-            <label :for="dottedName">{{ dottedName }}={{ element.value }}</label>
-            <button @click="populate">load &rarr;</button>
-            <input :id="dottedName" v-model.trim="userInput">
-            <button @click="send">send</button>
-        </span><span v-if="property.perm == 'ro'">
-            {{ dottedName }}={{ element.value }}
-        </span>
+    <div class="element">
+        <button class="sync" :disabled="isDisabled" @click="populate"><i class="material-icons">sync</i></button>
+        <number-input
+            v-if="property.kind == 'num'"
+            :min="element.min"
+            :max="element.max"
+            :step="element.step"
+            v-model="userInput"
+            :disabled="isDisabled"
+        ></number-input>
+        <input
+        v-else
+            :id="dottedName"
+            v-model.trim="userInput"
+            :disabled="isDisabled">
+        <button :disabled="isDisabled" @click="send"><i class="material-icons">done</i></button>
     </div>
 </template>
-<style scoped>
+<style lang="scss" scoped>
+@import './css/variables.scss';
 
+.element {
+    display: flex;
+}
+input {
+    flex: 1;
+    width: $unit;
+    min-width: $unit;
+}
+.sync:enabled {
+    background: $violet;
+}
 </style>
 <script>
+import NumberInput from "./NumberInput.vue";
+
 export default {
     props: ["device", "property", "element"],
+    components: {
+        NumberInput
+    },
     methods: {
         populate: function () {
             this.userInput = this.element.value;
@@ -31,7 +55,7 @@ export default {
     },
     data: function () {
         return {
-            userInput: ""
+            userInput: this.element.value
         }
     },
     computed: {
@@ -44,6 +68,15 @@ export default {
             } else {
                 return this.dottedName;
             }
+        },
+        isPairedCurrent: function () {
+            if (this.element.name === "current" && this.property.elements.hasOwnProperty("target")) {
+                return true;
+            }
+            return false;
+        },
+        isDisabled: function () {
+            return this.property.perm == 'ro' || this.isPairedCurrent;
         }
     }
 }
