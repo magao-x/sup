@@ -150,7 +150,7 @@ class INDIUpdateBatcher:
             else:
                 prop_to_del = (device_name, "*")
             self.properties_to_delete.add(prop_to_del)
-    async def _get_jsonable(self, device_name, property_name):
+    def _get_jsonable(self, device_name, property_name):
         return self.client_instance.devices[device_name].properties[property_name].to_jsonable()
     async def generate_batch(self):
         updates = {}
@@ -158,10 +158,15 @@ class INDIUpdateBatcher:
 
         updated_not_deleted = self.properties_to_update - self.properties_to_delete
         for device_name, property_name in updated_not_deleted:
-            updates[f'{device_name}.{property_name}'] = await self._get_jsonable(device_name, property_name)
+            if (
+                (device_name, property_name) in self.properties_to_delete or
+                (device_name, "*") in self.properties_to_delete
+            ):
+                continue
+            updates[f'{device_name}.{property_name}'] = self._get_jsonable(device_name, property_name)
         for device_name, property_name in self.properties_to_delete:
             deletions.append(f'{device_name}.{property_name}')
-        
+
         batch = {
             'updates': updates,
             'deletions': deletions,
