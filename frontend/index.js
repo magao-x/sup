@@ -25,15 +25,11 @@ const store = new Vuex.Store({
         state.connection.connected = false;
       },
       indi_init(state, payload) {
-        state.devices = payload;
+        Vue.set(state, "devices", payload);
         console.log('indi_init mutation end')
       },
-      // indi_batch_update(state, payload) {
-
-      // },
-      indi_def(state, payload) {
-        const deviceName = payload.device;
-        const propertyName = payload.property.name;
+      indi_update(state, payload) {
+        let {deviceName, propertyName, propertyState} = payload;
         if (typeof state.devices[deviceName] === "undefined") {
           // create device entry if necessary
           console.log("Creating device", deviceName);
@@ -42,86 +38,59 @@ const store = new Vuex.Store({
             "properties": {}
           });
         }
-        Vue.set(state.devices[deviceName].properties, propertyName, payload.property);
-        console.log("payload.property = ", payload.property);
-        // state.devices[deviceName][propertyName] = payload.property;
-        console.log('indi_def end, assigned to', deviceName, propertyName);
-        console.log('state.devices[deviceName].properties[propertyName] =', state.devices[deviceName].properties[propertyName]);
-      },
-      indi_set(state, payload) {
-        console.log('started indi_set');
-        const deviceName = payload.device;
-        if (state.devices[deviceName] === undefined) {
-          return;
+        if (typeof state.devices[deviceName].properties[propertyName] === "undefined") {
+          // create device entry if necessary
+          console.log("Creating property", propertyName);
+          Vue.set(state.devices[deviceName].properties, propertyName, propertyState);
+        } else {
+          state.devices[deviceName].properties[propertyName] = propertyState;
         }
-        const propertyName = payload.property.name;
-        const elements = payload.property.elements;
-        const propertyKeysToUpdate = Object.keys(payload.property).filter(
-          (name) => (
-            name != 'name' &&
-            name != 'elements' &&
-            payload.property[name] !== undefined
-          )
-        ).map(function (key) {
-          Vue.set(state.devices[deviceName].properties[propertyName], key, payload.property[key]);
-        });
-
-        let currentElements = Object.keys(state.devices[deviceName].properties[propertyName].elements);
-        for(let el of currentElements) {
-          let theElem = state.devices[deviceName].properties[propertyName].elements[el];
-          const matchElem = elements[el];
-          if (typeof matchElem !== "undefined") {
-            console.log("Updating", theElem.name, '=', theElem.value, 'to', matchElem.value);
-            theElem.value = matchElem.value;
-          }
-        }
+        
       },
       indi_del(state, payload) {
-        const deviceName = payload.device;
-        if ('name' in payload) {
-          Vue.delete(state.devices[deviceName].properties, payload.name);
-        } else {
+        let {deviceName, propertyName} = payload;
+        if (propertyName === "*") {
           Vue.delete(state.devices, deviceName);
+        } else {
+          Vue.delete(state.devices[deviceName].properties, propertyName);
         }
       }
     },
     actions: {
-        srv_heartbeat({ commit }, payload) {
-          commit('heartbeat');
-        },
-        srv_disconnected({ commit }, payload) {
-          commit('disconnected');
-        },
-        srv_indi_init({ commit }, payload) {
-          console.log('init', payload);
-          commit('indi_init', payload);
-        },
-        srv_indi_batch_update({ commit }, payload) {
-          console.log('batch_update', payload);
-          const updates = payload.indi_updates;
-          for (let update of updates) {
-            if (update['action'] === 'def') {
-              commit('indi_def', update);
-            } else if (update['action'] === 'set') {
-              commit('indi_set', update);
-            } else if (update['action'] === 'del') {
-              commit('indi_del', update);
-            }
-          }
-          commit('heartbeat');
-        },
-        // srv_indi_def({ commit }, payload) {
-        //   console.log('def', payload);
-        //   commit('indi_def', payload);
-        // },
-        // srv_indi_set({ commit }, payload) {
-        //   console.log('set', payload);
-        //   commit('indi_set', payload);
-        // },
-        // srv_indi_del({ commit }, payload) {
-        //   console.log('del', payload);
-        //   commit('indi_del', payload);
+      srv_heartbeat({ commit }, payload) {
+        commit('heartbeat');
+      },
+      srv_disconnected({ commit }, payload) {
+        commit('disconnected');
+      },
+      srv_indi_init({ commit }, payload) {
+        console.log('init', payload);
+        commit('indi_init', payload);
+      },
+      srv_indi_batch_update({ commit }, payload) {
+        console.log('batch_update', payload);
+        // const updates = payload.indi_updates;
+        // for (let update of updates) {
+        //   if (update['action'] === 'def') {
+        //     commit('indi_def', update);
+        //   } else if (update['action'] === 'set') {
+        //     commit('indi_set', update);
+        //   } else if (update['action'] === 'del') {
+        //     commit('indi_del', update);
+        //   }
         // }
+        const updates = payload.updates;
+        const deletions = payload.deletions;
+        for (let propSpec of deletions) {
+          let [deviceName, propertyName] = propSpec.split(".");
+          commit('indi_del', {deviceName, propertyName});
+        }
+        for (let propSpec of Object.keys(updates)) {
+          let [deviceName, propertyName] = propSpec.split(".");
+          commit('indi_update', {deviceName, propertyName, propertyState: updates[propSpec]});
+        }
+        commit('heartbeat');
+      }
     }
   });
 

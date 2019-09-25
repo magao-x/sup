@@ -5,10 +5,10 @@ init:
 	pip install -e .
 
 buildjs:
-	yarn parcel build -d sup/static/ frontend/index.html
+	NODE_ENV=development yarn parcel build -d sup/static/ frontend/index.html
 
 all: init buildjs
 
 serve:
-	yarn parcel watch -d sup/static/ frontend/index.html &
+	NODE_ENV=development yarn parcel watch -d sup/static/ frontend/index.html &
 	sup

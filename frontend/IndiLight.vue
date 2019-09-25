@@ -14,12 +14,12 @@
   color: $base03;
 }
 .Alert {
-  background-color: $orange;
+  background-color: $warning;
   border-color: darken($orange, 15);
 }
 .Ok {
-  background-color: $green;
-  border-color: darken($green, 15);
+  background-color: $ok;
+  border-color: darken($ok, 15);
 }
 .Busy {
   color: $base2;

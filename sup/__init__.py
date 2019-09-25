@@ -17,38 +17,24 @@ import purepyindi.log
 from copy import deepcopy
 from .log import debug, info, warn, error, critical, set_log_level
 import datetime
+import jsonpatch
 
 from collections.abc import MutableMapping, MutableSequence
 
 BATCH_UPDATE_INTERVAL = 1 # second
 PING_INTERVAL = 10
 
-def merge_dicts(d1, d2):
-    '''
-    Merge dict keys and concatenate lists
-    '''
-    for k, v in d1.items():
-        if k in d2:
-            if isinstance(v, MutableMapping) and isinstance(d2[k], MutableMapping):
-                d2[k] = merge_dicts(v, d2[k])
-            elif isinstance(v, MutableSequence) and isinstance(d2[k], MutableSequence):
-                d2[k] = v + d2[k]
-    d3 = d1.copy()
-    d3.update(d2)
-    return d3
-
 def utc_now():
     dt = datetime.datetime.utcnow()
     dt.replace(tzinfo=datetime.timezone.utc)
     return dt
 
-def log_updates(update):
+def log_updates(update, did_anything_change):
     if 'property' in update:
         for elemname in update['property']['elements']:
             elem = update['property']['elements'][elemname]
-            debug(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
-    else:
-        debug(update)
+            if did_anything_change:
+                print(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
 
 def convert_indi_update_for_json(update):
     modified = deepcopy(update)
@@ -99,15 +85,15 @@ app.config['SECRET_KEY'] = 'secret!'
 
 @app.route('/indi')
 async def indi(request):
-    c = app.indi
-    for device in c.devices:
-        d = c.devices[device]
-        for prop in d.properties:
-            p = d.properties[prop]
-            for el in p.elements:
-                e = p.elements[el]
-                json(e.to_dict())
-    return json(app.indi.to_dict())
+    # c = app.indi
+    # for device in c.devices:
+    #     d = c.devices[device]
+    #     for prop in d.properties:
+    #         p = d.properties[prop]
+    #         for el in p.elements:
+    #             e = p.elements[el]
+    #             json(e.to_dict())
+    return json(app.indi.to_jsonable())
 
 @app.route('/<path:path>')
 async def catch_all(request, path):
@@ -127,7 +113,7 @@ async def index(request):
 @sio.event
 async def connect(sid, environ):
     debug(f'socket.io client connected with sid: {sid}')
-    the_dict = app.indi.to_dict()
+    the_dict = app.indi.to_jsonable()
     debug(f'sending current INDI state {pformat(the_dict)}')
     await sio.emit('indi_init', the_dict)
 
@@ -146,23 +132,54 @@ def handle_indi_new(sid, data):
     elif prop.KIND == INDIPropertyKind.TEXT:
         prop.elements[data['element']].value = data['value']
 
-async def relay_indi_updates(update):
-    await app.update_queue.put(convert_indi_update_for_json(update))
+class INDIUpdateBatcher:
+    def __init__(self, client_instance):
+        self.client_instance = client_instance
+        self.properties_to_update = set()
+        self.properties_to_delete = set()
+    async def process_update(self, update, *_):
+        if update['action'] in (INDIActions.PROPERTY_SET, INDIActions.PROPERTY_DEF):
+            device_name = update['device']
+            property_name = update['property']['name']
+            self.properties_to_update.add((device_name, property_name))
+        elif update['action'] is INDIActions.PROPERTY_DEL:
+            device_name = update['device']
+            if 'name' in update:
+                property_name = update['name']
+                prop_to_del = (device_name, property_name)
+            else:
+                prop_to_del = (device_name, "*")
+            self.properties_to_delete.add(prop_to_del)
+    async def _get_jsonable(self, device_name, property_name):
+        return self.client_instance.devices[device_name].properties[property_name].to_jsonable()
+    async def generate_batch(self):
+        updates = {}
+        deletions = []
+
+        updated_not_deleted = self.properties_to_update - self.properties_to_delete
+        for device_name, property_name in updated_not_deleted:
+            updates[f'{device_name}.{property_name}'] = await self._get_jsonable(device_name, property_name)
+        for device_name, property_name in self.properties_to_delete:
+            deletions.append(f'{device_name}.{property_name}')
+        
+        batch = {
+            'updates': updates,
+            'deletions': deletions,
+        }
+        self.properties_to_delete = set()
+        self.properties_to_update = set()
+        return batch
 
 async def emit_updates():
     while True:
-        if not app.update_queue.empty():
-            updates = {'indi_updates': []}
-            while not app.update_queue.empty():
-                updates['indi_updates'].append(app.update_queue.get_nowait())
-            await sio.emit('indi_batch_update', updates)
+        await sio.emit('indi_batch_update', await app.indi_batcher.generate_batch())
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
 @app.listener('after_server_start')
 async def init_connections(sanic, loop):
-    purepyindi.log.set_log_level('INFO')
     app.indi = AsyncINDIClient(app.config.indi_host, app.config.indi_port)
-    app.indi.add_async_watcher(relay_indi_updates)
+    app.indi_batcher = INDIUpdateBatcher(app.indi)
+    app.indi.add_async_watcher(app.indi_batcher.process_update)
     app.update_queue = asyncio.Queue()
     app.indi.add_watcher(log_updates)
     app.add_task(app.indi.run(reconnect_automatically=True))
@@ -172,10 +189,13 @@ async def init_connections(sanic, loop):
 async def close_connections(sanic, loop):
     await sanic.indi.stop()
 
-def main(indi_host, indi_port):
+def main(indi_host, indi_port, indi_read_only):
     logging.basicConfig(level='WARN')
+    # log = logging.getLogger('purepyindi.eventful')
+    # log.setLevel('DEBUG')
     app.config.indi_host = indi_host
     app.config.indi_port = indi_port
+    app.config.indi_read_only = indi_read_only
     app.run()
 
 def console_entrypoint():
@@ -184,6 +204,11 @@ def console_entrypoint():
     parser.add_argument(
         "--help",
         help="show this help message and exit",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--read-only",
+        help="Prevent requests to set new values from being sent to the INDI server",
         action="store_true",
     )
     parser.add_argument(
@@ -202,7 +227,7 @@ def console_entrypoint():
     if args.help:
         parser.print_help()
         sys.exit(1)
-    sys.exit(main(args.host, args.port))
+    sys.exit(main(args.host, args.port, args.read_only))
 
 if __name__ == '__main__':
     console_entrypoint()

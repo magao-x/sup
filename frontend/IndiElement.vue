@@ -1,11 +1,11 @@
 <template>
     <div class="element">
-        <button class="sync" :disabled="isDisabled" @click="populate"><i class="material-icons">sync</i></button>
+        <button class="restore" :disabled="isDisabled" @click="populate"><i class="material-icons">sync</i></button>
         <number-input
             v-if="property.kind == 'num'"
             :min="element.min"
             :max="element.max"
-            :step="element.step"
+            :step="stepFromFormat(element.format, element.step)"
             v-model="userInput"
             :disabled="isDisabled"
         ></number-input>
@@ -14,7 +14,7 @@
             :id="dottedName"
             v-model.trim="userInput"
             :disabled="isDisabled">
-        <button :disabled="isDisabled" @click="send"><i class="material-icons">done</i></button>
+        <button class="commit" :disabled="isDisabled" @click="send"><i class="material-icons">done</i></button>
     </div>
 </template>
 <style lang="scss" scoped>
@@ -28,18 +28,17 @@ input {
     width: $unit;
     min-width: $unit;
 }
-.sync:enabled {
-    background: $violet;
-}
 </style>
 <script>
 import NumberInput from "./NumberInput.vue";
+import utils from "./utils.js";
 
 export default {
     props: ["device", "property", "element"],
     components: {
         NumberInput
     },
+    mixins: [utils],
     methods: {
         populate: function () {
             this.userInput = this.element.value;

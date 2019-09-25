@@ -8,7 +8,7 @@
     <div class="flex-row">
       <div class="vertical-selector">
         <div class="choice">
-          <div><i class="material-icons">home</i></div>
+          <div><i class="material-icons">settings_applications</i></div>
           <div class="label">controls</div>
         </div>
         <div class="choice active">

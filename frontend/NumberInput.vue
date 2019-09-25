@@ -1,12 +1,12 @@
 <template>
   <div class="number-input">
-      <button v-if="hasStep" :disabled="disabled">
+      <button v-if="showStep" :disabled="disabled">
       -{{ 10 * step }}
-      </button><button v-if="hasStep" :disabled="disabled">
+      </button><button v-if="showStep" :disabled="disabled">
       -{{ step }}
-      </button><input v-model="userInput"><button v-if="hasStep" :disabled="disabled">
+      </button><input v-model="userInput"><button v-if="showStep" :disabled="disabled">
       +{{ step }}
-      </button><button v-if="hasStep" :disabled="disabled">
+      </button><button v-if="showStep" :disabled="disabled">
       +{{ 10 * step }}
       </button>
   </div>
@@ -47,6 +47,9 @@ export default {
         return true;
       }
       return false;
+    },
+    showStep: function () {
+      return this.hasStep && !this.disabled;
     },
     hasStep: function () {
       if(this.step != 0) {

@@ -9,7 +9,7 @@
             <th>property</th>
             <th class="kind">kind</th>
             <th>element</th>
-            <th>value</th>
+            <th class="value">value</th>
             <th class="controls">control</th>
             </tr>
         </thead>
@@ -20,7 +20,7 @@
             <td>{{ record.property.name }}</td>
             <td class="kind">{{ record.property.kind }}</td>
             <td>{{ record.element.name }}</td>
-            <td>{{ record.element.value }}</td>
+            <td v-if="record.property.kind == 'num'" class="value">{{ applyFormatString(record.element.format, record.element.value) }}</td><td v-else class="value">{{ record.element.value }}</td>
             <td class="controls"><indi-element :device="record.device" :property="record.property" :element="record.element"></indi-element></td>
             </tr>
         </tbody>
@@ -68,7 +68,10 @@ table {
     .kind {
         width: 8%;
     }
-    .controls {
+    .value {
+        width: 10%;
+    }
+    td.controls {
         text-align: left;
         // padding-left: $unit;
         max-width: 20em;

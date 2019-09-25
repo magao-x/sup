@@ -17,7 +17,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=[PROJECT],
     python_requires='>=3.6, <4',
-    install_requires=['sanic', 'python-socketio'],
+    install_requires=['sanic', 'python-socketio', 'jsonpatch>=1.24'],
     package_data={
         PROJECT: ['VERSION', 'static'],
     },
