@@ -3,25 +3,35 @@
     <div class="status-bar">
       <div class="time">{{ readableTimestamp }}</div>
       <div class="logo">MagAO-X</div>
-      <div class="connection">Connection: <indi-light :state="connectionStatus"></indi-light></div>
+      <div class="connection">Connection: <indi-state-indicator :state="connectionStatus"></indi-light></div>
     </div>
     <div class="flex-row">
       <div class="vertical-selector">
-        <div class="choice">
-          <div><i class="material-icons">settings_applications</i></div>
-          <div class="label">controls</div>
-        </div>
-        <div class="choice active">
-          <div class="icon"><i class="material-icons">memory</i></div>
-          <div class="label">properties</div>
-        </div>
-        <div class="choice">
-          <div><i class="material-icons">dashboard</i></div>
+        <router-link to="/" class="choice" style="color: #cb4b16">
+          <span class="nav-icon"><i class="material-icons">settings_applications</i></span>
+          <span class="label">controls</span>
+        </router-link>
+        <router-link to="/properties" class="choice" style="color: #2aa198">
+          <span class="nav-icon"><i class="material-icons">memory</i></span>
+          <span class="label">properties</span>
+        </router-link>
+        <router-link to="/dashboard" class="choice" style="color: #b58900">
+          <div class="nav-icon"><i class="material-icons">dashboard</i></div>
           <div class="label">dashboard</div>
-        </div>
+        </router-link>
+        <router-link to="/bench" class="choice">
+          <span class="nav-icon"><i class="material-icons">build</i></span>
+          <span class="label">bench</span>
+        </router-link>
+        <router-link to="/kitchensink" class="choice">
+          <span class="nav-icon"><i class="material-icons">build</i></span>
+          <span class="label">kitchen sink</span>
+        </router-link>
       </div>
       <div class="content">
-        <indi-properties-table :devices="devices"></indi-properties-table>
+        <keep-alive>
+          <router-view></router-view>
+        </keep-alive>
       </div>
     </div>
   </div>
@@ -60,27 +70,28 @@
   text-align: center;
   .choice {
     padding: 0.5*$unit;
+    display: block;
   }
-  .choice.active {
+  .choice.router-link-exact-active {
     background: $base02;
+    color: $linkActive;
+  }
+  .nav-icon {
+    display: block;
   }
   .material-icons { font-size: 2*$unit; margin: 0}
 }
 .content {
   flex: 1;
-  overflow-y: scroll;
 }
 </style>
 <script>
 import Vue from "vue";
 import io from 'socket.io-client';
-import IndiDevice from "./IndiDevice.vue";
-import IndiLight from "./IndiLight.vue";
-import IndiPropertiesTable from "./IndiPropertiesTable.vue";
-import IndiSwitchMultiElement from "./IndiSwitchMultiElement.vue";
-import utils from "./utils.js";
+import IndiStateIndicator from "~/components/indi/IndiStateIndicator.vue";
 import constants from "./constants.js";
 import { DateTime } from "luxon";
+import utils from "~/mixins/utils.js";
 
 const cameraGroup = {
   filterWheel: null,
@@ -93,19 +104,17 @@ const cameraGroup = {
 }
 
 export default Vue.extend({
+  mixins: [utils],
   components: {
-    IndiDevice,
-    IndiLight,
-    IndiSwitchMultiElement,
-    IndiPropertiesTable
+    IndiStateIndicator,
   },
   inject: ["time"],
-  methods: {
-    deviceChange: function (payload) {
-      console.log("Device change:", payload);
-      this.$socket.emit('indi_new', payload);
-    }
-  },
+  // methods: {
+  //   deviceChange: function (payload) {
+  //     console.log("Device change:", payload);
+  //     this.$socket.emit('indi_new', payload);
+  //   }
+  // },
   computed: {
     connection () {
       return this.$store.state.connection
@@ -129,7 +138,6 @@ export default Vue.extend({
               this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET));
     }
   },
-  mixins: [utils]
 });
 </script>
 

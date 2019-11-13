@@ -1,0 +1,2 @@
+include sup/VERSION
+recursive-include sup/static *

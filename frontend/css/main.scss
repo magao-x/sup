@@ -20,8 +20,6 @@ input, button {
     outline: none;
     margin: 0.1em;
     font: inherit;
-    line-height: 1;
-    height: 2em;
 }
 
 input {
@@ -35,16 +33,19 @@ input:enabled {
     color: $base2;
 }
 
-button {
-    transition: background 0.2s;
+button, .btn {
+    transition: background $transitionTime;
     border-radius: $round-radius;
     padding: 0.2 * $unit 0.6 * $unit;
+    text-align: center;
     .material-icons {
         padding: 0;
-        display: inline;
+        // display: inline-block;
+        line-height: 1;
+        // height: 2em;
     }
 }
-button:enabled {
+button:enabled, .btn {
     color: $base03;
     border: 1px solid $base03;
     cursor: pointer;
@@ -56,7 +57,7 @@ button:enabled {
         background: $restore;
     }
 }
-button:enabled:hover {
+button:enabled:hover, .btn:hover {
     background: lighten($blue, 15);
     &.commit {
         background: lighten($commit, 15);
@@ -74,6 +75,20 @@ button[disabled], button[disabled]:hover {
     }
 }
 
+button.square {
+    width: 2em;
+    height: 2em;
+    align-self: center;
+    padding: 0.2 * $unit;
+}
+
 .flex-row {
     display: flex;
+}
+
+a {
+    color: $link;
+}
+a:hover, a:active {
+    color: $linkActive;
 }

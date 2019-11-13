@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0beta1 (32d4812, 2019-09-19)"
+   sodipodi:docname="bench.svg"
+   version="1.1"
+   viewBox="0 0 100 100"
+   id="bench">
+  <metadata
+     id="metadata1028">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs1026" />
+  <sodipodi:namedview
+     inkscape:current-layer="bench"
+     inkscape:window-maximized="0"
+     inkscape:window-y="23"
+     inkscape:window-x="0"
+     inkscape:cy="40.867769"
+     inkscape:cx="59.421488"
+     inkscape:zoom="6.05"
+     showgrid="false"
+     id="namedview1024"
+     inkscape:window-height="813"
+     inkscape:window-width="1440"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     inkscape:document-rotation="0"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <image
+     sodipodi:absref="/Users/jlong/devel/sup/frontend/ortho_bench.png"
+     xlink:href="ortho_bench.png"
+     height="100%"
+     width="100%"
+     id="image1019" />
+  <circle
+     id="circle1021"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="3"
+     cx="32" />
+  <circle
+     cx="28.347109"
+     cy="2.3966942"
+     r="0.5"
+     stroke="black"
+     stroke-width="0.125"
+     fill="red"
+     id="circle1021-3" />
+  <circle
+     id="circle1021-3-7"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="2.5206611"
+     cx="24.710743" />
+  <circle
+     id="circle1021-3-8"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="10.454545"
+     cx="39.380165" />
+  <circle
+     id="circle1021-3-83"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="11.652893"
+     cx="43.099171" />
+  <circle
+     id="circle1021-3-5"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="77.190086"
+     cx="76.776863" />
+  <circle
+     id="circle1021-3-4"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="66.776863"
+     cx="69.917358" />
+  <circle
+     id="circle1021-3-3"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="43.801655"
+     cx="80.165291" />
+  <circle
+     id="circle1021-3-49"
+     fill="red"
+     stroke-width="0.125"
+     stroke="black"
+     r="0.5"
+     cy="68.264465"
+     cx="49.752068" />
+</svg>

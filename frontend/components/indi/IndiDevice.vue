@@ -1,12 +1,13 @@
 <template>
-  <div class="device">
+  <div v-if="thisDevice" class="device">
     <indi-property
-      v-for="prop in objectAsSortedArray(device.properties)"
-      :key="device.name + '.' + prop.name"
-      :device="device"
+      v-for="prop in objectAsSortedArray(thisDevice.properties)"
+      :key="thisDevice.name + '.' + prop.name"
+      :device="thisDevice"
       :property="prop"
     ></indi-property>
   </div>
+  <div v-else>Waiting for device</div>
 </template>
 <style lang="scss" scoped>
 @import './css/variables.scss';
@@ -19,14 +20,15 @@
 </style>
 <script>
 import IndiProperty from "./IndiProperty.vue";
-import utils from "./utils.js";
+import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
 
 export default {
-  props: ["device"],
+  props: ["device", "indiId"],
   inject: ["time"],
   components: {
     IndiProperty
   },
-  mixins: [utils]
+  mixins: [indi, utils]
 };
 </script>
