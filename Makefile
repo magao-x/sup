@@ -1,8 +1,8 @@
 .PHONY: all init buildjs servejs
 
 init:
-	yarn install
 	pip install -e .
+	cd frontend/ && yarn install
 
 buildjs:
 	cd frontend/ && NODE_ENV=development yarn parcel build -d ../sup/static/ index.html
