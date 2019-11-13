@@ -295,12 +295,12 @@ async def init_connections(sanic, loop):
 async def close_connections(sanic, loop):
     await sanic.indi.stop()
 
-def main(indi_host, indi_port, potemkin):
+def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     logging.basicConfig(level='INFO')
     app.config.indi_host = indi_host
     app.config.indi_port = indi_port
     app.config.potemkin = potemkin
-    app.run(host='localhost')
+    app.run(host=bind_host, port=bind_port)
 
 def console_entrypoint():
     import argparse
@@ -327,11 +327,23 @@ def console_entrypoint():
         nargs="?",
         default=DEFAULT_PORT,
     )
+    parser.add_argument(
+        "-b", "--bind-host",
+        help="Specify hostname or IP to bind web server to (default: 127.0.0.1)",
+        nargs="?",
+        default="127.0.0.1",
+    )
+    parser.add_argument(
+        "-n", "--bind-port",
+        help="Specify port to bind web server to (default: 8000)",
+        nargs="?",
+        default=8000,
+    )
     args = parser.parse_args()
     if args.help:
         parser.print_help()
         sys.exit(1)
-    sys.exit(main(args.host, args.port, args.potemkin))
+    sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
 
 if __name__ == '__main__':
     console_entrypoint()
