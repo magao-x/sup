@@ -4,11 +4,11 @@ init:
 	pip install -e .
 	cd frontend/ && yarn install
 
-buildjs:
-	cd frontend/ && NODE_ENV=development yarn parcel build -d ../sup/static/ index.html
+buildjs: init
+	cd frontend/ && yarn parcel build -d ../sup/static/ index.html
 
-all: init buildjs
+all: buildjs
 
-servejs:
+servejs: init
 	cd frontend/ && yarn parcel serve -d ../sup/static/ index.html
 
