@@ -1,5 +1,7 @@
 .PHONY: all init buildjs servejs
 
+all: buildjs
+
 init:
 	pip install -e .
 	cd frontend/ && yarn install
@@ -7,8 +9,6 @@ init:
 buildjs: init
 	cd frontend/ && yarn parcel build -d ../sup/static/ index.html
 
-all: buildjs
 
 servejs: init
 	cd frontend/ && yarn parcel serve -d ../sup/static/ index.html
-
