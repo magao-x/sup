@@ -22,12 +22,15 @@ export default {
   },
   methods: {
     sendIndiNew: function (device, property, element, value) {
-      this.$socket.emit('indi_new', {
-          'device': device.name,
-          'property': property.name,
-          'element': element.name,
-          'value': value
-      });
+      console.log("In sendIndiNew");
+      const payload = {
+        'device': device.name,
+        'property': property.name,
+        'element': element.name,
+        'value': value
+      };
+      this.$socket.emit('indi_new', payload);
+      console.log(payload);
     },
     retrieveByIndiId: function (indiId) {
       const parts = indiId.split('.');

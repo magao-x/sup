@@ -28,13 +28,10 @@ import pkg_resources
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
     __version__ = f.read().strip()
 
-
 from collections.abc import MutableMapping, MutableSequence
 
 BATCH_UPDATE_INTERVAL = 1 # second
 PING_INTERVAL = 10
-
-DEBUG = True
 
 def property_from_jsonable(jsonable):
     jsonable['timestamp'] = parse_iso_to_datetime(jsonable['timestamp'])
@@ -158,6 +155,7 @@ def convert_indi_update_for_json(update):
 static_folder_name = "static"
 app = Sanic('sup')
 
+sup_tasks = []
 
 sio = socketio.AsyncServer(
     async_mode='sanic',
@@ -288,12 +286,16 @@ async def init_connections(sanic, loop):
     app.indi.add_async_watcher(app.indi_batcher.process_update)
     app.update_queue = asyncio.Queue()
     # app.indi.add_watcher(log_updates)
-    app.add_task(app.indi.run(reconnect_automatically=True))
-    app.add_task(emit_updates())
+    indi_coro = app.indi.run(reconnect_automatically=True)
+    sup_tasks.append(loop.create_task(indi_coro))
+    emit_updates_coro = emit_updates()
+    sup_tasks.append(loop.create_task(emit_updates_coro))
 
 @app.listener("before_server_stop")
 async def close_connections(sanic, loop):
     await sanic.indi.stop()
+    for task in sup_tasks:
+        task.cancel()
 
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     logging.basicConfig(level='INFO')

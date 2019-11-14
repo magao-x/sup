@@ -1,5 +1,5 @@
-@import './variables.scss';
-@import './icons/material-icons.css';
+@import '~/css/variables.scss';
+@import '~/css/icons/material-icons.css';
 
 body {
 background: $base03;
@@ -67,11 +67,22 @@ button:enabled:hover, .btn:hover {
     }
 }
 
-button[disabled], button[disabled]:hover {
+button[disabled], button[disabled]:hover, .btn.disabled, .btn.disabled:hover {
     background: $base02;
     border: 1px solid $base03;
     &.commit {
         background: inherit;
+    }
+}
+
+button:active, .btn:active, .btn.active {
+    box-shadow: inset 0px 0px 5px black;
+    background: lighten($blue, 30);
+    &.commit {
+        background: lighten($commit, 30);
+    }
+    &.restore {
+        background: lighten($restore, 30);
     }
 }
 

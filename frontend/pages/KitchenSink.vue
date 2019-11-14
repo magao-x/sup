@@ -11,6 +11,12 @@
     <br><br>
     <indi-switch-multi-element indi-id="timeSeriesSimulator.function"></indi-switch-multi-element>
     <indi-switch-multi-element indi-id="fwpupil.filterName"></indi-switch-multi-element>
+    <div style="width: 10em;">
+      <div class="btn active">Foo</div>
+    </div>
+    <div style="width: 10em;">
+      <button>Button</button>
+    </div>
   </div>
 </template>
 <style scoped lang="scss">

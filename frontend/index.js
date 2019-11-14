@@ -7,7 +7,13 @@ import VueSocketIO from 'vue-socket.io';
 import router from "./router.js";
 import utils from "./mixins/utils.js";
 
-const socket = io("http://localhost:8000");
+function buildConnectionString() {
+  const apiPort = 8000;
+  const connectionString = window.location.protocol + '//' + window.location.hostname + ':' + String(apiPort);
+  return connectionString;
+}
+
+const socket = io(buildConnectionString());
 for (let evt of ['pong', 'connect']) {
   socket.on(evt, () => {store.commit('heartbeat');});
 }
@@ -18,7 +24,7 @@ for (let evt of ['connect_error', 'connect_timeout', 'disconnect']) {
 socket.on('connect_error', (err) => console.error("socket.io connection error", err));
 
 Vue.use(new VueSocketIO({
-    debug: false,
+    debug: process.env.NODE_ENV == 'development',
     connection: socket,
     vuex: {
         store,
