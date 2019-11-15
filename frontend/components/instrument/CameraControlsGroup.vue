@@ -2,12 +2,15 @@
   <div class="camera-controls-group">
     <h1 class="camera-name">{{ camName }}</h1>
     <div v-if="isDefined">
-      <filter-wheel :device="fw"></filter-wheel>
+      <filter-wheel :device="fw" :label="fwName"></filter-wheel>
+      <filter-wheel indi-id="fwscind"></filter-wheel> <!--todo goes with camscis-->
+      <focus-stage :device="stage"></focus-stage>
+      <region-of-interest :device="cam"></region-of-interest>
+      <stream-writer :device="streamWriter"></stream-writer>
+      <shutter :device="cam"></shutter>
     </div>
     <div v-else>
-      <p>No device {{ camName }}</p>
-      <p>Filter wheel: {{ fwName }}</p>
-      <p>Stage: {{ stageName }}</p>
+      <p>Waiting for device</p>
     </div>
   </div>
 </template>
@@ -16,6 +19,10 @@
 .camera-controls-group {
   background: $base02;
   padding: $unit;
+  min-width: 30em;
+  &:first-child {
+    margin-top: 0;
+  }
   h1.camera-name {
     font-size: inherit;
     padding: 0 0 $unit 0;
@@ -27,6 +34,10 @@
 <script>
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import FilterWheel from "~/components/instrument/FilterWheel.vue";
+import FocusStage from "~/components/instrument/FocusStage.vue";
+import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
+import StreamWriter from "~/components/instrument/StreamWriter.vue";
+import Shutter from "~/components/instrument/Shutter.vue";
 
 const cameraGroup = {
   filterWheel: null,
@@ -35,7 +46,8 @@ const cameraGroup = {
   adcSpeed: null,
   gain: null,
   regionOfInterest: null,
-  streamWriter: null
+  streamWriter: null,
+  shutter: null
 };
 export default {
   props: ["baseName"],

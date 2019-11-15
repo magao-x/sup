@@ -11,6 +11,7 @@
     <br><br>
     <indi-switch-multi-element indi-id="timeSeriesSimulator.function"></indi-switch-multi-element>
     <indi-switch-multi-element indi-id="fwpupil.filterName"></indi-switch-multi-element>
+    <indi-switch-multi-element indi-id="fliptip.position"></indi-switch-multi-element>
     <div style="width: 10em;">
       <div class="btn active">Foo</div>
     </div>

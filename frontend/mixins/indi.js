@@ -22,7 +22,6 @@ export default {
   },
   methods: {
     sendIndiNew: function (device, property, element, value) {
-      console.log("In sendIndiNew");
       const payload = {
         'device': device.name,
         'property': property.name,
@@ -30,7 +29,6 @@ export default {
         'value': value
       };
       this.$socket.emit('indi_new', payload);
-      console.log(payload);
     },
     retrieveByIndiId: function (indiId) {
       const parts = indiId.split('.');

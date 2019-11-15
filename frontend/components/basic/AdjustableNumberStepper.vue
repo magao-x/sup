@@ -30,7 +30,7 @@
     margin: 0;
     padding: 0;
   }
-  width: 12em;
+  width: 100%;
   display: flex;
   flex: 1;
   flex-direction: row;

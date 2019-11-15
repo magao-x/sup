@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ul class="buttons">
+    <ul class="buttons" :class="{'vertical': orientation == 'vertical', 'horizontal': orientation == 'horizontal'}">
       <li v-for="elem in switchElements" :key="elem.name" class="button">
         <toggle-button
           :disabled="disabled"
@@ -17,6 +17,9 @@
   display: flex;
   padding: 0;
   list-style-type: none;
+  &.vertical {
+    flex-direction: column;
+  }
 }
 </style>
 <script>
@@ -24,20 +27,14 @@ import indi from "~/mixins/indi.js";
 import ToggleButton from "~/components/basic/ToggleButton.vue";
 
 export default {
-  props: ["device", "property", "indiId", "disabled"],
+  props: ["device", "property", "indiId", "disabled", "orientation"],
   mixins: [indi],
   components: {
     ToggleButton
   },
-  data: function () {
-    switches: []
-  },
   methods: {
-    sendSwitches: function(elemName) {
-      this.sendIndiNew(this.thisDevice, this.thisProperty, elemName, "On");
-      console.log(`Setting ${elemName} On`);
-    },
     sendSwitch: function(element) {
+      if (this.disabled) return;
       if (element.value == 'Off') {
         this.sendIndiNew(this.thisDevice, this.thisProperty, element, "On");
         console.log(`Setting ${element.name} On`);
