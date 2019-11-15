@@ -80,6 +80,11 @@
         background:  lighten($primary, 15);
       }
     }
+    &.disabled {
+      .doodad {
+        background:  darken($primary, 15);
+      }
+    }
   }
 }
 </style>
