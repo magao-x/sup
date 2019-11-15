@@ -73,7 +73,11 @@ export default {
       }
     },
     updateUserInput: function (payload) {
-      this.userInput = payload;
+      if (payload.target.value) {
+        this.userInput = payload.target.value;
+      } else {
+        this.userInput = payload;
+      }
     },
     optionalAttr: function(attr) {
       if (this.thisElement && this.thisElement.hasOwnProperty(attr)) {
