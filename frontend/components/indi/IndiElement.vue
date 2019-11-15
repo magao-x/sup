@@ -152,7 +152,7 @@ export default {
       }
     },
     currentValueOrInput: function () {
-      if (this.userInput !== null) {
+      if (this.shouldUpdate === false && this.userInput !== null) {
         return this.userInput;
       } else {
         if (this.propertyKind == 'num' && this.thisElement.format) {
