@@ -7,19 +7,23 @@
     </div>
     <div class="flex-row">
       <div class="vertical-selector">
-        <router-link to="/" class="choice" style="color: #cb4b16">
+        <router-link to="/" class="choice controls">
           <span class="nav-icon"><i class="material-icons">settings_applications</i></span>
           <span class="label">controls</span>
         </router-link>
-        <router-link to="/properties" class="choice" style="color: #2aa198">
+        <router-link to="/power" class="choice power">
+          <span class="nav-icon"><i class="material-icons">power_settings_new</i></span>
+          <span class="label">power</span>
+        </router-link>
+        <router-link to="/properties" class="choice properties">
           <span class="nav-icon"><i class="material-icons">memory</i></span>
           <span class="label">properties</span>
         </router-link>
-        <router-link to="/dashboard" class="choice" style="color: #b58900">
+        <router-link to="/dashboard" class="choice dashboard">
           <div class="nav-icon"><i class="material-icons">dashboard</i></div>
           <div class="label">dashboard</div>
         </router-link>
-        <router-link to="/bench" class="choice">
+        <router-link to="/bench" class="choice bench">
           <span class="nav-icon"><i class="material-icons">build</i></span>
           <span class="label">bench</span>
         </router-link>
@@ -71,6 +75,12 @@
   .choice {
     padding: 0.5*$unit;
     display: block;
+    &.controls {
+      color: $warning;
+    }
+    &.power {
+      color: $primary;
+    }
   }
   .choice.router-link-exact-active {
     background: $base02;

@@ -1,5 +1,5 @@
 <template>
-
+    <div>streamwriter control</div>
 </template>
 <style lang="scss" scoped>
 

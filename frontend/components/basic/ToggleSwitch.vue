@@ -1,12 +1,23 @@
 <template>
-  <div class="toggle" :class="classes" @click.prevent="toggle">
-    <div class="doodad">{{ value ? "|" : "O" }}</div>
+  <div class="toggle-and-commit">
+  <div class="toggle" :class="classes" @click.prevent="toggleOrPrompt">
+    <div class="doodad">{{ currentValue ? "|" : "O" }}</div>
+  </div>
+  <commit-button v-if="prompt" :disabled="!waitingToCommit" @commit="toggle"></commit-button>
   </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
+.toggle-and-commit {
+  display: inline-block;
+  vertical-align: middle;
+  margin-bottom: 3px;
+  height: 2em;
+}
 .toggle {
   position: relative;
+  display: inline-block;
+  vertical-align: middle;
   width: 3em;
   height: calc(1.5em + 2px);
   border-radius: 1em;
@@ -50,8 +61,8 @@
       border: 1px solid transparent;
     }
   }
-  &.active {
-    box-shadow: 0 0 5px lighten($primary, 15);
+  &.active.enabled {
+    // box-shadow: 0 0 5px lighten($primary, 15);
     .doodad {
       left: auto;
       right: 0;
@@ -62,15 +73,31 @@
 }
 </style>
 <script>
+import CommitButton from "~/components/basic/CommitButton.vue";
 export default {
-  props: ["value", "busy"],
+  props: ["value", "busy", "disabled", "prompt"],
+  components: {CommitButton},
+  data: function () {
+    return {
+      waitingToCommit: false,
+      targetState: null
+    };
+  },
   computed: {
+    currentValue: function () {
+      return this.targetState === null ? this.value : this.targetState;
+    },
+    busyOrWaiting: function () {
+      return this.busy || this.waitingToCommit;
+    },
     classes: function() {
       return {
-        inactive: !this.value && !this.busy,
-        active: this.value && !this.busy,
-        activating: this.value && this.busy,
-        deactivating: !this.value && this.busy
+        inactive: !this.value && !this.busyOrWaiting,
+        active: this.value && !this.busyOrWaiting,
+        activating: this.value && this.busyOrWaiting,
+        deactivating: !this.value && this.busyOrWaiting,
+        disabled: this.disabled,
+        enabled: !this.disabled
       };
     },
     symbol: function () {
@@ -82,8 +109,21 @@ export default {
     }
   },
   methods: {
+    toggleOrPrompt: function () {
+      if (this.disabled) return;
+      if (!this.prompt) return this.toggle();
+      this.targetState = !this.currentValue;
+      if (this.targetState == this.value) {
+        this.waitingToCommit = false;
+      } else {
+        this.waitingToCommit = true;
+      }
+    },
     toggle: function() {
-      this.$emit("input", !this.value);
+      if (!this.disabled) {
+        this.$emit("input", !this.value);
+      }
+      this.waitingToCommit = false;
     }
   }
 };

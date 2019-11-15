@@ -7,7 +7,7 @@
       <focus-stage :device="stage"></focus-stage>
       <region-of-interest :device="cam"></region-of-interest>
       <stream-writer :device="streamWriter"></stream-writer>
-      <shutter :device="cam"></shutter>
+      <shutter-toggle :device="cam"></shutter-toggle>
     </div>
     <div v-else>
       <p>Waiting for device</p>
@@ -37,7 +37,7 @@ import FilterWheel from "~/components/instrument/FilterWheel.vue";
 import FocusStage from "~/components/instrument/FocusStage.vue";
 import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
 import StreamWriter from "~/components/instrument/StreamWriter.vue";
-import Shutter from "~/components/instrument/Shutter.vue";
+import ShutterToggle from "~/components/instrument/ShutterToggle.vue";
 
 const cameraGroup = {
   filterWheel: null,
@@ -53,7 +53,11 @@ export default {
   props: ["baseName"],
   components: {
     IndiSwitchMultiElement,
-    FilterWheel
+    FilterWheel,
+    FocusStage,
+    RegionOfInterest,
+    StreamWriter,
+    ShutterToggle,
   },
   computed: {
     camName() {
@@ -75,7 +79,7 @@ export default {
       return this.$store.state.devices[this.stageName];
     },
     streamWriterName() {
-      return "sw" + this.baseName;
+      return this.camName + "-sw";
     },
     streamWriter() {
       return this.$store.state.devices[this.streamWriterName];

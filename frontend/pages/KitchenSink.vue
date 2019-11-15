@@ -6,7 +6,12 @@
     <indi-property
       indi-id="timeSeriesSimulator.gizmo_0001"
     ></indi-property>
-    <toggle-switch v-model="dingus"></toggle-switch>
+
+    <div>
+      Foo bar baz <toggle-switch v-model="dingus"></toggle-switch>
+      <commit-button></commit-button> quux <toggle-switch v-model="dingus"></toggle-switch>phlarb
+      <commit-button></commit-button>
+    </div>
     <select><option>Foo</option><option>Foo</option></select>
     <br><br>
     <indi-switch-multi-element indi-id="timeSeriesSimulator.function"></indi-switch-multi-element>
@@ -74,6 +79,7 @@ select {
 // }
 </style>
 <script>
+import CommitButton from "~/components/basic/CommitButton.vue";
 import CameraControlsGroup from "~/components/instrument/CameraControlsGroup.vue";
 import BenchView from "~/components/instrument/BenchView.vue";
 import AdjustableNumberStepper from "~/components/basic/AdjustableNumberStepper.vue";
@@ -92,7 +98,8 @@ const components = {
   ToggleSwitch,
   IndiElement,
   IndiSwitchMultiElement,
-  IndiProperty
+  IndiProperty,
+  CommitButton
 };
 
 export default {

@@ -29,6 +29,7 @@ export default {
         'value': value
       };
       this.$socket.emit('indi_new', payload);
+      console.log('Emitted indi_new', payload)
     },
     retrieveByIndiId: function (indiId) {
       const parts = indiId.split('.');
