@@ -1,105 +1,119 @@
-@import '~/css/variables.scss';
-@import '~/css/icons/material-icons.css';
-
+@import "~/css/variables.scss";
+@import "~/css/icons/material-icons.css";
+@import "~/css/fonts/noto/noto.css";
 body {
-background: $base03;
-line-height: 1.6;
-font-size: 1rem;
-color: $base0;
-font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: $base03;
+  line-height: 1.6;
+  font-size: 1rem;
+  color: $base0;
+  font-family: "Noto Sans", serif;
 }
 
 h1,
 h2,
 h3 {
-line-height: 1.2
+  line-height: 1.2;
 }
 
-input, button {
-    border: none;
-    outline: none;
-    margin: 0.1em;
-    font: inherit;
+input,
+button {
+  border: none;
+  outline: none;
+  margin: 0.1em;
+  font: inherit;
 }
 
 input {
-    box-sizing: border-box;
-    background: $base02;
-    color: inherit;
-    border-bottom: 1px solid $base1;
-    padding: 0.2 * $unit;
+  box-sizing: border-box;
+  background: $base02;
+  color: inherit;
+  border-bottom: 1px solid $base1;
+  padding: 0.2 * $unit;
 }
+
 input:enabled {
-    color: $base2;
+  color: $base2;
 }
 
-button, .btn {
-    transition: background $transitionTime;
-    border-radius: $round-radius;
-    padding: 0.2 * $unit 0.6 * $unit;
-    text-align: center;
-    .material-icons {
-        padding: 0;
-        // display: inline-block;
-        line-height: 1;
-        // height: 2em;
-    }
-}
-button:enabled, .btn {
-    color: $base03;
-    border: 1px solid $base03;
-    cursor: pointer;
-    background: $blue;
-    &.commit {
-        background: $commit;
-    }
-    &.restore {
-        background: $restore;
-    }
-}
-button:enabled:hover, .btn:hover {
-    background: lighten($blue, 15);
-    &.commit {
-        background: lighten($commit, 15);
-    }
-    &.restore {
-        background: lighten($restore, 15);
-    }
+button,
+.btn {
+  transition: background $transitionTime;
+  border-radius: $round-radius;
+  padding: 0.2 * $unit 0.6 * $unit;
+  text-align: center;
+  .material-icons {
+    padding: 0;
+    // display: inline-block;
+    line-height: 1;
+    // height: 2em;
+  }
 }
 
-button[disabled], button[disabled]:hover, .btn.disabled, .btn.disabled:hover {
-    background: $base02;
-    border: 1px solid $base03;
-    &.commit {
-        background: inherit;
-    }
+button:enabled,
+.btn {
+  color: $base03;
+  border: 1px solid $base03;
+  cursor: pointer;
+  background: $blue;
+  &.commit {
+    background: $commit;
+  }
+  &.restore {
+    background: $restore;
+  }
 }
 
-button:enabled:active, .btn.enabled:active, .btn.active {
-    box-shadow: inset 0px 0px 5px black;
-    background: lighten($blue, 30);
-    &.commit {
-        background: lighten($commit, 30);
-    }
-    &.restore {
-        background: lighten($restore, 30);
-    }
+button:enabled:hover,
+.btn:hover {
+  background: lighten($blue, 15);
+  &.commit {
+    background: lighten($commit, 15);
+  }
+  &.restore {
+    background: lighten($restore, 15);
+  }
+}
+
+button[disabled],
+button[disabled]:hover,
+.btn.disabled,
+.btn.disabled:hover {
+  background: $base02;
+  border: 1px solid $base03;
+  &.commit {
+    background: inherit;
+  }
+}
+
+button:enabled:active,
+.btn.enabled:active,
+.btn.active {
+  box-shadow: inset 0px 0px 5px black;
+  background: lighten($blue, 30);
+  &.commit {
+    background: lighten($commit, 30);
+  }
+  &.restore {
+    background: lighten($restore, 30);
+  }
 }
 
 button.square {
-    width: 2em;
-    height: 2em;
-    align-self: center;
-    padding: 0.2 * $unit;
+  width: 2em;
+  height: 2em;
+  align-self: center;
+  padding: 0.2 * $unit;
 }
 
 .flex-row {
-    display: flex;
+  display: flex;
 }
 
 a {
-    color: $link;
+  color: $link;
 }
-a:hover, a:active {
-    color: $linkActive;
+
+a:hover,
+a:active {
+  color: $linkActive;
 }

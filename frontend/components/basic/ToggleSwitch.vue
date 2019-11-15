@@ -1,6 +1,6 @@
 <template>
   <div class="toggle" :class="classes" @click.prevent="toggle">
-    <div class="doodad">{{ value ? "I" : "O" }}</div>
+    <div class="doodad">{{ value ? "|" : "O" }}</div>
   </div>
 </template>
 <style lang="scss" scoped>
