@@ -122,7 +122,9 @@ export default {
           for (let property of this.objectAsSortedArray(device.properties)) {
             for (let element of this.objectAsSortedArray(property.elements)) {
               let shouldPush = false;
-              if (!doFilter || (device.name.includes(sstr) || property.name.includes(sstr) || element.name.includes(sstr))) {
+              const indiId = `${device.name}.${property.name}.${element.name}`;
+
+              if (!doFilter || indiId.includes(sstr)) {
                 devs.push({
                   device,
                   property,
