@@ -40,6 +40,13 @@
       border: 1px solid $primary;
       background: transparent;
     }
+    &.disabled {
+      color: darkgray;
+      border: 1px solid $base0;
+      .doodad {
+        border: 1px solid $base0;
+      }
+    }
   }
   &.activating {
     .doodad {
@@ -61,13 +68,17 @@
       border: 1px solid transparent;
     }
   }
-  &.active.enabled {
-    // box-shadow: 0 0 5px lighten($primary, 15);
+  &.active {
+    box-shadow: 0 0 5px lighten($primary, 15);
     .doodad {
       left: auto;
       right: 0;
-      background:  lighten($primary, 15);
       border: 1px solid $primary;
+    }
+    &.enabled {
+      .doodad {
+        background:  lighten($primary, 15);
+      }
     }
   }
 }
