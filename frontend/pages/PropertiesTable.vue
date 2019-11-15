@@ -5,7 +5,7 @@
         <i class="material-icons">search</i>
       </span>
       <input v-model="searchString" />
-      <button class="square">
+      <button class="square" @click="clearFilter" :disabled="!doFilter">
         <i class="material-icons">clear</i>
       </button>
     </div>
@@ -108,37 +108,44 @@ table {
 </style>
 <script>
 import IndiElement from "~/components/indi/IndiElement.vue";
+import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
 import IndiStateIndicator from "~/components/indi/IndiStateIndicator.vue";
 import utils from "~/mixins/utils.js";
 
 export default {
   components: {
     IndiElement,
-    IndiStateIndicator
+    IndiStateIndicator,
+    FiniteStateMachineStatus
   },
   mixins: [utils],
   computed: {
+    doFilter: function () {
+      return this.searchString.length > 2;
+    },
     filteredFlattenedDevices: function() {
       const devs = [];
       let sstr = this.searchString;
-      let doFilter = sstr.length > 2;
-        for (let device of this.objectAsSortedArray(this.$store.state.devices)) {
-          for (let property of this.objectAsSortedArray(device.properties)) {
-            for (let element of this.objectAsSortedArray(property.elements)) {
-              let shouldPush = false;
-              const indiId = `${device.name}.${property.name}.${element.name}`;
-
-              if (!doFilter || indiId.includes(sstr)) {
-                devs.push({
-                  device,
-                  property,
-                  element
-                });
-              }
+      for (let device of this.objectAsSortedArray(this.$store.state.devices)) {
+        for (let property of this.objectAsSortedArray(device.properties)) {
+          for (let element of this.objectAsSortedArray(property.elements)) {
+            const indiId = `${device.name}.${property.name}.${element.name}`;
+            if (!this.doFilter || indiId.includes(sstr)) {
+              devs.push({
+                device,
+                property,
+                element
+              });
             }
           }
         }
+      }
       return devs;
+    }
+  },
+  methods: {
+    clearFilter() {
+      this.searchString = "";
     }
   },
   data: function() {

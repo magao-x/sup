@@ -26,7 +26,7 @@ const components = {
 export default {
   components,
   data: function () {
-    return {controlActive: true};
+    return {controlActive: false};
   },
   computed: {
     disabled: function () {
