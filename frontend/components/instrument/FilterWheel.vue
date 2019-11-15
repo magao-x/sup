@@ -4,16 +4,24 @@
     <div>{{ fsmState }}</div>
     <indi-value :indiId="thisDevice.name + '.filter.current'"></indi-value>
     <indi-element :indiId="thisDevice.name + '.filter.target'" inputWidth="5"></indi-element>
-    <button @click.prevent="sendHome"><i class="material-icons">home</i>home</button>
-    <button @click.prevent="sendStop"><i class="material-icons">block</i>stop</button>
-
+    <div style="display: flex">
+      <button class="home" @click.prevent="sendHome"><i class="material-icons">home</i> home</button>
+      <button class="stop" @click.prevent="sendStop"><i class="material-icons">block</i> stop</button>
+    </div>
     <indi-switch-multi-element :orientation="orientation" :disabled="isDisabled" :device="thisDevice" :property="filterNames" ></indi-switch-multi-element>
   </div>
 </template>
 <style lang="scss" scoped>
+@import '~/css/variables.scss';
 .filter-wheel {
   margin: 1rem;
   flex: 1;
+}
+button.home {
+  background-color: $yellow;
+}
+button.stop {
+  background-color: $red;
 }
 </style>
 <script>
