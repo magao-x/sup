@@ -98,12 +98,17 @@ class BogusINDIClient(AsyncINDIClient):
         prop = self.devices[dev].properties[prop]
         original_state = prop._state
         self.apply_update(update)
+        for watcher in self.async_watchers:
+            asyncio.create_task(watcher(update, did_anything_change=True))
+        print("Applied faux-indi-new update", pformat(update))
         async def clear_busy():
             update['action'] = INDIActions.PROPERTY_SET
             update['property']['state'] = original_state
             await asyncio.sleep(2)
             self.apply_update(update)
-        asyncio.create_task(clear_busy)
+            for watcher in self.async_watchers:
+                await watcher(update, did_anything_change=True)
+        asyncio.create_task(clear_busy())
 
     async def run(self, *args, **kwargs):
         return
@@ -120,37 +125,37 @@ def log_updates(update, did_anything_change):
             if did_anything_change:
                 print(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
 
-def convert_indi_update_for_json(update):
-    modified = deepcopy(update)
-    # Convert Enums to strings
-    modified['action'] = update['action'].value
-    # Convert datetime to string ISO timestamp
-    if 'timestamp' in update:
-        modified['timestamp'] = format_datetime_as_iso(modified['timestamp'])
-    if 'property' in update:
-        modified['property']['kind'] = update['property']['kind'].value
-        update_prop = update['property']
-        modified_prop = modified['property']
-        modified_prop['timestamp'] = format_datetime_as_iso(modified_prop['timestamp'])
-        # Check for optional attrs
-        if 'perm' in update_prop:
-            modified_prop['perm'] = update_prop['perm'].value
-        if 'state' in update_prop:
-            modified_prop['state'] = update_prop['state'].value
-        if 'rule' in update_prop:
-            modified_prop['rule'] = update_prop['rule'].value
-        if update_prop['kind'] in (INDIPropertyKind.SWITCH, INDIPropertyKind.LIGHT):
-            for key in update_prop['elements']:
-                modified_prop['elements'][key]['value'] = update_prop['elements'][key]['value'].value
-        if update_prop['kind'] is INDIPropertyKind.NUMBER:
-            for key in update_prop['elements']:
-                the_value = update_prop['elements'][key]['value']
-                modified_prop['elements'][key]['value'] = (
-                    the_value
-                    if the_value is not None and math.isfinite(the_value)
-                    else None
-                )
-    return modified
+# def convert_indi_update_for_json(update):
+#     modified = deepcopy(update)
+#     # Convert Enums to strings
+#     modified['action'] = update['action'].value
+#     # Convert datetime to string ISO timestamp
+#     if 'timestamp' in update:
+#         modified['timestamp'] = format_datetime_as_iso(modified['timestamp'])
+#     if 'property' in update:
+#         modified['property']['kind'] = update['property']['kind'].value
+#         update_prop = update['property']
+#         modified_prop = modified['property']
+#         modified_prop['timestamp'] = format_datetime_as_iso(modified_prop['timestamp'])
+#         # Check for optional attrs
+#         if 'perm' in update_prop:
+#             modified_prop['perm'] = update_prop['perm'].value
+#         if 'state' in update_prop:
+#             modified_prop['state'] = update_prop['state'].value
+#         if 'rule' in update_prop:
+#             modified_prop['rule'] = update_prop['rule'].value
+#         if update_prop['kind'] in (INDIPropertyKind.SWITCH, INDIPropertyKind.LIGHT):
+#             for key in update_prop['elements']:
+#                 modified_prop['elements'][key]['value'] = update_prop['elements'][key]['value'].value
+#         if update_prop['kind'] is INDIPropertyKind.NUMBER:
+#             for key in update_prop['elements']:
+#                 the_value = update_prop['elements'][key]['value']
+#                 modified_prop['elements'][key]['value'] = (
+#                     the_value
+#                     if the_value is not None and math.isfinite(the_value)
+#                     else None
+#                 )
+#     return modified
 
 static_folder_name = "static"
 app = Sanic('sup')
@@ -208,9 +213,9 @@ async def disconnect(sid):
 
 @sio.on('indi_new')
 def handle_indi_new(sid, data):
-    if app.config.potemkin:
-        print("Skipping indi_new because only fake data shown")
-        return
+    # if app.config.potemkin:
+    #     print("Skipping indi_new because only fake data shown")
+    #     return
     info(f"indi_new setting {data['device']}.{data['property']}.{data['element']}={data['value']}")
     prop = app.indi.devices[data['device']].properties[data['property']]
     if prop.KIND == INDIPropertyKind.NUMBER:
@@ -225,7 +230,7 @@ class INDIUpdateBatcher:
         self.client_instance = client_instance
         self.properties_to_update = set()
         self.properties_to_delete = set()
-    async def process_update(self, update, *_):
+    async def process_update(self, update, *args, **kwargs):
         if update['action'] in (INDIActions.PROPERTY_SET, INDIActions.PROPERTY_DEF):
             device_name = update['device']
             property_name = update['property']['name']
@@ -272,10 +277,9 @@ async def emit_updates():
 
 def make_indi_connection(potemkin):
     if potemkin:
-        # with open(Path(__file__).parent.parent / 'full_system_props.json', 'r') as f:
-        #     initial_state = json.load(f)
-        # return BogusINDIClient(initial_state)
-        raise NotImplementedError("TODO")
+        with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
+            initial_state = json.load(f)
+        return BogusINDIClient(initial_state)
     else:
         return AsyncINDIClient(app.config.indi_host, app.config.indi_port)
 
