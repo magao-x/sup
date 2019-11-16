@@ -12,7 +12,7 @@
           <span class="label">controls</span>
         </router-link>
         <router-link to="/power" class="choice power">
-          <span class="nav-icon"><i class="material-icons">power_settings_new</i></span>
+          <span class="nav-icon"><i class="material-icons">emoji_objects</i></span>
           <span class="label">power</span>
         </router-link>
         <router-link to="/properties" class="choice properties">
