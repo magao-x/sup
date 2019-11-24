@@ -18,6 +18,17 @@ export default {
       const numParts = this.indiId.split(".").length;
       if (numParts < 3) return null;
       return this.retrieveByIndiId(this.indiId);
+    },
+    thisIndiId: function () {
+      if (this.thisElement) {
+        return `${this.thisDevice.name}.${this.thisProperty.name}.${this.thisElement.name}`;
+      } else if (this.thisProperty) {
+        return `${this.thisDevice.name}.${this.thisProperty.name}`;
+      } else if (this.thisDevice) {
+        return this.thisDevice.name;
+      } else {
+        return null;
+      }
     }
   },
   methods: {

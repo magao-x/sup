@@ -1,13 +1,14 @@
 <template>
   <div class="camera-controls-group">
     <h1 class="camera-name">{{ camName }}</h1>
+    <finite-state-machine-status :device="cam"></finite-state-machine-status>
     <div v-if="isDefined">
-      <filter-wheel :device="fw" :label="fwName"></filter-wheel>
-      <filter-wheel indi-id="fwscind"></filter-wheel> <!--todo goes with camscis-->
-      <focus-stage :device="stage"></focus-stage>
-      <region-of-interest :device="cam"></region-of-interest>
       <stream-writer :device="streamWriter"></stream-writer>
       <shutter-toggle :device="cam"></shutter-toggle>
+      <filter-wheel :device="fw" :label="fwName"></filter-wheel>
+      <focus-stage :device="stage"></focus-stage>
+      <region-of-interest :device="cam"></region-of-interest>
+
     </div>
     <div v-else>
       <p>Waiting for device</p>
@@ -19,7 +20,6 @@
 .camera-controls-group {
   background: $base02;
   padding: $unit;
-  min-width: 30em;
   &:first-child {
     margin-top: 0;
   }
@@ -35,6 +35,7 @@
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import FilterWheel from "~/components/instrument/FilterWheel.vue";
 import FocusStage from "~/components/instrument/FocusStage.vue";
+import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
 import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
 import StreamWriter from "~/components/instrument/StreamWriter.vue";
 import ShutterToggle from "~/components/instrument/ShutterToggle.vue";
@@ -58,6 +59,7 @@ export default {
     RegionOfInterest,
     StreamWriter,
     ShutterToggle,
+    FiniteStateMachineStatus
   },
   computed: {
     camName() {

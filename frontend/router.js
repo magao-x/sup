@@ -7,11 +7,13 @@ import store from '~/store';
 import PropertiesTable from "~/pages/PropertiesTable.vue";
 import KitchenSink from "~/pages/KitchenSink.vue";
 import Dashboard from "~/pages/Dashboard.vue";
-import Controls from "~/pages/Controls.vue";
+import Cameras from "~/pages/Cameras.vue";
+import AdaptiveOptics from "~/pages/AdaptiveOptics.vue";
 import Power from "~/pages/Power.vue";
 
 const routes = [
-    { path: '/', component: Controls},
+    { path: '/', component: Cameras},
+    { path: '/ao', component: AdaptiveOptics},
     { path: '/power', component: Power},
     { path: '/properties', component: PropertiesTable },
     { path: '/kitchensink', component: KitchenSink },

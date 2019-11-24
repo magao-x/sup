@@ -1,10 +1,12 @@
-<template>
+<template><span>SHUT
   <toggle-switch
     v-if="thisProperty"
     :value="shutterState"
     @input="changeState"
     :disabled="disabled"
     :busy="busy"></toggle-switch>
+  OPEN
+  </span>
 </template>
 <style scoped lang="scss">
 @import "./css/variables.scss";
@@ -21,11 +23,6 @@ export default {
   components,
   props: ["device", "property", "indiId", "disabled"],
   mixins: [indi],
-  data: function () {
-    return {
-      busy: false
-    };
-  },
   methods: {
     changeState: function () {
       let newTarget
@@ -33,6 +30,8 @@ export default {
         newTarget = "OPEN";
       } else if (this.currentState === "OPEN") {
         newTarget = "SHUT";
+      } else {
+        return;
       }
       this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty.elements["target"], newTarget);
       this.busy = true;
@@ -45,8 +44,15 @@ export default {
     }
   },
   computed: {
+    busy() {
+      return this.thisProperty.state == 'Busy' || this.currentState == 'UNKNOWN';
+    },
+    thisProperty() {
+      return this.thisDevice.properties['shutter'];
+    },
     currentState: function () {
       return this.thisProperty.elements["current"].value;
+      // return "OPEN";
     },
     shutterState: function () {
       return this.currentState == "OPEN";

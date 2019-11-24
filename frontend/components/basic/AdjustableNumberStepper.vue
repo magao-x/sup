@@ -37,7 +37,7 @@
   input.value {
     font: inherit;
     width: 100%;
-    min-width: 0;
+    min-width: 6em;
     background-color: inherit;
     align-self: center;
   }

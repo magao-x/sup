@@ -7,29 +7,33 @@
     </div>
     <div class="flex-row">
       <div class="vertical-selector">
-        <router-link to="/" class="choice controls">
-          <span class="nav-icon"><i class="material-icons">settings_applications</i></span>
-          <span class="label">controls</span>
+        <router-link to="/" class="choice cameras">
+          <span class="nav-icon"><i class="material-icons">camera</i></span>
+          <span class="label">cameras</span>
         </router-link>
-        <router-link to="/power" class="choice power">
-          <span class="nav-icon"><i class="material-icons">emoji_objects</i></span>
-          <span class="label">power</span>
+        <router-link to="/ao" class="choice ao">
+          <span class="nav-icon"><i class="material-icons">blur_on</i></span>
+          <span class="label">AO</span>
+        </router-link>
+        <router-link to="/dashboard" class="choice dashboard">
+          <div class="nav-icon"><i class="material-icons">speed</i></div>
+          <div class="label">dashboard</div>
+        </router-link>
+        <router-link to="/bench" class="choice bench">
+          <span class="nav-icon"><i class="material-icons">developer_board</i></span>
+          <span class="label">bench</span>
         </router-link>
         <router-link to="/properties" class="choice properties">
           <span class="nav-icon"><i class="material-icons">memory</i></span>
           <span class="label">properties</span>
         </router-link>
-        <router-link to="/dashboard" class="choice dashboard">
-          <div class="nav-icon"><i class="material-icons">dashboard</i></div>
-          <div class="label">dashboard</div>
+        <router-link to="/power" class="choice power">
+          <span class="nav-icon"><i class="material-icons">emoji_objects</i></span>
+          <span class="label">power</span>
         </router-link>
-        <router-link to="/bench" class="choice bench">
-          <span class="nav-icon"><i class="material-icons">build</i></span>
-          <span class="label">bench</span>
-        </router-link>
-        <router-link to="/kitchensink" class="choice">
-          <span class="nav-icon"><i class="material-icons">build</i></span>
-          <span class="label">kitchen sink</span>
+        <router-link to="/kitchensink" class="choice" >
+          <span class="nav-icon"><i class="material-icons">widgets</i></span>
+          <span class="label">vm</span>
         </router-link>
       </div>
       <div class="content">
@@ -72,14 +76,44 @@
 .vertical-selector {
   margin-right: $unit;
   text-align: center;
+  width: 100px;
+
   .choice {
     padding: 0.5*$unit;
     display: block;
-    &.controls {
-      color: $warning;
+    border: 1px solid $base01;
+    margin: 10px 0;
+    &:nth-child(1) {
+      color: $red;
+      border-color: $red;
     }
-    &.power {
-      color: $primary;
+    &:nth-child(2) {
+      color: $magenta;
+      border-color: $magenta;
+    }
+    &:nth-child(3) {
+      color: $violet;
+      border-color: $violet;
+    }
+    &:nth-child(4) {
+      color: $blue;
+      border-color: $blue;
+    }
+    &:nth-child(5) {
+      color: $cyan;
+      border-color: $cyan;
+    }
+    &:nth-child(6) {
+      color: $green;
+      border-color: $green;
+    }
+    &:nth-child(7) {
+      color: $yellow;
+      border-color: $yellow;
+    }
+    &:nth-child(8) {
+      color: $orange;
+      border-color: $orange;
     }
   }
   .choice.router-link-exact-active {
@@ -93,6 +127,18 @@
 }
 .content {
   flex: 1;
+}
+.fade-enter-active, .fade-leave-active {
+  transition-property: opacity;
+  transition-duration: .25s;
+}
+
+.fade-enter-active {
+  transition-delay: .25s;
+}
+
+.fade-enter, .fade-leave-active {
+  opacity: 0
 }
 </style>
 <script>

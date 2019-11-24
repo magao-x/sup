@@ -44,9 +44,7 @@ export default {
   },
   computed: {
     channels: function() {
-      // if (!this.thisDevice) return [];
       const channelKeys = Object.keys(this.thisDevice.properties["channelOutlets"].elements);
-      console.log(channelKeys)
       const propertyKeys = Object.keys(this.thisDevice.properties);
       const channels = propertyKeys.filter(prop => channelKeys.includes(prop));
       return channels.map(key => this.thisDevice.properties[key]);
