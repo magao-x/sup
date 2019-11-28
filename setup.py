@@ -70,7 +70,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=[PROJECT],
     python_requires='>=3.6, <4',
-    install_requires=['sanic', 'python-socketio'],
+    install_requires=['starlette', 'uvicorn', 'python-socketio'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
