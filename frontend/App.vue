@@ -30,10 +30,6 @@
           <span class="nav-icon"><i class="material-icons">memory</i></span>
           <span class="label">properties</span>
         </router-link>
-        <router-link to="/properties2" class="choice properties">
-          <span class="nav-icon"><i class="material-icons">memory</i></span>
-          <span class="label">properties2</span>
-        </router-link>
         <router-link to="/power" class="choice power">
           <span class="nav-icon"><i class="material-icons">emoji_objects</i></span>
           <span class="label">power</span>

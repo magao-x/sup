@@ -1,4 +1,5 @@
 <template>
+<div class="plot">
   <plot-axes
     :data="data"
     :dataColors="dataColors"
@@ -6,16 +7,29 @@
     :markerSize="markerSize"
     :timeSeries="timeSeries"
   ></plot-axes>
+  <plot-legend :data="data" :dataColors="dataColors"></plot-legend>
+</div>
 </template>
 <style lang="scss" scoped>
+@import "./css/variables.scss";
+
+.plot {
+  display: flex;
+  flex-direction: column;
+  background: $base02;
+  margin: $unit / 2;
+  padding: $unit / 2
+}
 </style>
 <script>
 import PlotAxes from "~/components/plots/PlotAxes.vue";
+import PlotLegend from "~/components/plots/PlotLegend.vue";
 import constants from "./constants.js";
 
 export default {
   components: {
-    PlotAxes
+    PlotAxes,
+    PlotLegend
   },
   props: {
     dataColors: {

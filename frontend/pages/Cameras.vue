@@ -5,10 +5,11 @@
       <camera-controls-group base-name="sci2"></camera-controls-group>
     </div>
     <div class="coronagraphs">
-      <motion-stage preset-base-name="filter" indi-id="fwscind"></filter-wheel>
-      <motion-stage preset-base-name="filter" indi-id="fwpupil"></filter-wheel>
-      <motion-stage preset-base-name="filter" indi-id="fwfpm"></filter-wheel>
-      <motion-stage preset-base-name="filter" indi-id="fwlyot"></filter-wheel>
+      <motion-stage preset-base-name="filter" indi-id="fwscind"></motion-stage>
+      <motion-stage preset-base-name="filter" indi-id="fwpupil"></motion-stage>
+      <motion-stage preset-base-name="filter" indi-id="fwfpm"></motion-stage>
+      <motion-stage preset-base-name="filter" indi-id="fwlyot"></motion-stage>
+      <motion-stage preset-base-name="preset" indi-id="stagescibs"></motion-stage>
     </div>
   </div>
 </template>

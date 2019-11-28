@@ -2,7 +2,7 @@
   <div class="dashboard">
     <loop-state indiId="aoloop"></loop-state>
     <div class="plot-panels">
-      <indi-plot indiId="camacq.temp" style="height: 350px; flex:1"></indi-plot>
+      <indi-plot indiId="camacq.temp" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camlowfs.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camsci1.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camsci2.temp_ccd" style="height: 350px;"></indi-plot>
@@ -17,7 +17,7 @@
 .plot-panels {
   display: flex;
   flex-wrap: wrap;
-  .plot-container {
+  .plot {
     flex: 1;
   }
 }
