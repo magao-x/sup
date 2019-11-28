@@ -5,7 +5,7 @@ Vue.use(VueRouter)
 
 import store from '~/store';
 import PropertiesTable from "~/pages/PropertiesTable.vue";
-import KitchenSink from "~/pages/KitchenSink.vue";
+import VirtualMachine from "~/pages/VirtualMachine.vue";
 import Dashboard from "~/pages/Dashboard.vue";
 import Cameras from "~/pages/Cameras.vue";
 import AdaptiveOptics from "~/pages/AdaptiveOptics.vue";
@@ -16,7 +16,7 @@ const routes = [
     { path: '/ao', component: AdaptiveOptics},
     { path: '/power', component: Power},
     { path: '/properties', component: PropertiesTable },
-    { path: '/kitchensink', component: KitchenSink },
+    { path: '/vm', component: VirtualMachine },
     { path: '/dashboard', component: Dashboard }
 ];
 export default new VueRouter({

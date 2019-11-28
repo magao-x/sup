@@ -1,14 +1,27 @@
 <template>
   <div class="camera-controls-group">
-    <h1 class="camera-name">{{ camName }}</h1>
-    <finite-state-machine-status :device="cam"></finite-state-machine-status>
+    <div class="headerbar">
+      <div class="item" style="flex:1">
+        <div class="label camera-name">{{ camName }}</div>
+        <finite-state-machine-status class="control" :device="cam"></finite-state-machine-status>
+      </div>
+      <div class="item" style="flex:2">
+        <div class="label">shutter</div>
+        <shutter-toggle class="control" :device="cam"></shutter-toggle>
+      </div>
+      <div class="item" style="flex:2">
+        <div class="label">writer</div>
+        <stream-writer class="control" :device="streamWriter"></stream-writer>
+      </div>
+    </div>
     <div v-if="isDefined">
-      <stream-writer :device="streamWriter"></stream-writer>
-      <shutter-toggle :device="cam"></shutter-toggle>
-      <filter-wheel :device="fw" :label="fwName"></filter-wheel>
-      <focus-stage :device="stage"></focus-stage>
-      <region-of-interest :device="cam"></region-of-interest>
-
+      <exposure-time v-if="hasExptime" :device="cam" class="block"></exposure-time>
+      <frames-per-second v-if="hasFPS" :device="cam" class="block"></frames-per-second>
+      <adc-speed :device="cam"></adc-speed>
+      <camera-gain v-if="hasEmgain" :device="cam"></camera-gain>
+      <motion-stage preset-base-name="filter" :device="fw" :label="fwName"></motion-stage>
+      <motion-stage preset-base-name="preset" :device="stage"></motion-stage>
+      <region-of-interest v-if="hasROI" :device="cam"></region-of-interest>
     </div>
     <div v-else>
       <p>Waiting for device</p>
@@ -17,28 +30,51 @@
 </template>
 <style lang="scss" scoped>
 @import './css/variables.scss';
+
+.block {
+  border: 1px solid $primary;
+}
+
+.headerbar {
+  display: flex;
+  .item {
+    flex: 1;
+    margin: 0.25em;
+    display: flex;
+    flex-direction: column;
+  }
+  .label {
+    font-weight: bold;
+    text-align: center;
+    padding-right: 2 * $unit;
+    &.camera-name {
+      text-align: left;
+    }
+  }
+  .control {
+    font-size: 14px;
+  }
+}
 .camera-controls-group {
   background: $base02;
   padding: $unit;
   &:first-child {
     margin-top: 0;
   }
-  h1.camera-name {
-    font-size: inherit;
-    padding: 0 0 $unit 0;
-    margin: 0;
-  }
   margin: $unit;
 }
 </style>
 <script>
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
-import FilterWheel from "~/components/instrument/FilterWheel.vue";
-import FocusStage from "~/components/instrument/FocusStage.vue";
+import MotionStage from "~/components/instrument/MotionStage.vue";
 import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
 import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
 import StreamWriter from "~/components/instrument/StreamWriter.vue";
 import ShutterToggle from "~/components/instrument/ShutterToggle.vue";
+import ExposureTime from "~/components/instrument/ExposureTime.vue";
+import FramesPerSecond from "~/components/instrument/FramesPerSecond.vue";
+import AdcSpeed from "~/components/instrument/AdcSpeed.vue";
+import CameraGain from "~/components/instrument/CameraGain.vue";
 
 const cameraGroup = {
   filterWheel: null,
@@ -54,12 +90,15 @@ export default {
   props: ["baseName"],
   components: {
     IndiSwitchMultiElement,
-    FilterWheel,
-    FocusStage,
+    MotionStage,
     RegionOfInterest,
     StreamWriter,
     ShutterToggle,
-    FiniteStateMachineStatus
+    FiniteStateMachineStatus,
+    ExposureTime,
+    FramesPerSecond,
+    AdcSpeed,
+    CameraGain
   },
   computed: {
     camName() {
@@ -88,6 +127,18 @@ export default {
     },
     isDefined() {
       return typeof this.$store.state.devices[this.camName] !== "undefined";
+    },
+    hasEmgain() {
+      return this.isDefined && this.cam.properties.hasOwnProperty('emgain');
+    },
+    hasFPS() {
+      return this.isDefined && this.cam.properties.hasOwnProperty('fps');
+    },
+    hasExptime() {
+      return this.isDefined && this.cam.properties.hasOwnProperty('exptime');
+    },
+    hasROI() {
+      return this.isDefined && this.cam.properties.hasOwnProperty('roi_bin_x');
     }
   }
 };

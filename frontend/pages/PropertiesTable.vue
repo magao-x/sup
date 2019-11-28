@@ -97,7 +97,7 @@ table {
     width: 8%;
   }
   .value {
-    width: 10%;
+    width: 124px;
   }
   td.controls {
     text-align: left;

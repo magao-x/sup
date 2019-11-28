@@ -1,5 +1,5 @@
 <template>
-  <vue-line-plot :data="plotData" :timeSeries="true"></vue-line-plot>
+  <plot-component :data="plotData" :timeSeries="true"></plot-component>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
@@ -7,13 +7,13 @@
 <script>
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
-import VueLinePlot from "~/components/plots/VueLinePlot.vue";
+import PlotComponent from "~/components/plots/PlotComponent.vue";
 
 export default {
   mixins: [indi, utils],
   props: ["device", "property", "element", "indiId"],
   components: {
-    VueLinePlot
+    PlotComponent
   },
   methods: {
     fullIndiId(element) {

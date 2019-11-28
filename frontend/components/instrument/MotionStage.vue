@@ -1,13 +1,13 @@
 <template>
-  <div class="filter-wheel">
+  <div class="motion-stage">
     <div>{{ name }}</div>
     <div class="flex-row">
-      <div class="fw-details">
+      <div class="ms-details">
         <div><finite-state-machine-status :device="thisDevice"></finite-state-machine-status></div>
-        <indi-value :indiId="thisDevice.name + '.filter.current'"></indi-value>
-        <indi-element :indiId="thisDevice.name + '.filter.target'" inputWidth="5"></indi-element>
+        <indi-value :indiId="thisDevice.name + '.' + presetBaseName + '.current'"></indi-value>
+        <indi-element :indiId="thisDevice.name + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element>
       </div>
-      <div class="fw-friendly">
+      <div class="ms-friendly">
         <div style="display: flex; flex-wrap: wrap;">
           <button class="home" @click.prevent="sendHome">
             <i class="material-icons">home</i> home
@@ -20,7 +20,7 @@
           :orientation="orientation"
           :disabled="isDisabled"
           :device="thisDevice"
-          :property="filterNames"
+          :property="presetNames"
         ></indi-switch-multi-element>
       </div>
 
@@ -29,11 +29,11 @@
 </template>
 <style lang="scss" scoped>
 @import "~/css/variables.scss";
-.filter-wheel {
+.motion-stage {
   margin: 1rem;
   flex: 1;
 }
-.fw-friendly,.fw-details {
+.ms-friendly,.ms-details {
   width: 50%;
   margin: 10px;
   box-sizing: border-box;
@@ -56,6 +56,7 @@ export default {
   mixins: [indi],
   props: {
     device: Object,
+    presetBaseName: String,
     indiId: String,
     label: String,
     orientation: {
@@ -98,12 +99,12 @@ export default {
         .value;
       return (
         !(fsmState == "READY" || fsmState == "OPERATING") ||
-        this.filterNames.state == "Busy"
+        this.presetNames.state == "Busy"
       );
     },
-    filterNames: function() {
-      if (this.thisDevice && this.thisDevice.properties["filterName"]) {
-        return this.thisDevice.properties["filterName"];
+    presetNames: function() {
+      if (this.thisDevice && this.thisDevice.properties[this.presetBaseName + "Name"]) {
+        return this.thisDevice.properties[this.presetBaseName + "Name"];
       } else {
         return null;
       }

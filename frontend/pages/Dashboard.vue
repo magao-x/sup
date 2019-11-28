@@ -2,11 +2,11 @@
   <div class="dashboard">
     <loop-state indiId="aoloop"></loop-state>
     <div class="plot-panels">
-      <indi-line-plot indiId="camacq.temp" style="height: 350px; flex:1"></indi-line-plot>
-      <indi-line-plot indiId="camlowfs.temp_ccd" style="height: 350px;"></indi-line-plot>
-      <indi-line-plot indiId="camsci1.temp_ccd" style="height: 350px;"></indi-line-plot>
-      <indi-line-plot indiId="camsci2.temp_ccd" style="height: 350px;"></indi-line-plot>
-      <indi-line-plot indiId="camwfs.temp_ccd" style="height: 350px;"></indi-line-plot>
+      <indi-plot indiId="camacq.temp" style="height: 350px; flex:1"></indi-plot>
+      <indi-plot indiId="camlowfs.temp_ccd" style="height: 350px;"></indi-plot>
+      <indi-plot indiId="camsci1.temp_ccd" style="height: 350px;"></indi-plot>
+      <indi-plot indiId="camsci2.temp_ccd" style="height: 350px;"></indi-plot>
+      <indi-plot indiId="camwfs.temp_ccd" style="height: 350px;"></indi-plot>
     </div>
   </div>
 </template>
@@ -23,14 +23,12 @@
 }
 </style>
 <script>
-import VueLinePlot from "~/components/plots/VueLinePlot.vue";
-import IndiLinePlot from "~/components/indi/IndiLinePlot.vue";
+import IndiPlot from "~/components/indi/IndiPlot.vue";
 import LoopState from "~/components/instrument/LoopState.vue";
 
 export default {
   components: {
-    VueLinePlot,
-    IndiLinePlot,
+    IndiPlot,
     LoopState
   }
 };

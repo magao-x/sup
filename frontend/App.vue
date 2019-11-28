@@ -3,7 +3,10 @@
     <div class="status-bar">
       <div class="time">{{ readableTimestamp }}</div>
       <div class="logo">MagAO-X</div>
-      <div class="connection">Connection: <indi-state-indicator :state="connectionStatus"></indi-light></div>
+      <div class="connection">
+        WebSocket: <indi-state-indicator :state="webSocketConnectionStatus"></indi-state-indicator>
+        INDI: <indi-state-indicator :state="indiConnectionStatus"></indi-state-indicator>
+      </div>
     </div>
     <div class="flex-row">
       <div class="vertical-selector">
@@ -27,11 +30,15 @@
           <span class="nav-icon"><i class="material-icons">memory</i></span>
           <span class="label">properties</span>
         </router-link>
+        <router-link to="/properties2" class="choice properties">
+          <span class="nav-icon"><i class="material-icons">memory</i></span>
+          <span class="label">properties2</span>
+        </router-link>
         <router-link to="/power" class="choice power">
           <span class="nav-icon"><i class="material-icons">emoji_objects</i></span>
           <span class="label">power</span>
         </router-link>
-        <router-link to="/kitchensink" class="choice" >
+        <router-link v-if="onVM" to="/vm" class="choice" >
           <span class="nav-icon"><i class="material-icons">widgets</i></span>
           <span class="label">vm</span>
         </router-link>
@@ -172,18 +179,28 @@ export default Vue.extend({
   //   }
   // },
   computed: {
-    connection () {
-      return this.$store.state.connection
+    onVM() {
+      return process.env.MAGAOX_ROLE == 'vm';
     },
-    connectionStatus() {
-      if (!this.$store.state.connection.connected) {
+    connection () {
+      return this.$store.state.webSocketConnection
+    },
+    webSocketConnectionStatus() {
+      if (!this.$store.state.webSocketConnection.connected) {
         return 'Alert';
       }
-      const delay = this.time.currentTime.diff(this.$store.state.connection.lastUpdate, 'seconds');
+      const delay = this.time.currentTime.diff(this.$store.state.webSocketConnection.lastUpdate, 'seconds');
       if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
         return 'Ok'
       } else {
         return 'Alert'
+      }
+    },
+    indiConnectionStatus() {
+      if (!this.$store.state.indiConnection.connected) {
+        return 'Alert';
+      } else {
+        return 'Ok';
       }
     },
     devices() {

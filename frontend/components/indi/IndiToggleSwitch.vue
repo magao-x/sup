@@ -1,5 +1,13 @@
 <template>
-  <toggle-switch :value="switchValue" :busy="switchBusy" :disabled="switchDisabled" @input="toggle"></toggle-switch>
+  <toggle-switch
+    :value="switchValue"
+    :busy="switchBusy"
+    :disabled="switchDisabled"
+    :prompt="prompt"
+    :labelOn="labelOn"
+    :labelOff="labelOff"
+    @input="toggle"
+  ></toggle-switch>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
@@ -13,17 +21,24 @@ export default {
   components: {
     ToggleSwitch
   },
-  props: ["device", "property", "element", "indiId"],
-  // watch: {
-  //   element: function (newValue, oldValue) {
-  //     this.switchValue = newValue.value == 'On';
-  //   }
-  // },
-  // data: function () {
-  //   return {
-  //     switchValue: this.thisElement ? this.thisElement.value == 'On' : false
-  //   }
-  // },
+  props: {
+    device: Object,
+    property: Object,
+    element: Object,
+    indiId: String,
+    labelOn: {
+      type: String,
+      default: () => 'On',
+    },
+    labelOff: {
+      type: String,
+      default: () => 'Off',
+    },
+    prompt: {
+      type: Boolean,
+      default: () => false
+    },
+  },
   methods: {
     toggle: function() {
       if (this.switchBusy) return;

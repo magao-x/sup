@@ -2,7 +2,7 @@
   <div v-if="thisElement" class="element">
     <sync-button v-if="propertyKind !== 'swt'" :disabled="isDisabled" @sync="onSync"></sync-button>
     <adjustable-number-stepper
-      v-if="propertyKind == 'num'"
+      v-if="propertyKind == 'num' && optionalAttr('step')"
       :disabled="isDisabled"
       :min="optionalAttr('min')"
       :max="optionalAttr('max')"
@@ -73,11 +73,13 @@ export default {
       }
     },
     updateUserInput: function (payload) {
-      if (payload.target.value) {
+      console.log(payload);
+      if (payload.target && payload.target.value) {
         this.userInput = payload.target.value;
       } else {
         this.userInput = payload;
       }
+      this.shouldUpdate = false;
     },
     optionalAttr: function(attr) {
       if (this.thisElement && this.thisElement.hasOwnProperty(attr)) {

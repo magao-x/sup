@@ -1,7 +1,7 @@
 <template>
   <div v-if="thisDevice" class="device">
     <indi-property
-      v-for="prop in objectAsSortedArray(thisDevice.properties)"
+      v-for="prop in thisDevice.properties"
       :key="thisDevice.name + '.' + prop.name"
       :device="thisDevice"
       :property="prop"

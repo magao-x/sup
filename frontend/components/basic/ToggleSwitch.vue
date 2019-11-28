@@ -1,18 +1,27 @@
 <template>
   <div class="toggle-and-commit">
-  <div class="toggle" :class="classes" @click.prevent="toggleOrPrompt">
-    <div class="doodad">{{ currentValue ? "|" : "O" }}</div>
-  </div>
-  <commit-button v-if="prompt" :disabled="!waitingToCommit" @commit="toggle"></commit-button>
+    <div class="label off" v-if="labelOff">{{ labelOff }}</div>
+    <div class="toggle" :class="classes" @click.prevent="toggleOrPrompt">
+      <div class="doodad">{{ currentValue ? "|" : "O" }}</div>
+    </div>
+    <div class="label on" v-if="labelOn">{{ labelOn }}</div>
+    <commit-button v-if="prompt" :disabled="!waitingToCommit" @commit="toggle"></commit-button>
   </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 .toggle-and-commit {
-  display: inline-block;
-  vertical-align: middle;
-  margin-bottom: 3px;
-  height: 2em;
+  display: flex;
+  .label {
+    flex: 1;
+    text-align: center;
+  }
+  .label.off {
+    margin-right: 0.5em;
+  }
+  .label.on {
+    margin-left: 0.5em;
+  }
 }
 .toggle {
   position: relative;
@@ -91,7 +100,7 @@
 <script>
 import CommitButton from "~/components/basic/CommitButton.vue";
 export default {
-  props: ["value", "busy", "disabled", "prompt"],
+  props: ["value", "busy", "disabled", "prompt", "labelOn", "labelOff"],
   components: {CommitButton},
   data: function () {
     return {

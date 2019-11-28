@@ -1,19 +1,10 @@
 <template>
-  <div class="plot-container">
-    <div class="legend">
-      <div
-        class="line-legend"
-        v-for="(lineData, key, idx) in data"
-        :key="key"
-        :style="{color: dataColors[idx % dataColors.length]}"
-      >&bull; {{ key }}</div>
-    </div>
-    <svg class="plot" />
+  <div class="axes-container">
+    <svg class="axes" />
   </div>
 </template>
 <style lang="scss" scoped>
-
-.plot-container {
+.axes-container {
   flex: 1;
   min-width: 300px;
   min-height: 200px;
@@ -23,28 +14,16 @@
   display: flex;
   flex-direction: column;
 }
-.legend {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-.line-legend {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-}
-.plot {
+.axes {
   max-width: 100%;
   max-height: 100%;
-  flex: 1;
-}
-.legend {
   flex: 1;
 }
 </style>
 <script>
 import * as ElementQueries from "css-element-queries";
 import * as d3 from "d3";
+import constants from "./constants.js";
 
 const tickSpacing = 40;
 
@@ -53,30 +32,13 @@ export default {
     dataColors: {
       type: Array,
       default: function() {
-        return [
-          "#1f77b4",
-          "#ff7f0e",
-          "#2ca02c",
-          "#d62728",
-          "#9467bd",
-          "#8c564b",
-          "#e377c2",
-          "#7f7f7f",
-          "#bcbd22",
-          "#17becf"
-        ];
+        return constants.colorCycle;
       }
     },
     axisColor: {
       type: String,
       default: function() {
-        return "#839496";
-      }
-    },
-    backgroundColor: {
-      type: String,
-      default: function() {
-        return "#002b36";
+        return constants.axisColor;
       }
     },
     markerSize: {
@@ -174,9 +136,11 @@ export default {
       return hash;
     },
     updatePlot() {
+      console.log("updatePlot()")
       // Calculate plot dimensions in screen coords from margins
       // and element dimensions in screen coords
       var margin = { top: 10, right: 30, bottom: 50, left: 50 };
+      const selector = 'svg.axes';
       const width = this.$el.clientWidth - margin.left - margin.right;
       const height = this.$el.clientHeight - margin.top - margin.bottom;
       let xGetter;
@@ -216,11 +180,12 @@ export default {
 
       // Create the svg element, removing an existing one if necessary
       d3.select(this.$el)
-        .select("svg")
+        .select(selector)
         .remove();
       this.d3svg = d3
         .select(this.$el)
         .append("svg")
+        .attr('class', 'axes')
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")

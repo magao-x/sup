@@ -1,12 +1,14 @@
-<template><span>SHUT
+<template>
   <toggle-switch
     v-if="thisProperty"
     :value="shutterState"
     @input="changeState"
     :disabled="disabled"
-    :busy="busy"></toggle-switch>
-  OPEN
-  </span>
+    :busy="busy"
+    :prompt="true"
+    labelOn="OPEN"
+    labelOff="SHUT"
+  ></toggle-switch>
 </template>
 <style scoped lang="scss">
 @import "./css/variables.scss";
@@ -45,12 +47,14 @@ export default {
   },
   computed: {
     busy() {
-      return this.thisProperty.state == 'Busy' || this.currentState == 'UNKNOWN';
+      return this.thisProperty.state == 'Busy' || this.currentState == 'UNKNOWN' || this.currentState == 'OFF';
     },
     thisProperty() {
+      if (!this.thisDevice) return null;
       return this.thisDevice.properties['shutter'];
     },
     currentState: function () {
+      if (!this.thisDevice) return null;
       return this.thisProperty.elements["current"].value;
       // return "OPEN";
     },

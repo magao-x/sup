@@ -1,11 +1,26 @@
 <template>
   <div>
-    <indi-property
-      indi-id="timeSeriesSimulator.gizmo_0000"
-    ></indi-property>
-    <indi-property
-      indi-id="timeSeriesSimulator.gizmo_0001"
-    ></indi-property>
+    <indi-plot indi-id="timeSeriesSimulator.function_out.value"></indi-plot>
+    <div class="row">
+      <div class="item">
+      <indi-property
+        indi-id="timeSeriesSimulator.gizmo_0000"
+      ></indi-property>
+      </div>
+      <div class="item">
+        <indi-plot indi-id="timeSeriesSimulator.gizmo_0000.current"></indi-plot>
+      </div>
+    </div>
+    <div class="row">
+      <div class="item">
+      <indi-property
+        indi-id="timeSeriesSimulator.gizmo_0001"
+      ></indi-property>
+      </div>
+      <div class="item">
+        <indi-plot indi-id="timeSeriesSimulator.gizmo_0001.current"></indi-plot>
+      </div>
+    </div>
 
     <div>
       Foo bar baz <toggle-switch v-model="dingus"></toggle-switch>
@@ -33,6 +48,15 @@ select {
   line-height: inherit;
   color: $base0;
   font-size: 1em;
+}
+.row {
+  display: flex;
+  // height: 300px;
+  .item {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+  }
 }
 // * {
 //     border: 1px solid;
@@ -88,6 +112,7 @@ import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
 import IndiElement from "~/components/indi/IndiElement.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
+import IndiPlot from "~/components/indi/IndiPlot.vue";
 import utils from "~/mixins/utils.js";
 
 const components = {
@@ -99,6 +124,7 @@ const components = {
   IndiElement,
   IndiSwitchMultiElement,
   IndiProperty,
+  IndiPlot,
   CommitButton
 };
 
@@ -108,6 +134,17 @@ export default {
     return {components, dingus: false};
   },
   computed: {
+    gizmos() {
+      return {};
+      // if (!this.$store.devices['timeSeriesSimulator']) return {};
+      // let gizmoProps = Object.keys(this.$store.devices['timeSeriesSimulator'].properties).filter(v => v.includes('gizmo'))
+      // console.log(gizmoProps);
+      // let gizmoObjs = {};
+      // for (let name of gizmoProps) {
+      //   gizmoObjs[name] = this.$store.devices['timeSeriesSimulator'].properties[name];
+      // }
+      return gizmoObjs;
+    },
     amplitude: function () {
       let elt = this.$root.retrieveByIndiId('timeSeriesSimulator.duty_cycle.amplitude');
       if (elt !== null) {

@@ -5,21 +5,24 @@ import math
 import asyncio
 import logging
 import json
+import uvicorn
 from pprint import pformat
 import socketio
-from sanic.exceptions import NotFound
-from sanic import Sanic
-from sanic import response
+from starlette.exceptions import HTTPException
+from starlette.applications import Starlette
+from starlette.responses import UJSONResponse, FileResponse
 from pathlib import Path
-from purepyindi import client
-from purepyindi.eventful import AsyncINDIClient
+# from purepyindi import client
+# from purepyindi.eventful import AsyncINDIClient
 from purepyindi.constants import (
-    INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT, parse_string_into_enum, SwitchState,
-    PropertyState
+    INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT, parse_string_into_enum, SwitchState, ConnectionStatus
 )
-from purepyindi.generator import format_datetime_as_iso
-from purepyindi.parser import parse_iso_to_datetime
-import purepyindi.log
+#     PropertyState
+# )
+# from purepyindi.generator import format_datetime_as_iso
+# from purepyindi.parser import parse_iso_to_datetime
+# import purepyindi.log
+from .indi import BogusINDIClient, SupINDIClient
 from copy import deepcopy
 from .log import debug, info, warn, error, critical, set_log_level
 import datetime
@@ -30,88 +33,8 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 from collections.abc import MutableMapping, MutableSequence
 
-BATCH_UPDATE_INTERVAL = 1 # second
+BATCH_UPDATE_INTERVAL = 2 # second
 PING_INTERVAL = 10
-
-def property_from_jsonable(jsonable):
-    jsonable['timestamp'] = parse_iso_to_datetime(jsonable['timestamp'])
-    jsonable['_perm'] = parse_string_into_enum(jsonable.pop('perm'), client.PropertyPerm)
-    jsonable['_state'] = parse_string_into_enum(jsonable.pop('state'), client.PropertyState)
-    jsonable['_label'] = jsonable.pop('label', None)
-    jsonable['kind'] = parse_string_into_enum(jsonable['kind'], client.INDIPropertyKind)
-    if jsonable['kind'] is INDIPropertyKind.SWITCH:
-        jsonable['rule'] = parse_string_into_enum(jsonable.get('rule', 'OneOfMany'), client.SwitchRule)
-    return jsonable
-
-def element_from_jsonable(jsonable, kind):
-    if kind is INDIPropertyKind.SWITCH:
-        jsonable['_value'] = parse_string_into_enum(jsonable.pop('value'), client.SwitchState)
-    elif kind is INDIPropertyKind.LIGHT:
-        jsonable['_value'] = parse_string_into_enum(jsonable.pop('value'), client.PropertyState)
-    else:
-        jsonable['_value'] = jsonable.pop('value')
-    jsonable['_label'] = jsonable.pop('label', None)
-    return jsonable
-
-class BogusINDIClient(AsyncINDIClient):
-    KIND_TO_CLASSES = {
-        'num': (client.NumberProperty, client.NumberElement),
-        'txt': (client.TextProperty, client.TextElement),
-        'swt': (client.SwitchProperty, client.SwitchElement),
-        'lgt': (client.LightProperty, client.LightElement),
-    }
-    def __init__(self, initial_state):
-        super().__init__(host=None, port=None)
-        for key in initial_state:
-            device_state = initial_state[key]
-            dev = self.get_or_create_device(key)
-            for property_name in device_state['properties']:
-                property_state = device_state['properties'][property_name]
-                PROP_CLASS, ELT_CLASS = self.KIND_TO_CLASSES[property_state['kind']]
-                dev.properties[property_name] = prop = PROP_CLASS(property_name, dev)
-                property_state['_label'] = property_state.pop('label')
-                elements = property_state.pop('elements')
-                property_state = property_from_jsonable(property_state)
-                for prop_key in property_state:
-                    setattr(prop, prop_key, property_state[prop_key])
-                for element_name in elements:
-                    prop.elements[element_name] = elt = ELT_CLASS(element_name, prop)
-                    history_state = elements[element_name].pop('history')
-                    elt.history.times = list(map(parse_iso_to_datetime, history_state['times']))
-                    if PROP_CLASS.KIND is INDIPropertyKind.SWITCH:
-                        elt.history.values = [
-                            parse_string_into_enum(val, client.SwitchState)
-                            for val in history_state['values']
-                        ]
-                    elif PROP_CLASS.KIND is INDIPropertyKind.LIGHT:
-                        elt.history.values = [
-                            parse_string_into_enum(val, client.PropertyState)
-                            for val in history_state['values']
-                        ]
-                    else:
-                        elt.history.values = history_state['values']
-                    element_state = element_from_jsonable(elements[element_name], PROP_CLASS.KIND)
-                    for elt_key in element_state:
-                        setattr(elt, elt_key, element_state[elt_key])
-    def mutate(self, update):
-        dev, prop = update['device'], update['property']['name']
-        prop = self.devices[dev].properties[prop]
-        original_state = prop._state
-        self.apply_update(update)
-        for watcher in self.async_watchers:
-            asyncio.create_task(watcher(update, did_anything_change=True))
-        print("Applied faux-indi-new update", pformat(update))
-        async def clear_busy():
-            update['action'] = INDIActions.PROPERTY_SET
-            update['property']['state'] = original_state
-            await asyncio.sleep(2)
-            self.apply_update(update)
-            for watcher in self.async_watchers:
-                await watcher(update, did_anything_change=True)
-        asyncio.create_task(clear_busy())
-
-    async def run(self, *args, **kwargs):
-        return
 
 def utc_now():
     dt = datetime.datetime.utcnow()
@@ -158,22 +81,11 @@ def log_updates(update, did_anything_change):
 #     return modified
 
 static_folder_name = "static"
-app = Sanic('sup')
+static_path = Path(__file__).parent / static_folder_name
 
 sup_tasks = []
 
-sio = socketio.AsyncServer(
-    async_mode='sanic',
-    cors_allowed_origins="*", # TODO only CORS in dev
-    ping_interval=PING_INTERVAL,
-)
-sio.attach(app)
 
-static_path = Path(__file__).parent / static_folder_name
-
-app.config['SECRET_KEY'] = 'secret!'
-
-@app.route('/indi')
 async def indi(request):
     # c = app.indi
     # for device in c.devices:
@@ -183,22 +95,34 @@ async def indi(request):
     #         for el in p.elements:
     #             e = p.elements[el]
     #             json(e.to_dict())
-    return response.raw(json.dumps(app.indi.to_jsonable(),  indent=4, sort_keys=True).encode('utf8'), headers={'Content-Type': 'application/json'})
+    # return response.raw(json.dumps(app.indi.to_jsonable(),  indent=4, sort_keys=True).encode('utf8'), headers={'Content-Type': 'application/json'})
+    return UJSONResponse(request.app.indi.to_jsonable())
 
-@app.route('/<path:path>')
-async def catch_all(request, path):
+class NotFound(HTTPException):
+    def __init__(self, *args, **kwargs):
+        super().__init__(404, *args, **kwargs)
+
+async def catch_all(request):
+    path = request.path_params['path']
     real_path = (static_path / path).resolve()
     debug(f'catch_all caught path{real_path}')
     if static_path in real_path.parents:  # prevent traversal vulnerability
         if real_path.exists():
-            return await response.file(real_path)
+            return FileResponse(real_path.as_posix())
     else:
         warn(f'Attempted directory traversal with path {path}')
     raise NotFound("No route or file at this URL")
 
-@app.route('/')
+
 async def index(request):
-    return await response.file(static_path / 'index.html')
+    return FileResponse((static_path / 'index.html').as_posix())
+
+
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins="*", # TODO only CORS in dev
+    ping_interval=PING_INTERVAL,
+)
 
 @sio.event
 async def connect(sid, environ):
@@ -263,6 +187,7 @@ class INDIUpdateBatcher:
         batch = {
             'updates': updates,
             'deletions': deletions,
+            'connected': self.client_instance.status == ConnectionStatus.CONNECTED,
         }
         self.properties_to_delete = set()
         self.properties_to_update = set()
@@ -275,38 +200,29 @@ async def emit_updates():
             await sio.emit('indi_batch_update', batch)
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
-def make_indi_connection(potemkin):
+def make_indi_connection(potemkin=False):
     if potemkin:
         with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
             initial_state = json.load(f)
-        return BogusINDIClient(initial_state)
+        return BogusINDIClient(sio, initial_state)
     else:
-        return AsyncINDIClient(app.config.indi_host, app.config.indi_port)
+        return SupINDIClient(sio, CONFIG['indi_host'], CONFIG['indi_port'])
 
-@app.listener('after_server_start')
-async def init_connections(sanic, loop):
-    app.indi = make_indi_connection(app.config.potemkin)
-    app.indi_batcher = INDIUpdateBatcher(app.indi)
-    app.indi.add_async_watcher(app.indi_batcher.process_update)
-    app.update_queue = asyncio.Queue()
-    # app.indi.add_watcher(log_updates)
-    indi_coro = app.indi.run(reconnect_automatically=True)
-    sup_tasks.append(loop.create_task(indi_coro))
-    emit_updates_coro = emit_updates()
-    sup_tasks.append(loop.create_task(emit_updates_coro))
 
-@app.listener("before_server_stop")
-async def close_connections(sanic, loop):
-    await sanic.indi.stop()
-    for task in sup_tasks:
-        task.cancel()
+CONFIG = {
+    'indi_host': '127.0.0.1',
+    'indi_port': 7624,
+    'potemkin': False
+}
 
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
+    global CONFIG
     logging.basicConfig(level='INFO')
-    app.config.indi_host = indi_host
-    app.config.indi_port = indi_port
-    app.config.potemkin = potemkin
-    app.run(host=bind_host, port=bind_port)
+    CONFIG['indi_host'] = indi_host
+    CONFIG['indi_port'] = indi_port
+    CONFIG['potemkin'] = potemkin
+    # app.run(host=bind_host, port=bind_port)
+    uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
     import argparse
@@ -350,6 +266,43 @@ def console_entrypoint():
         parser.print_help()
         sys.exit(1)
     sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
+
+RUNNING_TASKS = set()
+
+async def spawn_tasks():
+    loop = asyncio.get_event_loop()
+    app.indi = make_indi_connection(potemkin=CONFIG['potemkin'])
+    app.indi_batcher = INDIUpdateBatcher(app.indi)
+    app.indi.add_async_watcher(app.indi_batcher.process_update)
+    app.update_queue = asyncio.Queue()
+    indi_coro = app.indi.run(reconnect_automatically=True)
+    RUNNING_TASKS.add(loop.create_task(indi_coro))
+    if CONFIG['potemkin']:
+        fiddling_coro = app.indi.fiddle_connection_status()
+        RUNNING_TASKS.add(loop.create_task(fiddling_coro))
+    emit_updates_coro = emit_updates()
+    RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
+
+async def cancel_tasks():
+    await app.indi.stop()
+    for task in RUNNING_TASKS:
+        task.cancel()
+
+from starlette.routing import Route
+
+app = Starlette(
+    debug=True,
+    routes=[
+        Route('/', endpoint=index),
+        Route('/indi', endpoint=indi),
+        Route('/{path:path}', endpoint=catch_all)
+    ],
+    on_startup=[spawn_tasks],
+    on_shutdown=[cancel_tasks],
+)
+
+
+app = socketio.ASGIApp(sio, app)
 
 if __name__ == '__main__':
     console_entrypoint()

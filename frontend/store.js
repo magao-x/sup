@@ -6,7 +6,11 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
     state: {
-      connection: {
+      webSocketConnection: {
+        connected: false,
+        lastUpdate: null
+      },
+      indiConnection: {
         connected: false,
         lastUpdate: null
       },
@@ -14,11 +18,17 @@ export default new Vuex.Store({
     },
     mutations: {
       heartbeat (state) {
-        state.connection.connected = true;
-        state.connection.lastUpdate = DateTime.utc();
+        state.webSocketConnection.connected = true;
+        state.webSocketConnection.lastUpdate = DateTime.utc();
       },
       disconnected (state) {
-        state.connection.connected = false;
+        state.webSocketConnection.connected = false;
+      },
+      indi_connect(state){
+        state.indiConnection.connected = true;
+      },
+      indi_disconnect(state){
+        state.indiConnection.connected = false;
       },
       indi_init(state, payload) {
         Vue.set(state, "devices", payload);
@@ -81,6 +91,11 @@ export default new Vuex.Store({
           commit('indi_update', {deviceName, propertyName, propertyState: updates[propSpec]});
         }
         commit('heartbeat');
+        if (payload.connected) {
+          commit('indi_connect');
+        } else {
+          commit('indi_disconnect');
+        }
       }
     }
   });

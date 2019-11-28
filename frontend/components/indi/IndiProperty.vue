@@ -1,9 +1,5 @@
 <template>
   <div v-if="thisDevice && thisProperty" class="property">
-    <div
-      class="name"
-      :class="{'idle': thisProperty.state == 'Idle', 'ok': thisProperty.state == 'Ok', 'busy': thisProperty.state == 'Busy', 'alert': thisProperty.state == 'Alert'}"
-    >{{ thisDevice.name }}.{{ thisProperty.name }}</div>
     <p v-if="thisProperty.message !== null">{{ thisProperty.message }}</p>
     <template v-if="thisProperty.kind == 'swt'">
       <indi-switch-multi-element :device="thisDevice" :property="thisProperty"></indi-switch-multi-element>
@@ -40,20 +36,6 @@
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
-.alert {
-  color: $orange;
-  border-color: darken($orange, 15);
-}
-.ok {
-  color: $green;
-  border-color: darken($green, 15);
-}
-.busy {
-  color: $base2;
-}
-.idle {
-  color: $base1;
-}
 .paired-current-target {
   max-width: 20em;
   display: flex;
