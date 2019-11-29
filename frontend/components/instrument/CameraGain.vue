@@ -1,5 +1,7 @@
 <template>
-  <indi-property :device="thisDevice" :property="emgain"></indi-property>
+  <div>
+    Gain: <indi-property :device="thisDevice" :property="emgain"></indi-property>
+  </div>
 </template>
 <style lang="scss" scoped>
 </style>

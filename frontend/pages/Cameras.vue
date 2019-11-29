@@ -17,7 +17,7 @@
 .controls {
   width: 100%;
   display: flex;
-  .cameras,.coronagraphs {
+  .cameras, .coronagraphs {
     flex: 1;
     max-width: 50%;
   }

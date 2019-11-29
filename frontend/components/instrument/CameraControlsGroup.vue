@@ -17,7 +17,7 @@
     <div v-if="isDefined">
       <exposure-time v-if="hasExptime" :device="cam" class="block"></exposure-time>
       <frames-per-second v-if="hasFPS" :device="cam" class="block"></frames-per-second>
-      <adc-speed :device="cam"></adc-speed>
+      <adc-speed v-if="hasADCSpeed" :device="cam"></adc-speed>
       <camera-gain v-if="hasEmgain" :device="cam"></camera-gain>
       <motion-stage preset-base-name="filter" :device="fw" :label="fwName"></motion-stage>
       <motion-stage preset-base-name="preset" :device="stage"></motion-stage>
@@ -136,6 +136,9 @@ export default {
     },
     hasExptime() {
       return this.isDefined && this.cam.properties.hasOwnProperty('exptime');
+    },
+    hasADCSpeed() {
+      return this.isDefined && this.cam.properties.hasOwnProperty('adcspeed');
     },
     hasROI() {
       return this.isDefined && this.cam.properties.hasOwnProperty('roi_bin_x');
