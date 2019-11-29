@@ -2,11 +2,14 @@
   <div class="dashboard">
     <loop-state indiId="aoloop"></loop-state>
     <div class="plot-panels">
+      <indi-plot indiId="temprack.temperature" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camacq.temp" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camlowfs.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camsci1.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camsci2.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camwfs.temp_ccd" style="height: 350px;"></indi-plot>
+      <indi-plot indiId="camwfs.temps.water" style="height: 350px;"></indi-plot>
+
     </div>
   </div>
 </template>
