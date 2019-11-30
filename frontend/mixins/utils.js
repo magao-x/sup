@@ -2,6 +2,58 @@ import { sprintf } from '~/node_modules/printj/printj.mjs';
 
 export default {
   methods: {
+    retrieveByIndiId: function (indiId) {
+      const parts = indiId.split('.');
+      const deviceName = parts.shift();
+      if (typeof this.$store.state.devices[deviceName] !== "undefined") {
+        const device = this.$store.state.devices[deviceName];
+        if (parts.length > 0) {
+          const propName = parts.shift();
+          if (typeof device.properties[propName] !== "undefined") {
+            const property = device.properties[propName];
+            if (parts.length > 0) {
+              const eltName = parts.shift();
+              if (typeof property.elements[eltName] !== "undefined") {
+                const element = property.elements[eltName];
+                return element;
+              } else {
+                return null;
+              }
+            } else {
+              return property;
+            }
+          } else {
+            return null;
+          }
+        } else {
+          return device;
+        }
+      } else {
+        return null;
+      }
+    },
+    retrieveValueByIndiId: function (indiId) {
+      const elt = this.retrieveByIndiId(indiId);
+      if (elt && elt.hasOwnProperty('value')) {
+        return elt.value;
+      } else {
+        return null;
+      }
+    },
+    retrieveDeviceByIndiId: function (indiId) {
+      const [devName, ...rest] = indiId.split(".");
+      return this.retrieveByIndiId(devName);
+    },
+    retrievePropertyByIndiId: function (indiId) {
+      const [devName, propName, ...rest] = indiId.split(".");
+      return this.retrieveByIndiId(devName + '.' + propName);
+    },
+    retrieveElementByIndiId: function (indiId) {
+      return this.retrieveByIndiId(indiId);
+    },
+    indiIdExists: function (indiId) {
+      return this.retrieveByIndiId(indiId) !== null;
+    },
     applyFormatString: function (format, number) {
       if (number === null) {
         return "";

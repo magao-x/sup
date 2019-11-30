@@ -5,9 +5,12 @@
       <camera-controls-group base-name="lowfs"></camera-controls-group>
     </div>
     <div class="coronagraphs">
-      <motion-stage indi-id="fwpupil" preset-base-name="filter"></motion-stage>
-      <div>Pupil viewing flip mirror:
+      <motion-stage indi-id="fwpupil" kind="filterwheel"></motion-stage>
+      <div v-if="indiIdExists('fliptip.position')">Pupil viewing flip mirror:
         <indi-switch-multi-element indi-id="fliptip.position"></indi-switch-multi-element></div>
+      <div v-else>
+        Waiting for fliptip.position
+      </div>
     </div>
   </div>
 </template>
@@ -27,8 +30,10 @@ import CameraControlsGroup from "~/components/instrument/CameraControlsGroup.vue
 import MotionStage from "~/components/instrument/MotionStage.vue";
 import TelescopeSimulator from "~/components/instrument/TelescopeSimulator.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
+import utils from "~/mixins/utils.js";
 
 export default {
+  mixins: [utils],
   components: {
     CameraControlsGroup,
     MotionStage,

@@ -47,9 +47,15 @@ class SupINDIClient(AsyncINDIClient):
                 log.info(f"Connected to {addr!r}")
                 self.status = ConnectionStatus.CONNECTED
                 await self.sio.emit('indi_connection_status', {'status': self.status.name})
-                await self._outbound_queue.put({'action': INDIActions.GET_PROPERTIES})
+                self.get_properties()
                 self._reader = asyncio.ensure_future(self._handle_inbound(reader_handle))
                 self._writer = asyncio.ensure_future(self._handle_outbound(writer_handle))
+
+                # Reload state after we take a second to process properties
+                await asyncio.sleep(1)
+                # Emitting state reload message
+                await self.sio.emit('indi_init', self.to_jsonable())
+
                 try:
                     await asyncio.gather(
                         self._reader, self._writer

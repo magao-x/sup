@@ -15,9 +15,10 @@
 <script>
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
 
 export default {
-  mixins: [indi],
+  mixins: [indi, utils],
   components: {
     ToggleSwitch
   },

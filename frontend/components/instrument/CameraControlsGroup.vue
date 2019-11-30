@@ -17,11 +17,11 @@
     <div v-if="isDefined">
       <exposure-time v-if="hasExptime" :device="cam" class="block"></exposure-time>
       <frames-per-second v-if="hasFPS" :device="cam" class="block"></frames-per-second>
-      <adc-speed v-if="hasADCSpeed" :device="cam"></adc-speed>
-      <camera-gain v-if="hasEmgain" :device="cam"></camera-gain>
-      <motion-stage preset-base-name="filter" :device="fw" :label="fwName"></motion-stage>
-      <motion-stage preset-base-name="preset" :device="stage"></motion-stage>
-      <region-of-interest v-if="hasROI" :device="cam"></region-of-interest>
+      <adc-speed v-if="hasADCSpeed" :device="cam" class="block"></adc-speed>
+      <camera-gain v-if="hasEmgain" :device="cam" class="block"></camera-gain>
+      <motion-stage kind="filterwheel" :device="fw" :label="fwName" class="block"></motion-stage>
+      <motion-stage kind="stage" :device="stage" class="block"></motion-stage>
+      <!-- <region-of-interest v-if="hasROI" :device="cam"></region-of-interest> -->
     </div>
     <div v-else>
       <p>Waiting for device</p>
@@ -33,6 +33,7 @@
 
 .block {
   border: 1px solid $primary;
+  padding: $unit;
 }
 
 .headerbar {

@@ -1,5 +1,5 @@
 <template>
-  <plot-component :data="plotData" :timeSeries="true"></plot-component>
+  <plot-component :data="plotData" :timeSeries="true" :numMinutes="30"></plot-component>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";

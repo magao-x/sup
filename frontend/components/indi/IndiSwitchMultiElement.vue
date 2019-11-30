@@ -26,10 +26,11 @@
 <script>
 import indi from "~/mixins/indi.js";
 import ToggleButton from "~/components/basic/ToggleButton.vue";
+import utils from "~/mixins/utils.js";
 
 export default {
   props: ["device", "property", "indiId", "disabled", "orientation"],
-  mixins: [indi],
+  mixins: [indi, utils],
   components: {
     ToggleButton
   },

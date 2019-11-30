@@ -1,13 +1,12 @@
 <template>
   <div class="motion-stage">
     <div>{{ name }}</div>
-    <div class="flex-row">
+    <div v-if="indiDefined" class="flex-row">
       <div class="ms-details">
         <div><finite-state-machine-status :device="thisDevice"></finite-state-machine-status></div>
-        <indi-value :indiId="thisDevice.name + '.' + presetBaseName + '.current'"></indi-value>
-        <indi-element :indiId="thisDevice.name + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element>
-      </div>
-      <div class="ms-friendly">
+        <indi-property :device="thisDevice" :property="positionProperty"></indi-property>
+        <!-- <indi-value :indiId="thisDevice.name + '.' + presetBaseName + '.current'"></indi-value>
+        <indi-element :indiId="thisDevice.name + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element> -->
         <div style="display: flex; flex-wrap: wrap;">
           <button class="home" @click.prevent="sendHome">
             <i class="material-icons">home</i> home
@@ -16,6 +15,8 @@
             <i class="material-icons">block</i> stop
           </button>
         </div>
+      </div>
+      <div class="ms-friendly" v-if="indiDefined">
         <indi-switch-multi-element
           :orientation="orientation"
           :disabled="isDisabled"
@@ -25,12 +26,14 @@
       </div>
 
     </div>
+    <div v-else>
+      Waiting for device
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
 @import "~/css/variables.scss";
 .motion-stage {
-  margin: 1rem;
   flex: 1;
 }
 .ms-friendly,.ms-details {
@@ -46,17 +49,22 @@ button.stop {
 }
 </style>
 <script>
+import IndiProperty from "~/components/indi/IndiProperty.vue";
 import IndiElement from "~/components/indi/IndiElement.vue";
 import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
 import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
 
 export default {
-  mixins: [indi],
+  mixins: [indi, utils],
   props: {
     device: Object,
-    presetBaseName: String,
+    kind: {
+      type: String,
+      default: "stage"
+    },
     indiId: String,
     label: String,
     orientation: {
@@ -68,7 +76,8 @@ export default {
     IndiSwitchMultiElement,
     IndiElement,
     IndiValue,
-    FiniteStateMachineStatus
+    FiniteStateMachineStatus,
+    IndiProperty
   },
   methods: {
     sendHome: function() {
@@ -95,19 +104,30 @@ export default {
       if (!(this.thisDevice && this.thisDevice.properties["fsm"])) {
         return true;
       }
-      const fsmState = this.thisDevice.properties["fsm"].elements["state"]
-        .value;
+      const fsmState = this.thisDevice.properties["fsm"].elements["state"].value;
       return (
         !(fsmState == "READY" || fsmState == "OPERATING") ||
         this.presetNames.state == "Busy"
       );
     },
     presetNames: function() {
-      if (this.thisDevice && this.thisDevice.properties[this.presetBaseName + "Name"]) {
-        return this.thisDevice.properties[this.presetBaseName + "Name"];
+      const presetBaseName = (this.kind.toLowerCase() == "stage") ? "preset" : "filter";
+      console.log(`Looking for ${this.thisDevice.name}.${presetBaseName}Name`)
+      if (this.thisDevice && this.thisDevice.properties[presetBaseName + "Name"]) {
+        return this.thisDevice.properties[presetBaseName + "Name"];
       } else {
         return null;
       }
+    },
+    positionProperty() {
+      if (this.indiDefined) {
+        if (this.kind.toLowerCase() == "stage") {
+          return this.thisDevice.properties['position'];
+        } else if (this.kind.toLowerCase() == "filterwheel") {
+          return this.thisDevice.properties['filter'];
+        }
+      }
+
     },
     name: function() {
       if (this.label) {

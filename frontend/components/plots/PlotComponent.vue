@@ -6,6 +6,7 @@
     :axisColor="axisColor"
     :markerSize="markerSize"
     :timeSeries="timeSeries"
+    :numMinutes="numMinutes"
   ></plot-axes>
   <plot-legend :data="data" :dataColors="dataColors"></plot-legend>
 </div>
@@ -61,6 +62,10 @@ export default {
       default: function() {
         return true;
       }
+    },
+    numMinutes: {
+      type: Number,
+      default: function () { return null; }
     },
     data: {
       type: Object,

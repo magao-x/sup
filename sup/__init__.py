@@ -87,15 +87,6 @@ sup_tasks = []
 
 
 async def indi(request):
-    # c = app.indi
-    # for device in c.devices:
-    #     d = c.devices[device]
-    #     for prop in d.properties:
-    #         p = d.properties[prop]
-    #         for el in p.elements:
-    #             e = p.elements[el]
-    #             json(e.to_dict())
-    # return response.raw(json.dumps(app.indi.to_jsonable(),  indent=4, sort_keys=True).encode('utf8'), headers={'Content-Type': 'application/json'})
     return UJSONResponse(request.app.indi.to_jsonable())
 
 class NotFound(HTTPException):
@@ -127,9 +118,7 @@ sio = socketio.AsyncServer(
 @sio.event
 async def connect(sid, environ):
     debug(f'socket.io client connected with sid: {sid}')
-    the_dict = app.indi.to_jsonable()
-    debug(f'sending current INDI state {pformat(the_dict)}')
-    await sio.emit('indi_init', the_dict)
+    await sio.emit('indi_init', app.indi.to_jsonable(), room=sid)
 
 @sio.event
 async def disconnect(sid):
@@ -221,8 +210,7 @@ def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
-    # app.run(host=bind_host, port=bind_port)
-    uvicorn.run(app, host=bind_host, port=bind_port)
+    uvicorn.run(composite_app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
     import argparse
@@ -302,7 +290,7 @@ app = Starlette(
 )
 
 
-app = socketio.ASGIApp(sio, app)
+composite_app = socketio.ASGIApp(sio, app)
 
 if __name__ == '__main__':
     console_entrypoint()

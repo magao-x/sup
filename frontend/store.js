@@ -23,9 +23,11 @@ export default new Vuex.Store({
       },
       disconnected (state) {
         state.webSocketConnection.connected = false;
+        state.indiConnection.connected = false;
       },
       indi_connect(state){
         state.indiConnection.connected = true;
+        state.indiConnection.lastUpdate = DateTime.utc();
       },
       indi_disconnect(state){
         state.indiConnection.connected = false;

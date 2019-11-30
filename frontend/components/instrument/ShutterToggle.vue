@@ -9,6 +9,9 @@
     labelOn="OPEN"
     labelOff="SHUT"
   ></toggle-switch>
+  <div v-else>
+    Waiting for shutter
+  </div>
 </template>
 <style scoped lang="scss">
 @import "./css/variables.scss";

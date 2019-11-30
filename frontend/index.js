@@ -6,6 +6,10 @@ import io from 'socket.io-client';
 import VueSocketIO from 'vue-socket.io';
 import router from "./router.js";
 import utils from "./mixins/utils.js";
+import VueVirtualScroller from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+Vue.use(VueVirtualScroller)
+
 
 function buildConnectionString() {
   const apiPort = 8000;

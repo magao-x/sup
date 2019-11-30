@@ -69,6 +69,7 @@ export default {
   computed: {
     isPairedCurrentTarget: function() {
       if (
+        this.indiDefined &&
         this.thisProperty.elements.target !== undefined &&
         this.thisProperty.elements.current !== undefined
       ) {

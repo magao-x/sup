@@ -1,9 +1,9 @@
 <template>
   <div class="coronagraph-controls-group">
-    <motion-stage preset-base-name="filter" indi-id="fwscind"></filter-wheel>
-    <motion-stage preset-base-name="filter" indi-id="fwpupil"></filter-wheel>
-    <motion-stage preset-base-name="filter" indi-id="fwfpm"></filter-wheel>
-    <motion-stage preset-base-name="filter" indi-id="fwlyot"></filter-wheel>
+    <motion-stage kind="filterwheel" indi-id="fwscind"></motion-stage>
+    <motion-stage kind="filterwheel" indi-id="fwpupil"></motion-stage>
+    <motion-stage kind="filterwheel" indi-id="fwfpm"></motion-stage>
+    <motion-stage kind="filterwheel" indi-id="fwlyot"></motion-stage>
   </div>
 </template>
 <style lang="scss" scoped>

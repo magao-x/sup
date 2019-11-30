@@ -1,6 +1,6 @@
 <template>
   <div class="indi-properties-table">
-    <div class="search-control">
+    <div class="row search-control">
       <span class="search-icon">
         <i class="material-icons">search</i>
       </span>
@@ -9,56 +9,43 @@
         <i class="material-icons">clear</i>
       </button>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>state</th>
-          <th>device</th>
-          <th>property</th>
-          <th class="kind">kind</th>
-          <th>element</th>
-          <th class="value">value</th>
-          <th class="controls">control</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="record in filteredFlattenedDevices"
-          :key="record.device.name + '.' + record.property.name + '.' + record.element.name"
-          :class="record.property.state"
+    <div class="row">
+      <div>state</div>
+      <div>device</div>
+      <div>property</div>
+      <div class="kind">kind</div>
+      <div>element</div>
+      <div class="value">value</div>
+      <div class="controls">control</div>
+    </div>
+    <DynamicScroller :items="filteredFlattenedDevices" :min-item-size="36" class="scroller">
+      <template v-slot="{ item, index, active }">
+        <DynamicScrollerItem
+          :item="item"
+          :active="active"
+          :size-dependencies="[
+                item.message,
+              ]"
+          :data-index="index"
         >
-          <td>
-            <indi-state-indicator :state="record.property.state"></indi-state-indicator>
-          </td>
-          <td>{{ record.device.name }}</td>
-          <td>{{ record.property.name }}</td>
-          <td class="kind">{{ record.property.kind }}</td>
-          <td>{{ record.element.name }}</td>
-          <td
-            v-if="record.property.kind == 'num'"
-            class="value"
-          >{{ applyFormatString(record.element.format, record.element.value) }}</td>
-          <td
-            v-else-if="record.property.name == 'fsm'"
-            class="value"
-          ><finite-state-machine-status :device="record.device"></finite-state-machine-status></td>
-          <td v-else class="value">{{ record.element.value }}</td>
-          <td class="controls">
-            <indi-element
-              :device="record.device"
-              :property="record.property"
-              :element="record.element"
-            ></indi-element>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          <table-row class="element" :record="item"></table-row>
+        </DynamicScrollerItem>
+      </template>
+    </DynamicScroller>
   </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 .indi-properties-table {
   width: 100%;
+  .row {
+    .element:nth-child(odd) {
+      background: $base02;
+    }
+    .element:hover {
+      background: lighten($base02, 5);
+    }
+  }
 }
 .search-control {
   position: relative;
@@ -81,12 +68,7 @@ table {
   width: 100%;
 
   text-align: center;
-  tbody > tr:nth-child(odd) {
-    background: $base02;
-  }
-  tbody > tr:hover {
-    background: lighten($base02, 5);
-  }
+
   td,
   th {
     // width: 14.2%;
@@ -105,22 +87,28 @@ table {
     max-width: 20em;
   }
 }
+.scroller {
+  height: 80vh;
+  overflow-y: auto;
+}
 </style>
 <script>
 import IndiElement from "~/components/indi/IndiElement.vue";
 import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
 import IndiStateIndicator from "~/components/indi/IndiStateIndicator.vue";
+import TableRow from "~/pages/properties/TableRow.vue";
 import utils from "~/mixins/utils.js";
 
 export default {
   components: {
     IndiElement,
     IndiStateIndicator,
-    FiniteStateMachineStatus
+    FiniteStateMachineStatus,
+    TableRow
   },
   mixins: [utils],
   computed: {
-    doFilter: function () {
+    doFilter: function() {
       return this.searchString.length > 2;
     },
     filteredFlattenedDevices: function() {

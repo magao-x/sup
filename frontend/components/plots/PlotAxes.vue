@@ -21,6 +21,7 @@
 }
 </style>
 <script>
+import { DateTime } from "luxon";
 import * as ElementQueries from "css-element-queries";
 import * as d3 from "d3";
 import constants from "./constants.js";
@@ -53,6 +54,10 @@ export default {
         return false;
       }
     },
+    numMinutes: {
+      type: Number,
+      default: function () { return null; }
+    },
     data: {
       type: Object,
       default: function() {
@@ -75,33 +80,7 @@ export default {
       this.updatePlot();
     }
   },
-  // computed: {
-  //   overallDomain() {
-  //     let dataEntries = Object.entries(this.data);
-  //     console.log('dataEntries are');
-  //     console.log(dataEntries);
-
-  //     // take first point of first line as initial min/max vals
-  //     let xMin = dataEntries[0][1].points[0].x,
-  //       xMax = dataEntries[0][1].points[0].x;
-  //     let yMin = dataEntries[0][1].points[0].y,
-  //       yMax = dataEntries[0][1].points[0].y;
-
-  //     // loop over points in all lines
-  //     for (let [name, lineData] of dataEntries) {
-  //       console.log(lineData.points);
-  //       for (let pt of lineData.points) {
-  //         if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
-  //         if (pt.x > xMax) xMax = pt.x;
-  //         if (pt.x < xMin) xMin = pt.x;
-  //         if (pt.y > yMax) yMax = pt.y;
-  //         if (pt.y < yMin) yMin = pt.y;
-  //       }
-  //     }
-  //     console.log([[xMin, xMax], [yMin, yMax]]);
-  //     return [[xMin, xMax], [yMin, yMax]];
-  //   }
-  // },
+  inject: ["time"],
   methods: {
     computeDomain(accessor) {
       let dataEntries = Object.entries(this.data);
@@ -149,7 +128,12 @@ export default {
       console.log("this.timeSeries", this.timeSeries)
       if (this.timeSeries) {
         xGetter = d => d3.isoParse(d.x);
-        xDomain = this.computeDomain(xGetter);
+        if (this.numMinutes !== null) {
+          const startTime = this.time.currentTime.minus({minutes: this.numMinutes});
+          xDomain = [startTime, this.time.currentTime];
+        } else {
+          xDomain = this.computeDomain(xGetter);
+        }
         console.log(xDomain);
         this.xScale = d3
           .scaleTime()

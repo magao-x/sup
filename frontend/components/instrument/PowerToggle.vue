@@ -24,7 +24,7 @@ const components = {
 export default {
   components,
   props: ["device", "property", "indiId", "disabled"],
-  mixins: [indi],
+  mixins: [indi, utils],
   methods: {
     changeState: function () {
       let newTarget;

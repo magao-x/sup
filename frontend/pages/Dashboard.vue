@@ -9,7 +9,6 @@
       <indi-plot indiId="camsci2.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camwfs.temp_ccd" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camwfs.temps.water" style="height: 350px;"></indi-plot>
-
     </div>
   </div>
 </template>

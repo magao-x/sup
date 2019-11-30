@@ -1,6 +1,5 @@
 <template>
   <div>
-    <div>Power control enabled: <toggle-switch v-model="controlActive"></toggle-switch></div>
     <power-distribution-unit indiId="pdu0" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu1" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu2" :disabled="disabled"></power-distribution-unit>
@@ -30,7 +29,7 @@ export default {
   },
   computed: {
     disabled: function () {
-      return this.controlActive !== true;
+      return false;
     }
   }
 };
