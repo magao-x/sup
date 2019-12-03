@@ -7,6 +7,7 @@ import aiohttp
 import logging
 import ujson
 import uvicorn
+import os
 from pprint import pformat
 import socketio
 from starlette.exceptions import HTTPException
@@ -29,6 +30,7 @@ from collections.abc import MutableMapping, MutableSequence
 
 BATCH_UPDATE_INTERVAL = 1 # second
 PING_INTERVAL = 10
+MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
 
 def utc_now():
     dt = datetime.datetime.utcnow()
@@ -262,9 +264,9 @@ VIZZY_API_URL = 'https://vizzy.xwcl.science/api/magao-x/events'
 async def vizzy_relay(message_queue):
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
         while True:
-            msg = await message_queue.get()
-            print(f'vizzy_relay: got {msg}')
-            async with session.post(VIZZY_API_URL, json={'message': msg}) as resp:
+            msgdict = await message_queue.get()
+            print(f'vizzy_relay: got {msgdict}')
+            async with session.post(VIZZY_API_URL, json=msgdict) as resp:
                 print(resp.status)
                 print(await resp.json())
 
@@ -282,15 +284,34 @@ async def register_transitions(indi_client, indi_notifier, vizzy_queue):
             f'timeSeriesSimulator.function.{name}',
             handler=function_selected_transition
         )
-    async def closed_loop_no_lamp(indi_id, current_value):
-        if current_value == 'closed' and indi_client['pdu0.lamp.state'] != 'On':
-            msg = f'Loop is closed! :scienceparrot:'
-            print(msg)
-            await vizzy_queue.put(msg)
-    await indi_notifier.add_notifier(
-        'aoloop.loopState.state',
-        handler=closed_loop_no_lamp
-    )
+    if MAGAOX_ROLE == 'AOC':
+        async def on_sky_loop_changes(indi_id, current_value):
+            if indi_client['pdu0.lamp.state'] == 'On':
+                return
+            try:
+                target_message = f" on {indi_client['tcsi.catalog.object']}"
+            except KeyError:
+                target_message = ''
+            if current_value == 'closed':
+                msgdict = {
+                    'message': f'Loop is closed{target_message}! :closedloop:',
+                    'channel': '#observing'
+                }
+            elif current_value == 'paused':
+                msgdict = {
+                    'message': f'Loop is paused! :grimacing:',
+                    'channel': '#observing'
+                }
+            elif current_value == 'open':
+                msgdict = {
+                    'message': f'Loop is open! :guanaco:',
+                    'channel': '#observing'
+                }
+            await vizzy_queue.put(msgdict)
+        await indi_notifier.add_notifier(
+            'aoloop.loopState.state',
+            handler=on_sky_loop_changes
+        )
 
 async def spawn_tasks():
     loop = asyncio.get_event_loop()
