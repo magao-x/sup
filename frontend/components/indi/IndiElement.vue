@@ -127,16 +127,6 @@ export default {
         return null;
       }
     },
-    theControl: function() {
-      if (!this.thisProperty) return;
-      if(this.thisProperty.kind == 'swt') {
-        return IndiToggleSwitch;
-      } else if (this.thisProperty.kind == 'num') {
-        return IndiAdjustableNumberStepper;
-      } else {
-        return IndiText;
-      }
-    },
     dottedName: function() {
       return (
         this.thisDevice.name + "." + this.thisProperty.name + "." + this.thisElement.name
