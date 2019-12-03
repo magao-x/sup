@@ -3,8 +3,9 @@ import sys
 import uvloop
 import math
 import asyncio
+import aiohttp
 import logging
-import json
+import ujson
 import uvicorn
 from pprint import pformat
 import socketio
@@ -12,16 +13,9 @@ from starlette.exceptions import HTTPException
 from starlette.applications import Starlette
 from starlette.responses import UJSONResponse, FileResponse
 from pathlib import Path
-# from purepyindi import client
-# from purepyindi.eventful import AsyncINDIClient
 from purepyindi.constants import (
     INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT, parse_string_into_enum, SwitchState, ConnectionStatus
 )
-#     PropertyState
-# )
-# from purepyindi.generator import format_datetime_as_iso
-# from purepyindi.parser import parse_iso_to_datetime
-# import purepyindi.log
 from .indi import BogusINDIClient, SupINDIClient
 from copy import deepcopy
 from .log import debug, info, warn, error, critical, set_log_level
@@ -33,7 +27,7 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 from collections.abc import MutableMapping, MutableSequence
 
-BATCH_UPDATE_INTERVAL = 2 # second
+BATCH_UPDATE_INTERVAL = 1 # second
 PING_INTERVAL = 10
 
 def utc_now():
@@ -47,38 +41,6 @@ def log_updates(update, did_anything_change):
             elem = update['property']['elements'][elemname]
             if did_anything_change:
                 print(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
-
-# def convert_indi_update_for_json(update):
-#     modified = deepcopy(update)
-#     # Convert Enums to strings
-#     modified['action'] = update['action'].value
-#     # Convert datetime to string ISO timestamp
-#     if 'timestamp' in update:
-#         modified['timestamp'] = format_datetime_as_iso(modified['timestamp'])
-#     if 'property' in update:
-#         modified['property']['kind'] = update['property']['kind'].value
-#         update_prop = update['property']
-#         modified_prop = modified['property']
-#         modified_prop['timestamp'] = format_datetime_as_iso(modified_prop['timestamp'])
-#         # Check for optional attrs
-#         if 'perm' in update_prop:
-#             modified_prop['perm'] = update_prop['perm'].value
-#         if 'state' in update_prop:
-#             modified_prop['state'] = update_prop['state'].value
-#         if 'rule' in update_prop:
-#             modified_prop['rule'] = update_prop['rule'].value
-#         if update_prop['kind'] in (INDIPropertyKind.SWITCH, INDIPropertyKind.LIGHT):
-#             for key in update_prop['elements']:
-#                 modified_prop['elements'][key]['value'] = update_prop['elements'][key]['value'].value
-#         if update_prop['kind'] is INDIPropertyKind.NUMBER:
-#             for key in update_prop['elements']:
-#                 the_value = update_prop['elements'][key]['value']
-#                 modified_prop['elements'][key]['value'] = (
-#                     the_value
-#                     if the_value is not None and math.isfinite(the_value)
-#                     else None
-#                 )
-#     return modified
 
 static_folder_name = "static"
 static_path = Path(__file__).parent / static_folder_name
@@ -126,9 +88,6 @@ async def disconnect(sid):
 
 @sio.on('indi_new')
 def handle_indi_new(sid, data):
-    # if app.config.potemkin:
-    #     print("Skipping indi_new because only fake data shown")
-    #     return
     info(f"indi_new setting {data['device']}.{data['property']}.{data['element']}={data['value']}")
     prop = app.indi.devices[data['device']].properties[data['property']]
     if prop.KIND == INDIPropertyKind.NUMBER:
@@ -137,6 +96,50 @@ def handle_indi_new(sid, data):
         prop.elements[data['element']].value = parse_string_into_enum(data['value'], SwitchState)
     elif prop.KIND == INDIPropertyKind.TEXT:
         prop.elements[data['element']].value = data['value']
+
+class INDIStateTransitionNotifier:
+    def __init__(self, client_instance):
+        self._elements_watched = {}
+        self._element_checks = {}
+        self._element_notifiers = {}
+        self.client_instance = client_instance
+    async def add_notifier(self, indi_id, handler):
+        async def notifier_closure():
+            previous_value = self._elements_watched.get(indi_id)
+            current_value = self.client_instance[indi_id]
+            if current_value != previous_value:
+                await handler(indi_id, current_value)
+                self._elements_watched[indi_id] = current_value
+        self._element_notifiers[indi_id] = notifier_closure
+        self._elements_watched[indi_id] = None
+    async def trigger_notifier(self, indi_id):
+        if indi_id in self._element_notifiers:
+            await self._element_notifiers[indi_id]()
+    async def add_transition(self, indi_id, was, now, handler):
+        async def transition_closure():
+            previous_value = self._elements_watched.get(indi_id)
+            if previous_value == was:
+                await handler(indi_id, previous_value, now)
+                self._elements_watched[indi_id] = now
+        self._element_checks[(indi_id, now)] = transition_closure
+        self._elements_watched[indi_id] = None
+    async def trigger_transition(self, indi_id, current_value):
+        if (indi_id, current_value) in self._element_checks:
+            await self._element_checks[(indi_id, current_value)]()
+    async def process_update(self, update, *_, **__):
+        if update['action'] is INDIActions.PROPERTY_SET:
+            device_name = update['device']
+            property_name = update['property']['name']
+            for elt in update['property']['elements'].values():
+                indi_id = f"{device_name}.{property_name}.{elt['name']}"
+                if indi_id in self._elements_watched:
+                    new_value = elt['value']
+                    # Fire any matching state-transition handler
+                    await self.trigger_notifier(indi_id)
+                    # Fire any matching notification handler
+                    await self.trigger_transition(indi_id, new_value)
+                    # Update _elements_watched with current value
+                    self._elements_watched[indi_id] = new_value
 
 class INDIUpdateBatcher:
     def __init__(self, client_instance):
@@ -192,11 +195,10 @@ async def emit_updates():
 def make_indi_connection(potemkin=False):
     if potemkin:
         with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
-            initial_state = json.load(f)
+            initial_state = ujson.load(f)
         return BogusINDIClient(sio, initial_state)
     else:
         return SupINDIClient(sio, CONFIG['indi_host'], CONFIG['indi_port'])
-
 
 CONFIG = {
     'indi_host': '127.0.0.1',
@@ -256,20 +258,64 @@ def console_entrypoint():
     sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
 
 RUNNING_TASKS = set()
+VIZZY_API_URL = 'https://vizzy.xwcl.science/api/magao-x/events'
+async def vizzy_relay(message_queue):
+    async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
+        while True:
+            msg = await message_queue.get()
+            print(f'vizzy_relay: got {msg}')
+            async with session.post(VIZZY_API_URL, json={'message': msg}) as resp:
+                print(resp.status)
+                print(await resp.json())
+
+async def register_transitions(indi_client, indi_notifier, vizzy_queue):
+    async def function_out_transition(indi_id, previous_value, now):
+        print('timeSeriesSimulator.function_out.value was=0, now=1')
+    await indi_notifier.add_transition('timeSeriesSimulator.function_out.value', was=0, now=1, handler=function_out_transition)
+    async def function_selected_transition(indi_id, current_value):
+        if current_value is SwitchState.ON:
+            msg = f'{indi_id} now {current_value}'
+            print(msg)
+            await vizzy_queue.put(msg)
+    for name in ['constant', 'cos', 'sin', 'square']:
+        await indi_notifier.add_notifier(
+            f'timeSeriesSimulator.function.{name}',
+            handler=function_selected_transition
+        )
+    async def closed_loop_no_lamp(indi_id, current_value):
+        if current_value == 'closed' and indi_client['pdu0.lamp.state'] != 'On':
+            msg = f'Loop is closed! :scienceparrot:'
+            print(msg)
+            await vizzy_queue.put(msg)
+    await indi_notifier.add_notifier(
+        'aoloop.loopState.state',
+        handler=closed_loop_no_lamp
+    )
 
 async def spawn_tasks():
     loop = asyncio.get_event_loop()
     app.indi = make_indi_connection(potemkin=CONFIG['potemkin'])
+
     app.indi_batcher = INDIUpdateBatcher(app.indi)
     app.indi.add_async_watcher(app.indi_batcher.process_update)
-    app.update_queue = asyncio.Queue()
+
+    app.vizzy_queue = asyncio.Queue()
+
+    app.indi_notifier = INDIStateTransitionNotifier(app.indi)
+    await register_transitions(app.indi, app.indi_notifier, app.vizzy_queue)
+    app.indi.add_async_watcher(app.indi_notifier.process_update)
+
     indi_coro = app.indi.run(reconnect_automatically=True)
     RUNNING_TASKS.add(loop.create_task(indi_coro))
     if CONFIG['potemkin']:
         fiddling_coro = app.indi.fiddle_connection_status()
         RUNNING_TASKS.add(loop.create_task(fiddling_coro))
+
     emit_updates_coro = emit_updates()
     RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
+
+    vizzy_relay_coro = vizzy_relay(app.vizzy_queue)
+    RUNNING_TASKS.add(loop.create_task(vizzy_relay_coro))
 
 async def cancel_tasks():
     await app.indi.stop()

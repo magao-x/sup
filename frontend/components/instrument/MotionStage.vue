@@ -112,7 +112,6 @@ export default {
     },
     presetNames: function() {
       const presetBaseName = (this.kind.toLowerCase() == "stage") ? "preset" : "filter";
-      console.log(`Looking for ${this.thisDevice.name}.${presetBaseName}Name`)
       if (this.thisDevice && this.thisDevice.properties[presetBaseName + "Name"]) {
         return this.thisDevice.properties[presetBaseName + "Name"];
       } else {

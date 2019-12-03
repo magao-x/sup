@@ -28,7 +28,7 @@ for (let evt of ['connect_error', 'connect_timeout', 'disconnect']) {
 socket.on('connect_error', (err) => console.error("socket.io connection error", err));
 
 Vue.use(new VueSocketIO({
-    debug: process.env.NODE_ENV == 'development',
+    debug: false, // process.env.NODE_ENV == 'development',
     connection: socket,
     vuex: {
         store,
@@ -62,7 +62,6 @@ new Vue({
         setTimeout(() => { this.updateCurrentTime(); }, 1000);
       }
     },
-    mixins: [utils],
     data() {
       return {
         currentTime: DateTime.utc()

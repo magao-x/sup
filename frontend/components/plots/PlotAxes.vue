@@ -76,8 +76,11 @@ export default {
     }
   },
   watch: {
-    data(newValue, oldValue) {
-      this.updatePlot();
+    data: {
+      handler(newValue, oldValue) {
+        this.updatePlot();
+      },
+      deep: true,
     }
   },
   inject: ["time"],
@@ -115,7 +118,6 @@ export default {
       return hash;
     },
     updatePlot() {
-      console.log("updatePlot()")
       // Calculate plot dimensions in screen coords from margins
       // and element dimensions in screen coords
       var margin = { top: 10, right: 30, bottom: 50, left: 50 };
@@ -125,7 +127,6 @@ export default {
       let xGetter;
       let yGetter = d => d.y;
       let xDomain;
-      console.log("this.timeSeries", this.timeSeries)
       if (this.timeSeries) {
         xGetter = d => d3.isoParse(d.x);
         if (this.numMinutes !== null) {
@@ -134,7 +135,6 @@ export default {
         } else {
           xDomain = this.computeDomain(xGetter);
         }
-        console.log(xDomain);
         this.xScale = d3
           .scaleTime()
           .domain(xDomain)
@@ -203,16 +203,16 @@ export default {
           .attr("d", this.line); // 11. Calls the line generator
 
         // 12. Appends a circle for each datapoint
-        this.d3svg
-          .selectAll(`.dot.line-${this.hashString(name)}`)
-          .data(dataset.points)
-          .enter()
-          .append("circle") // Uses the enter().append() method
-          .classed("dot", true) // Assign a class for styling
-          .style("fill", this.dataColors[idx])
-          .attr("cx", d => this.xScale(xGetter(d)))
-          .attr("cy", d => this.yScale(yGetter(d)))
-          .attr("r", this.markerSize);
+        // this.d3svg
+        //   .selectAll(`.dot.line-${this.hashString(name)}`)
+        //   .data(dataset.points)
+        //   .enter()
+        //   .append("circle") // Uses the enter().append() method
+        //   .classed("dot", true) // Assign a class for styling
+        //   .style("fill", this.dataColors[idx])
+        //   .attr("cx", d => this.xScale(xGetter(d)))
+        //   .attr("cy", d => this.yScale(yGetter(d)))
+        //   .attr("r", this.markerSize);
         idx = (idx + 1) % this.dataColors.length;
       }
     }

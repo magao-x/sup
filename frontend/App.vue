@@ -22,21 +22,9 @@
           <div class="nav-icon"><i class="material-icons">speed</i></div>
           <div class="label">dashboard</div>
         </router-link>
-        <!-- <router-link to="/bench" class="choice bench">
-          <span class="nav-icon"><i class="material-icons">developer_board</i></span>
-          <span class="label">bench</span>
-        </router-link> -->
-        <router-link to="/properties" class="choice properties">
-          <span class="nav-icon"><i class="material-icons">memory</i></span>
-          <span class="label">properties</span>
-        </router-link>
         <router-link to="/power" class="choice power">
           <span class="nav-icon"><i class="material-icons">emoji_objects</i></span>
           <span class="label">power</span>
-        </router-link>
-        <router-link v-if="onVM" to="/vm" class="choice" >
-          <span class="nav-icon"><i class="material-icons">widgets</i></span>
-          <span class="label">vm</span>
         </router-link>
         <router-link to="/lab" class="choice" >
           <span class="nav-icon"><i class="material-icons">build</i></span>
@@ -204,39 +192,7 @@ export default Vue.extend({
     IndiStateIndicator,
   },
   inject: ["time"],
-  // methods: {
-  //   deviceChange: function (payload) {
-  //     console.log("Device change:", payload);
-  //     this.$socket.emit('indi_new', payload);
-  //   }
-  // },
-  methods: {
-    checkStatus(connection) {
-      const connectionState = this.$store.state[connection];
-      if (!connectionState.connected) {
-        return 'Alert';
-      }
-      const delay = this.time.currentTime.diff(connectionState.lastUpdate, 'seconds');
-      if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
-        return 'Ok'
-      } else {
-        return 'Alert'
-      }
-    }
-  },
   computed: {
-    onVM() {
-      return process.env.MAGAOX_ROLE == 'vm';
-    },
-    connection () {
-      return this.$store.state.webSocketConnection
-    },
-    webSocketConnectionStatus() {
-      return this.checkStatus('webSocketConnection');
-    },
-    indiConnectionStatus() {
-      return this.checkStatus('indiConnection');
-    },
     devices() {
       return this.$store.state.devices
     },

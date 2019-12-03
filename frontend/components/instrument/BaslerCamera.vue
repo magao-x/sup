@@ -1,6 +1,7 @@
 <template>
   <div class="basler-camera" v-if="indiDefined">
     <div>{{ thisDevice.name }}</div>
+    <p>Exposure time:</p>
     <indi-property :device="thisDevice" :property="thisDevice.properties['exptime']"></indi-property>
   </div>
   <div class="basler-camera" v-else>

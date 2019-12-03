@@ -1,7 +1,20 @@
 import { sprintf } from '~/node_modules/printj/printj.mjs';
-
+import constants from "~/constants.js";
 export default {
+  inject: ['time'],
   methods: {
+    checkStatus(connection) {
+      const connectionState = this.$store.state[connection];
+      if (!connectionState.connected) {
+        return 'Alert';
+      }
+      const delay = this.time.currentTime.diff(connectionState.lastUpdate, 'seconds');
+      if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
+        return 'Ok'
+      } else {
+        return 'Alert'
+      }
+    },
     retrieveByIndiId: function (indiId) {
       const parts = indiId.split('.');
       const deviceName = parts.shift();
@@ -101,5 +114,16 @@ export default {
       let keys = Object.keys(ob).sort();
       return keys.map((val) => ob[val]);
     }
+  },
+  computed: {
+    webSocketConnectionStatus() {
+      return this.checkStatus('webSocketConnection');
+    },
+    indiConnectionStatus() {
+      return this.checkStatus('indiConnection');
+    },
+    connectionStatus() {
+      return this.indiConnectionStatus && this.webSocketConnectionStatus;
+    },
   }
 }

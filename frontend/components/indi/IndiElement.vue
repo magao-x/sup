@@ -13,6 +13,13 @@
       @blur="maybeResumeUpdating"
       @input="updateUserInput"
     ></adjustable-number-stepper>
+    <vanilla-number-input
+      v-else-if="propertyKind == 'num'"
+      :value="currentValueOrInput"
+      @focus="stopUpdating"
+      @blur="maybeResumeUpdating"
+      @input="updateUserInput"
+    ></vanilla-number-input>
     <indi-toggle-switch
       v-else-if="propertyKind == 'swt'"
       :disabled="isDisabled"
@@ -21,14 +28,14 @@
       :property="thisProperty"
       :element="thisElement"
     ></indi-toggle-switch>
-    <input
+    <vanilla-input
       v-else
       :disabled="isDisabled"
       :value="currentValueOrInput"
       @focus="stopUpdating"
       @blur="maybeResumeUpdating"
       @input="updateUserInput"
-    >
+    ></vanilla-input>
     <commit-button v-if="propertyKind !== 'swt'" :disabled="isDisabled" @commit="onCommit"></commit-button>
   </div>
   <div v-else>Waiting for element {{ indiId }}  {{ thisElement }}</div>
@@ -51,6 +58,8 @@ import CommitButton from "~/components/basic/CommitButton.vue";
 import AdjustableNumberStepper from "~/components/basic/AdjustableNumberStepper.vue";
 // import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
+import VanillaInput from "~/components/basic/VanillaInput.vue";
+import VanillaNumberInput from "~/components/basic/VanillaNumberInput.vue";
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 
@@ -61,6 +70,8 @@ export default {
     CommitButton,
     AdjustableNumberStepper,
     IndiToggleSwitch,
+    VanillaInput,
+    VanillaNumberInput
   },
   mixins: [indi, utils],
   methods: {
@@ -73,7 +84,6 @@ export default {
       }
     },
     updateUserInput: function (payload) {
-      console.log(payload);
       if (payload.target && payload.target.value) {
         this.userInput = payload.target.value;
       } else {
@@ -93,10 +103,6 @@ export default {
       this.shouldUpdate = true;
     },
     onCommit: function () {
-      console.log('sending', this.thisDevice.name,
-        this.thisProperty.name,
-        this.thisElement.name,
-        this.userInput);
       this.sendIndiNew(
         this.thisDevice,
         this.thisProperty,
@@ -144,12 +150,9 @@ export default {
       }
     },
     currentValue: function() {
-      // console.log('computing currentValue...');
       if (this.thisElement) {
-        // console.log('have it');
         return this.thisElement.value;
       } else {
-        // console.log('dont have it');
         return "";
       }
     },

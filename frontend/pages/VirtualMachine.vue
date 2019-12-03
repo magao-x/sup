@@ -2,6 +2,17 @@
   <div>
     <indi-plot indi-id="timeSeriesSimulator.function_out.value"></indi-plot>
     <div class="row">
+      <indi-switch-multi-element indi-id="timeSeriesSimulator.function"></indi-switch-multi-element>
+      <div style="width: 150px;">
+        Period:
+        <indi-element indi-id="timeSeriesSimulator.duty_cycle.period"></indi-element>
+      </div>
+      <div style="width: 150px;">
+        Amplitude:
+        <indi-element indi-id="timeSeriesSimulator.duty_cycle.amplitude"></indi-element>
+      </div>
+    </div>
+    <div class="row">
       <div class="item">
       <indi-property
         indi-id="timeSeriesSimulator.gizmo_0000"
@@ -29,7 +40,7 @@
     </div>
     <select><option>Foo</option><option>Foo</option></select>
     <br><br>
-    <indi-switch-multi-element indi-id="timeSeriesSimulator.function"></indi-switch-multi-element>
+
     <indi-switch-multi-element indi-id="fwpupil.filterName"></indi-switch-multi-element>
     <indi-switch-multi-element indi-id="fliptip.position"></indi-switch-multi-element>
     <div style="width: 10em;">

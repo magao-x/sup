@@ -39,10 +39,8 @@ export default {
       if (this.disabled) return;
       if (element.value == 'Off') {
         this.sendIndiNew(this.thisDevice, this.thisProperty, element, "On");
-        console.log(`Setting ${element.name} On`);
       } else {
         this.sendIndiNew(this.thisDevice, this.thisProperty, element, "Off");
-        console.log(`Setting ${element.name} Off`);
       }
     }
   },
