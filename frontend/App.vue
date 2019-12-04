@@ -229,14 +229,6 @@ export default Vue.extend({
     };
   },
   inject: ["time"],
-  watch: {
-    loopClosed(newValue, oldValue) {
-      console.log('loopClosed', newValue, oldValue);
-      if (newValue === true) {
-        this.toggleFlames = true;
-      }
-    }
-  },
   computed: {
     devices() {
       return this.$store.state.devices;
