@@ -34,9 +34,11 @@
 // TODO: separate coronagraph gui group for pupil, then fpm, then lyot
 import CameraControlsGroup from "~/components/instrument/CameraControlsGroup.vue";
 import MotionStage from "~/components/instrument/MotionStage.vue";
+import utils from "~/mixins/utils.js";
 import TelescopeSimulator from "~/components/instrument/TelescopeSimulator.vue";
 
 export default {
+  mixins: [utils],
   components: {
     CameraControlsGroup,
     MotionStage
