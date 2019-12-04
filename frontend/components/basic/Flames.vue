@@ -2,7 +2,7 @@
   <div class="background" :class="[active ? 'active' : '']">
     <video playsinline autoplay muted loop poster="~/assets/flames.jpg">
       <source src="~/assets/flames.mp4" type="video/mp4">
-      <source src="~/assets/flames.mp4" type="video/webm">
+      <source src="~/assets/flames.webm" type="video/webm">
     </video>
   </div>
 </template>

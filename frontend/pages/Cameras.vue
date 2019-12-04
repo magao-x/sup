@@ -5,6 +5,13 @@
       <camera-controls-group base-name="sci2"></camera-controls-group>
     </div>
     <div class="coronagraphs">
+      <div style="display: flex" v-if="indiIdExists('flipacq.position')">
+        <div>Acquisition camera flip mirror:</div>
+        <indi-switch-multi-element indi-id="flipacq.position"></indi-switch-multi-element>
+      </div>
+      <div v-else>
+        Waiting for acquisition camera
+      </div>
       <motion-stage kind="filterwheel" indi-id="fwscind"></motion-stage>
       <motion-stage kind="filterwheel" indi-id="fwpupil"></motion-stage>
       <motion-stage kind="filterwheel" indi-id="fwfpm"></motion-stage>
