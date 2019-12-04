@@ -2,14 +2,13 @@
   <div id="app">
     <flames :active="showFlames" :disabled="!loopClosed"></flames>
     <div class="status-bar">
-      <div class="time">{{ readableTimestamp }}</div>
+      <div class="status-left">
+        <div>{{ readableTimestamp }}</div>
+        <loop-state indiId="aoloop"></loop-state>
+      </div>
       <div class="logo">MagAO-X</div>
       <div class="status-right">
-        <div><toggle-switch
-          v-model="toggleFlames"
-          labelOn="FLAMES"
-          labelOff="NO"
-        ></toggle-switch></div>
+        <div></div>
         <div>WebSocket:
         <indi-state-indicator :state="webSocketConnectionStatus"></indi-state-indicator>INDI:
         <indi-state-indicator :state="indiConnectionStatus"></indi-state-indicator></div>
@@ -76,7 +75,7 @@
   div {
     flex: 2;
   }
-  .time {
+  .status-left {
     text-align: left;
   }
   .logo {
@@ -201,6 +200,7 @@ import Vue from "vue";
 import io from "socket.io-client";
 import IndiStateIndicator from "~/components/indi/IndiStateIndicator.vue";
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
+import LoopState from "~/components/instrument/LoopState.vue";
 import constants from "./constants.js";
 import Flames from "~/components/basic/Flames.vue";
 import { DateTime } from "luxon";
@@ -221,7 +221,8 @@ export default Vue.extend({
   components: {
     IndiStateIndicator,
     Flames,
-    ToggleSwitch
+    ToggleSwitch,
+    LoopState
   },
   data: function () {
     return {

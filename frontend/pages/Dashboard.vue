@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard">
-    <loop-state indiId="aoloop"></loop-state>
+
     <div class="plot-panels">
       <indi-plot indiId="temprack.temperature" style="height: 350px;"></indi-plot>
       <indi-plot indiId="camacq.temp" style="height: 350px;"></indi-plot>
