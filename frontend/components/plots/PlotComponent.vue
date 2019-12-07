@@ -19,7 +19,8 @@
   flex-direction: column;
   background: $base02;
   margin: $unit / 2;
-  padding: $unit / 2
+  padding: $unit / 2;
+  overflow: hidden;
 }
 </style>
 <script>

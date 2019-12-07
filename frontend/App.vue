@@ -6,11 +6,11 @@
         <div>{{ readableTimestamp }}</div>
         <loop-state indiId="aoloop"></loop-state>
       </div>
-      <div class="logo">MagAO-X</div>
+      <div class="logo" @click="toggleFlames">MagAO-X</div>
       <div class="status-right">
-        <div></div>
         <div>WebSocket:
-        <indi-state-indicator :state="webSocketConnectionStatus"></indi-state-indicator>INDI:
+        <indi-state-indicator :state="webSocketConnectionStatus"></indi-state-indicator></div>
+        <div>INDI:
         <indi-state-indicator :state="indiConnectionStatus"></indi-state-indicator></div>
       </div>
     </div>
@@ -60,7 +60,7 @@
 
 #app {
   margin: 0 auto;
-  max-width: 80rem;
+  // max-width: 80rem;
 }
 .devices {
   display: flex;
@@ -87,7 +87,7 @@
     text-indent: -9999px;
   }
   .status-right {
-    display: flex;
+    text-align: right;
   }
 }
 .vertical-selector {
@@ -179,6 +179,7 @@
 }
 .content {
   flex: 1;
+  overflow: hidden;
 }
 .fade-enter-active,
 .fade-leave-active {
@@ -226,10 +227,15 @@ export default Vue.extend({
   },
   data: function () {
     return {
-      toggleFlames: false
+      flamesEnabled: false
     };
   },
   inject: ["time"],
+  methods: {
+    toggleFlames() {
+      this.flamesEnabled = !this.flamesEnabled;
+    }
+  },
   computed: {
     devices() {
       return this.$store.state.devices;
@@ -240,7 +246,7 @@ export default Vue.extend({
       return elt && elt.value == 'closed';
     },
     showFlames() {
-      return this.loopClosed && this.toggleFlames;
+      return this.flamesEnabled;
     },
     readableTimestamp() {
       return (

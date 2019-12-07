@@ -2,12 +2,12 @@
   <div class="dashboard">
 
     <div class="plot-panels">
-      <indi-plot indiId="temprack.temperature" style="height: 350px;"></indi-plot>
-      <indi-plot indiId="camacq.temp" style="height: 350px;"></indi-plot>
-      <indi-plot indiId="camsci1.temp_ccd" style="height: 350px;"></indi-plot>
-      <indi-plot indiId="camsci2.temp_ccd" style="height: 350px;"></indi-plot>
-      <indi-plot indiId="camwfs.temp_ccd" style="height: 350px;"></indi-plot>
-      <indi-plot indiId="camwfs.temps.water" style="height: 350px;"></indi-plot>
+      <indi-plot indiId="temprack.temperature" ></indi-plot>
+      <indi-plot indiId="camacq.temp" ></indi-plot>
+      <indi-plot indiId="camsci1.temp_ccd" ></indi-plot>
+      <indi-plot indiId="camsci2.temp_ccd" ></indi-plot>
+      <indi-plot indiId="camwfs.temp_ccd" ></indi-plot>
+      <indi-plot indiId="camwfs.temps.water" ></indi-plot>
     </div>
   </div>
 </template>
@@ -20,6 +20,8 @@
   flex-wrap: wrap;
   .plot {
     flex: 1;
+    min-width: 350px;
+    max-width: 100%;
   }
 }
 </style>

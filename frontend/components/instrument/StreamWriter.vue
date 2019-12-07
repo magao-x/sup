@@ -1,6 +1,7 @@
 <template>
     <indi-toggle-switch
       v-if="thisDevice"
+      class="stream-writer-toggle"
       :prompt="true"
       :indi-id="thisDevice.name + '.writing.toggle'"
       labelOn="WRITING"
@@ -9,7 +10,9 @@
     <div v-else>Waiting for streamwriter</div>
 </template>
 <style lang="scss" scoped>
-
+.stream-writer-toggle {
+  max-width: 18em;
+}
 </style>
 <script>
 import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";

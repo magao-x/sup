@@ -13,13 +13,6 @@
       @blur="maybeResumeUpdating"
       @input="updateUserInput"
     ></adjustable-number-stepper>
-    <vanilla-number-input
-      v-else-if="propertyKind == 'num'"
-      :value="currentValueOrInput"
-      @focus="stopUpdating"
-      @blur="maybeResumeUpdating"
-      @input="updateUserInput"
-    ></vanilla-number-input>
     <indi-toggle-switch
       v-else-if="propertyKind == 'swt'"
       :disabled="isDisabled"
@@ -84,11 +77,8 @@ export default {
       }
     },
     updateUserInput: function (payload) {
-      if (payload.target && payload.target.value) {
-        this.userInput = payload.target.value;
-      } else {
-        this.userInput = payload;
-      }
+      this.userInput = payload;
+      this.isModified = true;
       this.shouldUpdate = false;
     },
     optionalAttr: function(attr) {
@@ -156,7 +146,6 @@ export default {
           return this.currentValue;
         }
       }
-
     },
     isPairedCurrent: function() {
       if (

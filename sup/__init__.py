@@ -294,7 +294,7 @@ async def register_transitions(indi_client, indi_notifier, vizzy_queue):
                 target_message = ''
             if current_value == 'closed':
                 msgdict = {
-                    'message': f'Loop is closed{target_message}! :closedloop:',
+                    'message': f'Loop is closed{target_message}! :star2:',
                     'channel': '#observing'
                 }
             elif current_value == 'paused':
@@ -304,7 +304,7 @@ async def register_transitions(indi_client, indi_notifier, vizzy_queue):
                 }
             elif current_value == 'open':
                 msgdict = {
-                    'message': f'Loop is open! :guanaco:',
+                    'message': f'Loop is open!',
                     'channel': '#observing'
                 }
             await vizzy_queue.put(msgdict)

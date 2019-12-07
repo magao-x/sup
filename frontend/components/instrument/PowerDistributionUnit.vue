@@ -63,7 +63,7 @@ export default {
     channels: function() {
       const channelKeys = Object.keys(this.thisDevice.properties["channelOutlets"].elements);
       const propertyKeys = Object.keys(this.thisDevice.properties);
-      const channels = propertyKeys.filter(prop => channelKeys.includes(prop));
+      const channels = propertyKeys.filter(prop => channelKeys.includes(prop)).sort();
       return channels.map(key => this.thisDevice.properties[key]);
     }
   }

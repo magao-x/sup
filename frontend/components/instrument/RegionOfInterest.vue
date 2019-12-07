@@ -1,32 +1,36 @@
 <template>
   <div class="roi-control">
-    <sync-button @sync="onSync"></sync-button>
+    <div>Region of Interest:</div>
     <div class="roi">
       <div class="box"></div>
       <div class="position">
         (x=
-        <input :value="x" />, y=
-        <input :value="y" />)
+        <input :value="vals.x" :disabled="isDisabled" />
+        , y=
+        <input :value="vals.y" :disabled="isDisabled" />
+        )
       </div>
       <div class="height">
         h=
-        <input :value="h" />
+        <input :value="vals.h" :disabled="isDisabled" />
       </div>
       <div class="bin">
         bin
         <br />
-        <input class="small" :value="bin_x" />&times;
-        <input class="small" :value="bin_y" />
+        <input class="small" :value="vals.bin_x" :disabled="isDisabled" />&times;
+        <input class="small" :value="vals.bin_y" :disabled="isDisabled" />
       </div>
       <div class="width">
         w=
-        <input :value="w" />
+        <input :value="vals.w" />
       </div>
     </div>
-    <commit-button @commit="onCommit"></commit-button>
+    <sync-button @sync="onSync" :disabled="isDisabled"></sync-button>
+    <commit-button @commit="onCommit" labeled="true" :disabled="isDisabled"></commit-button>
   </div>
 </template>
 <style lang="scss" scoped>
+@import "./css/variables.scss";
 body {
   height: 100vh;
   padding: 0;
@@ -49,6 +53,7 @@ body {
     width: 2.5em;
     padding: 0.125em;
     margin: 0;
+    background: $base03;
     &.small {
       width: 1rem;
     }
@@ -90,12 +95,64 @@ body {
 <script>
 import SyncButton from "~/components/basic/SyncButton.vue";
 import CommitButton from "~/components/basic/CommitButton.vue";
+import indi from "~/mixins/indi.js";
+
+const keys = ["x", "y", "w", "h", "bin_x", "bin_y"];
 
 export default {
-    props: ["x", "y", "w", "h", "bin_x", "bin_y"],
-    components: {
-      SyncButton,
-      CommitButton
+  mixins: [indi],
+  props: {
+    device: {
+      type: Object
+    },
+    indiId: {
+      type: String
     }
+  },
+  data() {
+    let userInput = {};
+    let shouldUpdate = {};
+    let isModified = {};
+    for (const k in keys) {
+      userInput[k] = null;
+      shouldUpdate[k] = true;
+      isModified[k] = false;
+    }
+    return {
+      userInput,
+      shouldUpdate,
+      isModified
+    };
+  },
+  components: {
+    SyncButton,
+    CommitButton
+  },
+  computed: {
+    vals() {
+      let out = {};
+      for (const k in keys) {
+        if (this.shouldUpdate[k] === false && this.userInput[k] !== null) {
+          out[k] = this.userInput[k];
+        } else {
+          out[k] = this.currentValue[k];
+        }
+      }
+      return out;
+    },
+    currentValue() {
+      let out = {};
+      for (const k in keys) {
+        if (this.indiDefined) {
+          out[k] = this.thisDevice.properties[k].elements["current"].value;
+        } else {
+          out[k] = null;
+        }
+      }
+    },
+    isDisabled: function() {
+      return true;
+    }
+  }
 };
 </script>

@@ -1,7 +1,8 @@
 <template>
   <div>
     <telescope-simulator></telescope-simulator>
-    <basler-camera indiId="camtip"></basler-camera>
+    <!-- <basler-camera indiId="camtip"></basler-camera> -->
+    <camera-controls-group indiId="camtip"></camera-controls-group>
     <div class="stages">
       <motion-stage kind="stage" indi-id="stageeyepiece"></motion-stage>
       <motion-stage kind="stage" indi-id="stageadc1"></motion-stage>
@@ -16,7 +17,7 @@
   display: flex;
   flex-wrap: wrap;
   .motion-stage {
-    min-width: 33%
+    min-width: 50%;
   }
 }
 </style>

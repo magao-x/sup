@@ -1,12 +1,7 @@
 <template>
-  <div>
-    <div class="loop-state" :class="state">
-      loop: {{ state }}
+    <div class="loop">
+      <span class="loop-state" :class="state">loop: {{ state }}</span>
     </div>
-    <div>
-      gain: {{ gain }}
-    </div>
-  </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";

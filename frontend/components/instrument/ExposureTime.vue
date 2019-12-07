@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>Exposure time:</div>
-    <indi-property :device="thisDevice" :property="exptime"></indi-property>
+    <indi-property :device="thisDevice" :property="exptime" style="font-size: 1.2em;"></indi-property>
   </div>
 </template>
 <style lang="scss" scoped>

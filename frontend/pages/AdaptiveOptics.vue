@@ -3,6 +3,7 @@
     <div class="cameras">
       <camera-controls-group base-name="wfs"></camera-controls-group>
       <camera-controls-group base-name="lowfs"></camera-controls-group>
+      <camera-controls-group base-name="tip"></camera-controls-group>
     </div>
     <div class="coronagraphs">
       <motion-stage indi-id="fwpupil" kind="filterwheel"></motion-stage>

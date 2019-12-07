@@ -1,5 +1,5 @@
 <template>
-  <input type="number" :value="value" @input="convertAndEmit($event.target.value)" />
+  <input :value="value" @input="convertAndEmit($event.target.value)" />
 </template>
 <script>
 export default {

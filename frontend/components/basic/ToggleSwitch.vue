@@ -13,14 +13,15 @@
 .toggle-and-commit {
   display: flex;
   .label {
-    flex: 1;
     text-align: center;
   }
   .label.off {
     margin-right: 0.5em;
+    text-align: right;
   }
   .label.on {
     margin-left: 0.5em;
+    text-align: left;
   }
 }
 .toggle {
