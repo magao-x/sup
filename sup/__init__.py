@@ -28,7 +28,7 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 from collections.abc import MutableMapping, MutableSequence
 
-BATCH_UPDATE_INTERVAL = 1 # second
+BATCH_UPDATE_INTERVAL = 0.2 # second
 PING_INTERVAL = 10
 MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
 
@@ -270,14 +270,65 @@ async def vizzy_relay(message_queue):
                 print(resp.status)
                 print(await resp.json())
 
+last_pointing_announced = None
+
+async def register_onsky(indi_client, indi_notifier, vizzy_queue):
+    print("Registering stuff for real ops")
+    not_real_stars = set(('none', 'Pointing'))
+    async def pointing_changes(indi_id, catalog_name):
+        global last_pointing_announced
+        if catalog_name == 'UNKNOWN' or catalog_name in not_real_stars:
+            return
+        simbad_search_url = f"http://simbad.u-strasbg.fr/simbad/sim-id?Ident={catalog_name}&NbIdent=1&Radius=2&Radius.unit=arcmin&submit=submit+id"
+        msgdict = {
+            'message': f'Pointing at <{simbad_search_url}|{catalog_name}>',
+            'channel': '#observing',
+        }
+        print(msgdict)
+        if catalog_name != last_pointing_announced:
+            await vizzy_queue.put(msgdict)
+            last_pointing_announced = catalog_name
+    await indi_notifier.add_notifier(
+        'tcsi.catalog.object',
+        handler=pointing_changes
+    )
+    async def on_sky_loop_changes(indi_id, current_value):
+        if indi_client['pdu0.lamp.state'] == 'On':
+            return
+        try:
+            target_message = f" on {indi_client['tcsi.catalog.object']}"
+        except KeyError:
+            target_message = ''
+        if current_value == 'closed':
+            msgdict = {
+                'message': f'Loop is closed{target_message}! :star2:',
+                'channel': '#observing'
+            }
+        elif current_value == 'paused':
+            msgdict = {
+                'message': f'Loop is paused! :grimacing:',
+                'channel': '#observing'
+            }
+        elif current_value == 'open':
+            msgdict = {
+                'message': f'Loop is open!',
+                'channel': '#observing'
+            }
+        print(msgdict)
+        await vizzy_queue.put(msgdict)
+    await indi_notifier.add_notifier(
+        'aoloop.loopState.state',
+        handler=on_sky_loop_changes
+    )
+
 async def register_transitions(indi_client, indi_notifier, vizzy_queue):
+    print("Registering transition notifiers")
     async def function_out_transition(indi_id, previous_value, now):
         print('timeSeriesSimulator.function_out.value was=0, now=1')
     await indi_notifier.add_transition('timeSeriesSimulator.function_out.value', was=0, now=1, handler=function_out_transition)
     async def function_selected_transition(indi_id, current_value):
         if current_value is SwitchState.ON:
             msg = f'{indi_id} now {current_value}'
-            print(msg)
             await vizzy_queue.put(msg)
     for name in ['constant', 'cos', 'sin', 'square']:
         await indi_notifier.add_notifier(
@@ -285,33 +336,7 @@ async def register_transitions(indi_client, indi_notifier, vizzy_queue):
             handler=function_selected_transition
         )
     if MAGAOX_ROLE == 'AOC':
-        async def on_sky_loop_changes(indi_id, current_value):
-            if indi_client['pdu0.lamp.state'] == 'On':
-                return
-            try:
-                target_message = f" on {indi_client['tcsi.catalog.object']}"
-            except KeyError:
-                target_message = ''
-            if current_value == 'closed':
-                msgdict = {
-                    'message': f'Loop is closed{target_message}! :star2:',
-                    'channel': '#observing'
-                }
-            elif current_value == 'paused':
-                msgdict = {
-                    'message': f'Loop is paused! :grimacing:',
-                    'channel': '#observing'
-                }
-            elif current_value == 'open':
-                msgdict = {
-                    'message': f'Loop is open!',
-                    'channel': '#observing'
-                }
-            await vizzy_queue.put(msgdict)
-        await indi_notifier.add_notifier(
-            'aoloop.loopState.state',
-            handler=on_sky_loop_changes
-        )
+        await register_onsky(indi_client, indi_notifier, vizzy_queue)
 
 async def spawn_tasks():
     loop = asyncio.get_event_loop()
