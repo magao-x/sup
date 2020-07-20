@@ -22,7 +22,7 @@
           <adc-speed v-if="hasADCSpeed" :device="cam"></adc-speed>
         </div>
         <div style="min-width: 15em;">
-          <region-of-interest v-if="hasROI" class="block"></region-of-interest>
+          <!-- <region-of-interest v-if="hasROI" class="block" :device="cam"></region-of-interest> -->
         </div>
       </div>
       <frames-per-second v-if="hasFPS" :device="cam" class="block"></frames-per-second>
@@ -83,7 +83,7 @@ import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import MotionStage from "~/components/instrument/MotionStage.vue";
 import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
-import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
+// import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
 import WavefrontSensor from "~/components/instrument/WavefrontSensor.vue";
 import StreamWriter from "~/components/instrument/StreamWriter.vue";
 import ShutterToggle from "~/components/instrument/ShutterToggle.vue";
@@ -107,7 +107,7 @@ export default {
   components: {
     IndiSwitchMultiElement,
     MotionStage,
-    RegionOfInterest,
+    // RegionOfInterest,
     StreamWriter,
     ShutterToggle,
     FiniteStateMachineStatus,

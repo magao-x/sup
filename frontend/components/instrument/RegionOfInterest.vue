@@ -109,6 +109,14 @@ export default {
       type: String
     }
   },
+  methods: {
+    onSync: function () {
+      
+    },
+    onCommit: function () {
+      
+    }
+  },
   data() {
     let userInput = {};
     let shouldUpdate = {};
@@ -131,7 +139,7 @@ export default {
   computed: {
     vals() {
       let out = {};
-      for (const k in keys) {
+      for (const k of keys) {
         if (this.shouldUpdate[k] === false && this.userInput[k] !== null) {
           out[k] = this.userInput[k];
         } else {
@@ -142,13 +150,15 @@ export default {
     },
     currentValue() {
       let out = {};
-      for (const k in keys) {
+      for (const k of keys) {
         if (this.indiDefined) {
+          console.log(k);
           out[k] = this.thisDevice.properties[k].elements["current"].value;
         } else {
           out[k] = null;
         }
       }
+      return out;
     },
     isDisabled: function() {
       return true;

@@ -293,7 +293,7 @@ async def register_onsky(indi_client, indi_notifier, vizzy_queue):
         handler=pointing_changes
     )
     async def on_sky_loop_changes(indi_id, current_value):
-        if indi_client['pdu0.lamp.state'] == 'On':
+        if indi_client['pdu0.lamp.state'] == 'On' or indi_client['stagepickoff.presetName.in'] == SwitchState.ON:
             return
         try:
             target_message = f" on {indi_client['tcsi.catalog.object']}"

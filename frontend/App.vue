@@ -242,7 +242,6 @@ export default Vue.extend({
     },
     loopClosed () {
       let elt = this.retrieveByIndiId('aoloop.loopState.state');
-      console.log(elt);
       return elt && elt.value == 'closed';
     },
     showFlames() {
