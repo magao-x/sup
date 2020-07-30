@@ -92,12 +92,15 @@ async def disconnect(sid):
 def handle_indi_new(sid, data):
     info(f"indi_new setting {data['device']}.{data['property']}.{data['element']}={data['value']}")
     prop = app.indi.devices[data['device']].properties[data['property']]
-    if prop.KIND == INDIPropertyKind.NUMBER:
-        prop.elements[data['element']].value = float(data['value'])
-    elif prop.KIND == INDIPropertyKind.SWITCH:
-        prop.elements[data['element']].value = parse_string_into_enum(data['value'], SwitchState)
-    elif prop.KIND == INDIPropertyKind.TEXT:
-        prop.elements[data['element']].value = data['value']
+    try:
+        if prop.KIND == INDIPropertyKind.NUMBER:
+            prop.elements[data['element']].value = float(data['value'])
+        elif prop.KIND == INDIPropertyKind.SWITCH:
+            prop.elements[data['element']].value = parse_string_into_enum(data['value'], SwitchState)
+        elif prop.KIND == INDIPropertyKind.TEXT:
+            prop.elements[data['element']].value = data['value']
+    except ValueError:
+        pass
 
 class INDIStateTransitionNotifier:
     def __init__(self, client_instance):
