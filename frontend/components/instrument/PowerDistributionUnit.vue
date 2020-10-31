@@ -28,18 +28,18 @@
       writing-mode: vertical-lr;
       text-align: center;
       padding-right: $unit;
-      border-right: 1px solid $primary;
+      border-right: 1px solid $plasma-blue;
     }
     .pdu-channel {
       flex: 1;
       max-width: 6em;
       display: flex;
       flex-direction: column;
-      color: $base2;
+      color: var(--fg-normal);
       .channel-name, .channel-controls {
         flex: 1;
       }
-      border-bottom: 1px solid $primary;
+      border-bottom: 1px solid $plasma-blue;
       padding-left: $unit;
       padding-bottom: $unit;
     }

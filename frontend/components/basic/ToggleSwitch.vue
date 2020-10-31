@@ -31,9 +31,9 @@
   width: 3em;
   height: calc(1.5em + 2px);
   border-radius: 1em;
-  border: 1px solid $primary;
+  border: 1px solid $plasma-blue;
   user-select: none;
-  color: $base3;
+  color: var(--fg-normal);
   .doodad {
     position: absolute;
     width: 1.5em;
@@ -47,14 +47,14 @@
   }
   &.inactive {
     .doodad {
-      border: 1px solid $primary;
+      border: 1px solid $plasma-blue;
       background: transparent;
     }
     &.disabled {
-      color: darkgray;
-      border: 1px solid $base0;
+      color: var(--fg-inactive);
+      border: 1px solid var(--fg-inactive);
       .doodad {
-        border: 1px solid $base0;
+        border: 1px solid var(--fg-inactive);
       }
     }
   }
@@ -65,7 +65,7 @@
       margin: 0 auto;
       position: relative;
       background: transparent;
-      border: 1px solid $primary;
+      border: 1px solid $plasma-blue;
     }
   }
   &.deactivating {
@@ -74,25 +74,25 @@
       right: auto;
       margin: 0 auto;
       position: relative;
-      background: darken($primary, 10);
+      background: darken($plasma-blue, 10);
       border: 1px solid transparent;
     }
   }
   &.active {
-    box-shadow: 0 0 5px lighten($primary, 15);
+    box-shadow: 0 0 5px lighten($plasma-blue, 15);
     .doodad {
       left: auto;
       right: 0;
-      border: 1px solid $primary;
+      border: 1px solid $plasma-blue;
     }
     &.enabled {
       .doodad {
-        background:  lighten($primary, 15);
+        background:  lighten($plasma-blue, 15);
       }
     }
     &.disabled {
       .doodad {
-        background:  darken($primary, 15);
+        background:  darken($plasma-blue, 15);
       }
     }
   }

@@ -1,5 +1,5 @@
 <template>
-  <div class="camera-controls-group">
+  <div class="camera-controls-group view">
     <div class="headerbar">
       <div class="item" style="flex:1">
         <div class="label camera-name">{{ camName }}</div>
@@ -46,7 +46,7 @@
 @import './css/variables.scss';
 
 .block {
-  // border: 1px solid $primary;
+  // border: 1px solid $plasma-blue;
   padding: $unit;
 }
 
@@ -68,7 +68,7 @@
   }
 }
 .camera-controls-group {
-  background: $base02;
+  background: var(--inset-bg);
   padding: $unit;
   overflow: hidden;
   &:first-child {

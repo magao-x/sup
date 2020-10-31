@@ -66,7 +66,7 @@
     .mid > .amount {
       padding: 0.5em;
       box-sizing: border-box;
-      color: $primary;
+      color: $plasma-blue;
     }
     .above {
       order: 1;
@@ -90,29 +90,29 @@
     width: 100%;
     min-width: 3em;
     padding: 0.25em;
-    border: 1px solid $primary;
+    border: 1px solid $plasma-blue;
     background: inherit;
-    color: $primary;
+    color: $plasma-blue;
     font-weight: bold;
   }
   .above:hover > button,
   .above:hover ~ .mid {
-    background-color: $primary;
+    background-color: $plasma-blue;
     transition: background-color $transitionTime;
-    color: $base03;
+    color: var(--inset-bg);
     input,
     .amount {
-      color: $base03;
+      color: var(--inset-bg);
     }
   }
   .enabled.below:hover > button,
   .enabled.below:hover ~ .mid {
-    background-color: $primary;
+    background-color: $plasma-blue;
     transition: background-color $transitionTime;
-    color: $base03;
+    color: var(--inset-bg);
     input,
     .amount {
-      color: $base03;
+      color: var(--inset-bg);
     }
   }
   .amount {

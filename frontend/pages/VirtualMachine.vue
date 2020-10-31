@@ -54,10 +54,10 @@
 <style scoped lang="scss">
 @import "./css/variables.scss";
 select {
-  border: 1px solid $primary;
-  background: $base03;
+  border: 1px solid $plasma-blue;
+  background: var(--inset-bg);
   line-height: inherit;
-  color: $base0;
+  color: var(--fg-normal);
   font-size: 1em;
 }
 .row {

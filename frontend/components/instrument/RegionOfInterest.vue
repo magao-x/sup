@@ -53,7 +53,7 @@ body {
     width: 2.5em;
     padding: 0.125em;
     margin: 0;
-    background: $base03;
+    background: var(--inset-bg);
     &.small {
       width: 1rem;
     }

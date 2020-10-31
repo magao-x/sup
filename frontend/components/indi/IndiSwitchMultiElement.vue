@@ -1,25 +1,25 @@
 <template>
   <div>
-    <ul class="buttons" :class="{'vertical': orientation == 'vertical', 'horizontal': orientation == 'horizontal'}">
-      <li v-for="elem in switchElements" :key="elem.name" class="button">
+    <div class="buttons minigrid" :class="{'vertical': orientation == 'vertical', 'horizontal': orientation == 'horizontal'}">
+      <!-- <li  class="button"> -->
         <toggle-button
+          v-for="elem in switchElements" 
+          :key="elem.name"
           :disabled="disabled"
           :label="elem.name"
           :value="elem.value == 'On'"
           :busy="thisProperty.state == 'Busy'"
           @input="sendSwitch(elem)"/>
-      </li>
-    </ul>
+      <!-- </li> -->
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
 .buttons {
-  display: flex;
+  // display: flex;
   padding: 0;
-  list-style-type: none;
-  flex-wrap: wrap;
   &.vertical {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }
 </style>

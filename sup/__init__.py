@@ -72,6 +72,9 @@ async def catch_all(request):
 async def index(request):
     return FileResponse((static_path / 'index.html').as_posix())
 
+async def demo(request):
+    return FileResponse((static_path / 'demo.html').as_posix())
+
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
@@ -371,14 +374,17 @@ async def cancel_tasks():
     for task in RUNNING_TASKS:
         task.cancel()
 
-from starlette.routing import Route
+from starlette.routing import Route, Mount
+from . import video
 
 app = Starlette(
     debug=True,
     routes=[
         Route('/', endpoint=index),
         Route('/indi', endpoint=indi),
-        Route('/{path:path}', endpoint=catch_all)
+        Route('/demo', endpoint=demo),
+        Mount('/video', routes=video.ROUTES),
+        Route('/{path:path}', endpoint=catch_all),
     ],
     on_startup=[spawn_tasks],
     on_shutdown=[cancel_tasks],

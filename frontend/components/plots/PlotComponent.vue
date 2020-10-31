@@ -17,7 +17,7 @@
 .plot {
   display: flex;
   flex-direction: column;
-  background: $base02;
+  background: var(--bg-alternate);
   margin: $unit / 2;
   padding: $unit / 2;
   overflow: hidden;

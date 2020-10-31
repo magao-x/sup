@@ -11,21 +11,21 @@
   line-height: 1.0;
   padding: 0.3 * $unit 0.6 * $unit;
   display: inline-block;
-  color: $base03;
+  color: var(--inset-bg);
 }
 .Alert {
   background-color: $warning;
-  border-color: darken($orange, 15);
+  border-color: darken($icon-orange, 15);
 }
 .Ok {
   background-color: $ok;
   border-color: darken($ok, 15);
 }
 .Busy {
-  color: $base2;
+  color: var(--fg-visited);
 }
 .Idle {
-    color: $base1;
+    color: var(--fg-normal);
 }
 </style>
 <script>

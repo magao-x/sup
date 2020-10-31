@@ -15,11 +15,11 @@
 }
 
 .closed {
-  color: $primary;
+  color: $plasma-blue;
 }
 
 .paused {
-  color: $magenta;
+  color: $alert;
 }
 </style>
 <script>

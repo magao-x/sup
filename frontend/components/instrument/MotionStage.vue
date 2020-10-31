@@ -42,10 +42,10 @@
   box-sizing: border-box;
 }
 button.home {
-  background-color: $yellow;
+  border-bottom: 1px solid $alert;
 }
 button.stop {
-  background-color: $red;
+  border-bottom: 1px solid $error;
 }
 </style>
 <script>

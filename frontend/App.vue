@@ -1,7 +1,55 @@
 <template>
   <div id="app">
     <flames :active="showFlames" :disabled="!loopClosed"></flames>
-    <div class="status-bar">
+    <nav class="top">
+      <div class="status">
+        <div>
+          <div>WS</div>
+          <div>INDI</div>
+        </div>
+        <div>
+          <div style="background: blue; width: 120px; height: 40px;">logo</div>
+        </div>
+        <div>
+          <div>time</div>
+          <div>loop</div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <!-- <li class="tab active"><span class="icon"></span>active</li> -->
+        <router-link to="/" class="tab btn cameras">
+          <span class="nav-icon">
+            <i class="material-icons">camera</i>
+          </span>
+          <span class="label">cameras</span>
+        </router-link>
+        <router-link to="/ao" class="tab btn ao">
+          <span class="nav-icon">
+            <i class="material-icons">blur_on</i>
+          </span>
+          <span class="label">AO</span>
+        </router-link>
+        <router-link to="/dashboard" class="tab btn dashboard">
+          <span class="nav-icon">
+            <i class="material-icons">speed</i>
+          </span>
+          <span class="label">dashboard</span>
+        </router-link>
+        <router-link to="/power" class="tab btn power">
+          <span class="nav-icon">
+            <i class="material-icons">emoji_objects</i>
+          </span>
+          <span class="label">power</span>
+        </router-link>
+        <router-link to="/lab" class="tab btn lab">
+          <span class="nav-icon">
+            <i class="material-icons">build</i>
+          </span>
+          <span class="label">lab</span>
+        </router-link>
+      </div>
+    </nav>
+    <!-- <div class="status-bar">
       <div class="status-left">
         <div>{{ readableTimestamp }}</div>
         <loop-state indiId="aoloop"></loop-state>
@@ -13,9 +61,9 @@
         <div>INDI:
         <indi-state-indicator :state="indiConnectionStatus"></indi-state-indicator></div>
       </div>
-    </div>
+    </div> -->
     <div class="flex-row">
-      <div class="vertical-selector">
+      <!-- <div class="vertical-selector">
         <router-link to="/" class="choice cameras">
           <span class="nav-icon">
             <i class="material-icons">camera</i>
@@ -46,7 +94,7 @@
           </span>
           <span class="label">lab</span>
         </router-link>
-      </div>
+      </div> -->
       <div class="content">
         <keep-alive>
           <router-view></router-view>
@@ -67,8 +115,70 @@
   flex-direction: row;
   flex-wrap: wrap;
 }
+
+nav.top {
+  position: relative;
+  // padding-right: 15vw;
+  background-color: var(--inset-bg);
+  border-bottom: 1px solid $plasma-blue;
+  display: flex;
+  flex-flow: row-reverse wrap;
+  margin-bottom: $lggap;
+}
+
+nav.top .status {
+  color: var(--fg-normal);
+  // width: 15vw;
+  // overflow: hidden;
+  // position: absolute;
+  // right: 0;
+  // top: 0;
+  flex: 1;
+  padding-top: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row-reverse;
+  // .col {
+  //   display: flex;
+  //   flex-direction: column;
+  // }
+}
+
+nav.top .tab-bar {
+  display: flex;
+  padding: 1rem 1rem 0rem 1rem;
+  margin: 0;
+  .tab {
+    // background: var(--bg-normal);
+    display: block;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    &:first-child {
+      border-left: 1px solid var(--border);
+    }
+    // &.active {
+    //   background: $plasma-blue;
+    //   // color: var(--charcoal-gray);
+    //   // border: 1px solid $plasma-blue;
+    // }
+    &:hover, &.router-link-exact-active {
+      color: var(--fg-normal);
+      background: $plasma-blue;
+      border-top: 1px solid $plasma-blue;
+      border-right: 1px solid $plasma-blue;
+      &:first-child {
+        border-left: 1px solid $plasma-blue;
+      }
+    }
+  }
+}
+
+
 .status-bar {
-  border-bottom: 1px solid $base01;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 0.5 * $unit;
   margin-bottom: $unit;
   display: flex;
@@ -90,93 +200,77 @@
     text-align: right;
   }
 }
-.vertical-selector {
-  margin-right: $unit;
-  text-align: center;
-  width: 100px;
+// .vertical-selector {
+//   margin-right: $unit;
+//   text-align: center;
+//   width: 100px;
 
-  .choice {
-    padding: 0.5 * $unit;
-    display: block;
-    border: 1px solid $base01;
-    margin: 10px 0;
-    &:nth-child(1) {
-      color: $red;
-      border-color: $red;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $red;
-      }
-    }
-    &:nth-child(2) {
-      color: $magenta;
-      border-color: $magenta;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $magenta;
-      }
-    }
-    &:nth-child(3) {
-      color: $violet;
-      border-color: $violet;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $violet;
-      }
-    }
-    &:nth-child(4) {
-      color: $blue;
-      border-color: $blue;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $blue;
-      }
-    }
-    &:nth-child(5) {
-      color: $cyan;
-      border-color: $cyan;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $cyan;
-      }
-    }
-    &:nth-child(6) {
-      color: $green;
-      border-color: $green;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $green;
-      }
-    }
-    &:nth-child(7) {
-      color: $yellow;
-      border-color: $yellow;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $yellow;
-      }
-    }
-    &:nth-child(8) {
-      color: $orange;
-      border-color: $orange;
-      &.router-link-exact-active {
-        color: $base03;
-        background: $orange;
-      }
-    }
-  }
-  .choice.router-link-exact-active {
-    background: $base02;
-    color: $linkActive;
-  }
-  .nav-icon {
-    display: block;
-  }
-  .material-icons {
-    font-size: 2 * $unit;
-    margin: 0;
-  }
-}
+//   .choice {
+//     padding: 0.5 * $unit;
+//     display: block;
+//     border: 1px solid var(--border);
+//     margin: 10px 0;
+//     &:nth-child(1) {
+//       color: $icon-red;
+//       border-color: $icon-red;
+//       &.router-link-exact-active {
+//         color: var(--bg-normal);
+//         background: $icon-red;
+//       }
+//     }
+//     &:nth-child(2) {
+//       color: $icon-violet;
+//       border-color: $icon-violet;
+//       &.router-link-exact-active {
+//         color: var(--bg-normal);
+//         background: $icon-violet;
+//       }
+//     }
+//     &:nth-child(3) {
+//       color: $icon-blue;
+//       border-color: $icon-blue;
+//       &.router-link-exact-active {
+//         color: var(--bg-normal);
+//         background: $icon-blue;
+//       }
+//     }
+//     &:nth-child(4) {
+//       color: $icon-green;
+//       border-color: $icon-green;
+//       &.router-link-exact-active {
+//         color: var(--bg-normal);
+//         background: $icon-green;
+//       }
+//     }
+//     &:nth-child(5) {
+//       color: $icon-yellow;
+//       border-color: $icon-yellow;
+//       &.router-link-exact-active {
+//         color: var(--bg-normal);
+//         background: $icon-yellow;
+//       }
+//     }
+//     &:nth-child(6) {
+//       color: $icon-orange;
+//       border-color: $icon-orange;
+//       &.router-link-exact-active {
+//         color: var(--bg-normal);
+//         background: $icon-orange;
+//       }
+//     }
+//   }
+  // .choice.router-link-exact-active {
+  //   background: var(--bg-alternate);
+  //   color: $linkActive;
+  // }
+//   .nav-icon {
+//     display: block;
+//   }
+//   .material-icons {
+//     font-size: 2 * $unit;
+//     margin: 0;
+//   }
+// }
 .content {
   flex: 1;
   overflow: hidden;

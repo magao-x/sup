@@ -40,10 +40,10 @@
   width: 100%;
   .row {
     .element:nth-child(odd) {
-      background: $base02;
+      background: var(--bg-alternate);
     }
     .element:hover {
-      background: lighten($base02, 5);
+      background: $abyss-blue;
     }
   }
 }
