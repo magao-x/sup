@@ -22,6 +22,12 @@ class FlagVideoStreamTrack(VideoStreamTrack):
         self.counter = 0
         height, width = 480, 640
 
+        nframes = 30
+        image_cube = np.zeros((nframes, height, width))
+        yy, xx = np.indices((height, width))
+        for idx in range(nframes):
+            image_cube[idx] = np.cos((((1 + idx) * xx) / width) * 2 * np.pi)
+
         # generate flag
         data_bgr = np.hstack(
             [
@@ -84,24 +90,24 @@ async def offer(request):
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
         print("ICE connection state is %s" % pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
-            ACTIVE_PEERCONNECTIONS.discard(pc)
+        # if pc.iceConnectionState == "failed":
+        #     await pc.close()
+        #     ACTIVE_PEERCONNECTIONS.discard(pc)
 
     await pc.setRemoteDescription(offer)
-    options = {"framerate": "30", "video_size": "640x480"}
-    player = MediaPlayer("default:none", format="avfoundation", options=options)
-    for t in pc.getTransceivers():
-        if t.kind == "audio" and player.audio:
-            pc.addTrack(player.audio)
-        elif t.kind == "video" and player.video:
-            pc.addTrack(player.video)
-
+    # options = {"framerate": "30", "video_size": "640x480"}
+    # player = MediaPlayer("default:none", format="avfoundation", options=options)
     # for t in pc.getTransceivers():
-    #     pprint(t.kind)
-    #     if t.kind == "video":
-    #         pc.addTrack(FlagVideoStreamTrack())
-    #         print('added')
+    #     if t.kind == "audio" and player.audio:
+    #         pc.addTrack(player.audio)
+    #     elif t.kind == "video" and player.video:
+    #         pc.addTrack(player.video)
+
+    for t in pc.getTransceivers():
+        pprint(t.kind)
+        if t.kind == "video":
+            pc.addTrack(FlagVideoStreamTrack())
+            print('added')
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 

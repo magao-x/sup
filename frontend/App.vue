@@ -4,16 +4,15 @@
     <nav class="top">
       <div class="status">
         <div>
-          <div>WS</div>
-          <div>INDI</div>
+          <div class="logo">MagAO-X</div>
         </div>
-        <div>
-          <div style="background: blue; width: 120px; height: 40px;">logo</div>
-        </div>
-        <div>
-          <div>time</div>
-          <div>loop</div>
-        </div>
+          <div>{{ readableTimestamp }}</div>
+          <div>WebSocket:
+        <indi-state-indicator :state="webSocketConnectionStatus"></indi-state-indicator></div>
+          <div>INDI:
+        <indi-state-indicator :state="indiConnectionStatus"></indi-state-indicator></div>
+          <div><loop-state indiId="aoloop"></loop-state></div>
+        
       </div>
       <div class="tab-bar">
         <!-- <li class="tab active"><span class="icon"></span>active</li> -->
@@ -128,6 +127,7 @@ nav.top {
 
 nav.top .status {
   color: var(--fg-normal);
+  vertical-align: middle;
   // width: 15vw;
   // overflow: hidden;
   // position: absolute;
@@ -176,6 +176,17 @@ nav.top .tab-bar {
   }
 }
 
+.logo {
+  // flex: 1;
+  min-width: 170px;
+  min-height: 40px;
+  text-align: center;
+  background-image: url(~/css/images/magao-x-white.svg);
+  background-position: center center;
+  background-size: 100%;
+  background-repeat: no-repeat;
+  text-indent: -9999px;
+}
 
 .status-bar {
   border-bottom: 1px solid var(--border);
@@ -187,14 +198,6 @@ nav.top .tab-bar {
   }
   .status-left {
     text-align: left;
-  }
-  .logo {
-    flex: 1;
-    text-align: center;
-    background-image: url(~/css/images/magao-x-white.svg);
-    background-position: center center;
-    background-repeat: no-repeat;
-    text-indent: -9999px;
   }
   .status-right {
     text-align: right;

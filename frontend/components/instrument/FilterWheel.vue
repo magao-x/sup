@@ -9,10 +9,10 @@
       </div>
       <div class="fw-friendly">
         <div style="display: flex; flex-wrap: wrap;">
-          <button class="home" @click.prevent="sendHome">
+          <button class="home" @click.prevent="sendHome" :disabled="isDisabled">
             <i class="material-icons">home</i> home
           </button>
-          <button class="stop" @click.prevent="sendStop">
+          <button class="stop" @click.prevent="sendStop" :disabled="isDisabled">
             <i class="material-icons">block</i> stop
           </button>
         </div>

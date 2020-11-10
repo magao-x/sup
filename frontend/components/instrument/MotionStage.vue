@@ -4,14 +4,14 @@
     <div v-if="indiDefined" class="flex-row">
       <div class="ms-details">
         <div><finite-state-machine-status :device="thisDevice"></finite-state-machine-status></div>
-        <indi-property :device="thisDevice" :property="positionProperty"></indi-property>
+        <indi-property :device="thisDevice" :property="positionProperty" :disabled="isDisabled"></indi-property>
         <!-- <indi-value :indiId="thisDevice.name + '.' + presetBaseName + '.current'"></indi-value>
         <indi-element :indiId="thisDevice.name + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element> -->
         <div style="display: flex; flex-wrap: wrap;">
-          <button class="home" @click.prevent="sendHome">
+          <button class="home" @click.prevent="sendHome" :disabled="isDisabled">
             <i class="material-icons">home</i> home
           </button>
-          <button class="stop" @click.prevent="sendStop">
+          <button class="stop" @click.prevent="sendStop" :disabled="isDisabled">
             <i class="material-icons">block</i> stop
           </button>
         </div>
@@ -41,11 +41,15 @@
   margin: 10px;
   box-sizing: border-box;
 }
-button.home {
+button.home:enabled {
   border-bottom: 1px solid $alert;
+  &:hover,&:active{border: 1px solid $alert;}
+  &:active{background: $alert;}
 }
-button.stop {
+button.stop:enabled {
   border-bottom: 1px solid $error;
+  &:hover,&:active{border: 1px solid $error;}
+  &:active{background: $error;}
 }
 </style>
 <script>

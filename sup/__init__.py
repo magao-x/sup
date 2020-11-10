@@ -1,6 +1,5 @@
 import os.path
 import sys
-import uvloop
 import math
 import asyncio
 import aiohttp
@@ -216,7 +215,7 @@ CONFIG = {
 
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     global CONFIG
-    logging.basicConfig(level='INFO')
+    # logging.basicConfig(level='DEBUG')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
@@ -359,9 +358,9 @@ async def spawn_tasks():
 
     indi_coro = app.indi.run(reconnect_automatically=True)
     RUNNING_TASKS.add(loop.create_task(indi_coro))
-    if CONFIG['potemkin']:
-        fiddling_coro = app.indi.fiddle_connection_status()
-        RUNNING_TASKS.add(loop.create_task(fiddling_coro))
+    # if CONFIG['potemkin']:
+    #     fiddling_coro = app.indi.fiddle_connection_status()
+    #     RUNNING_TASKS.add(loop.create_task(fiddling_coro))
 
     emit_updates_coro = emit_updates()
     RUNNING_TASKS.add(loop.create_task(emit_updates_coro))

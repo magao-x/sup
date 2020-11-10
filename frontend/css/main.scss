@@ -39,7 +39,7 @@ input:enabled {
 
 button,
 .btn {
-  transition: background $transitionTime;
+  transition: border $transitionTime;
   padding: 0.2 * $unit 0.6 * $unit;
   text-align: center;
   vertical-align: middle;

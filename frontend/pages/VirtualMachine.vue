@@ -117,7 +117,6 @@ select {
 import CommitButton from "~/components/basic/CommitButton.vue";
 import CameraControlsGroup from "~/components/instrument/CameraControlsGroup.vue";
 import BenchView from "~/components/instrument/BenchView.vue";
-import AdjustableNumberStepper from "~/components/basic/AdjustableNumberStepper.vue";
 import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
@@ -129,7 +128,6 @@ import utils from "~/mixins/utils.js";
 const components = {
   CameraControlsGroup,
   BenchView,
-  AdjustableNumberStepper,
   RegionOfInterest,
   ToggleSwitch,
   IndiElement,

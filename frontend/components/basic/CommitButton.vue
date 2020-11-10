@@ -3,7 +3,7 @@
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
-button.commit {
+button.commit:enabled {
   border-bottom: 1px solid $commit;
   &:enabled:hover, &:enabled:active {
     border: 1px solid $commit;

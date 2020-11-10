@@ -19,6 +19,7 @@
           :device="thisDevice"
           :property="thisProperty"
           :element="thisProperty.elements.target"
+          :disabled="disabled"
         ></indi-element>
       </div>
       <indi-element
@@ -64,14 +65,16 @@ export default {
     IndiStateIndicator,
     IndiValue
   },
-  props: ["device", "property", "indiId"],
+  props: ["device", "property", "indiId", "disabled"],
   mixins: [indi, utils],
   computed: {
     isPairedCurrentTarget: function() {
       if (
+        this.disabled || (
         this.indiDefined &&
         this.thisProperty.elements.target !== undefined &&
         this.thisProperty.elements.current !== undefined
+        )
       ) {
         return true;
       }

@@ -1,7 +1,7 @@
 <template>
   <div v-if="thisElement" class="element">
     <sync-button v-if="propertyKind !== 'swt'" :disabled="isDisabled" @sync="onSync"></sync-button>
-    <adjustable-number-stepper
+    <vanilla-number-input
       v-if="propertyKind == 'num' && optionalAttr('step')"
       :disabled="isDisabled"
       :min="optionalAttr('min')"
@@ -12,7 +12,7 @@
       @focus="stopUpdating"
       @blur="maybeResumeUpdating"
       @input="updateUserInput"
-    ></adjustable-number-stepper>
+    ></vanilla-number-input>
     <indi-toggle-switch
       v-else-if="propertyKind == 'swt'"
       :disabled="isDisabled"
@@ -48,7 +48,6 @@ input {
 <script>
 import SyncButton from "~/components/basic/SyncButton.vue";
 import CommitButton from "~/components/basic/CommitButton.vue";
-import AdjustableNumberStepper from "~/components/basic/AdjustableNumberStepper.vue";
 // import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
 import VanillaInput from "~/components/basic/VanillaInput.vue";
@@ -57,11 +56,10 @@ import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 
 export default {
-  props: ["device", "property", "element", "indiId"],
+  props: ["device", "property", "element", "indiId", "disabled"],
   components: {
     SyncButton,
     CommitButton,
-    AdjustableNumberStepper,
     IndiToggleSwitch,
     VanillaInput,
     VanillaNumberInput
@@ -159,9 +157,11 @@ export default {
     },
     isDisabled: function() {
       return (
-        this.element === null ||
-        this.thisProperty.perm === "ro" ||
-        this.isPairedCurrent
+        this.disabled || (
+          this.element === null ||
+          this.thisProperty.perm === "ro" ||
+          this.isPairedCurrent
+        )
       );
     }
   }
