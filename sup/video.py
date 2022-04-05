@@ -1,10 +1,10 @@
 import numpy as np
 import asyncio
-import ujson
 import cv2
 
 from starlette.routing import Route
-from starlette.responses import UJSONResponse
+from .utils import OrjsonResponse
+
 
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from aiortc.contrib.media import MediaPlayer
@@ -105,7 +105,7 @@ async def offer(request):
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    return UJSONResponse(
+    return OrjsonResponse(
             {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
         )
 

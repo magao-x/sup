@@ -70,7 +70,15 @@ setup(
     long_description_content_type='text/markdown',
     packages=[PROJECT],
     python_requires='>=3.6, <4',
-    install_requires=['starlette', 'uvicorn', 'python-socketio', 'aiohttp', 'aiodns'],
+    install_requires=[
+        'starlette',
+        'uvicorn',
+        'python-socketio',
+        'aiohttp',
+        'aiodns',
+        'aiortc>=1.3.1',
+        'orjson>=3.6.7',
+    ],
     include_package_data=True,
     entry_points={
         'console_scripts': [

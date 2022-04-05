@@ -2,17 +2,17 @@ import os.path
 import sys
 import uvloop
 import math
+import orjson
 import asyncio
 import aiohttp
 import logging
-import ujson
 import uvicorn
 import os
 from pprint import pformat
 import socketio
 from starlette.exceptions import HTTPException
 from starlette.applications import Starlette
-from starlette.responses import UJSONResponse, FileResponse
+from starlette.responses import FileResponse
 from pathlib import Path
 from purepyindi.constants import (
     INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT, parse_string_into_enum, SwitchState, ConnectionStatus
@@ -20,6 +20,7 @@ from purepyindi.constants import (
 from .indi import BogusINDIClient, SupINDIClient
 from copy import deepcopy
 from .log import debug, info, warn, error, critical, set_log_level
+from .utils import OrjsonResponse
 import datetime
 import pkg_resources
 
@@ -51,7 +52,7 @@ sup_tasks = []
 
 
 async def indi(request):
-    return UJSONResponse(request.app.indi.to_jsonable())
+    return OrjsonResponse(request.app.indi.to_jsonable())
 
 class NotFound(HTTPException):
     def __init__(self, *args, **kwargs):
@@ -203,7 +204,7 @@ async def emit_updates():
 def make_indi_connection(potemkin=False):
     if potemkin:
         with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
-            initial_state = ujson.load(f)
+            initial_state = orjson.loads(f.read())
         return BogusINDIClient(sio, initial_state)
     else:
         return SupINDIClient(sio, CONFIG['indi_host'], CONFIG['indi_port'])
@@ -268,7 +269,7 @@ def console_entrypoint():
 RUNNING_TASKS = set()
 VIZZY_API_URL = 'https://vizzy.xwcl.science/api/magao-x/events'
 async def vizzy_relay(message_queue):
-    async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
+    async with aiohttp.ClientSession(json_serialize=orjson.dumps) as session:
         while True:
             msgdict = await message_queue.get()
             print(f'vizzy_relay: got {msgdict}')
@@ -375,7 +376,7 @@ async def cancel_tasks():
         task.cancel()
 
 from starlette.routing import Route, Mount
-from . import video
+# from . import video
 
 app = Starlette(
     debug=True,
@@ -383,7 +384,7 @@ app = Starlette(
         Route('/', endpoint=index),
         Route('/indi', endpoint=indi),
         Route('/demo', endpoint=demo),
-        Mount('/video', routes=video.ROUTES),
+        # Mount('/video', routes=video.ROUTES),
         Route('/{path:path}', endpoint=catch_all),
     ],
     on_startup=[spawn_tasks],
