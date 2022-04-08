@@ -1,20 +1,27 @@
 <template>
-    <div class="loop">
-      <span class="loop-state" :class="state">loop: {{ state }}</span>
+    <div class="loop status-indicator ">
+      <span class="loop-state" :class="state">{{ state }}</span>
     </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
+.loop {
+  color: white;
+  background: var(--bg-alternate);
+}
+
 .waiting {
-  color: inherit;
+  color: var(--fg-neutral);
 }
 
 .open {
+  color: var(--fg-negative);
   color: $warning;
 }
 
 .closed {
+  color: var(--fg-positive);
   color: $plasma-blue;
 }
 
@@ -31,8 +38,8 @@ export default {
   props: ["device", "indiId"],
   computed: {
     state: function() {
-      if (!this.thisDevice) return "waiting";
-      return this.thisDevice.properties['loopState'].elements['state'].value;
+      if (!this.thisDevice) return "waiting for AO state";
+      return "loop " + this.thisDevice.properties['loopState'].elements['state'].value;
     },
     gain: function() {
       if (!this.thisDevice) return "?";

@@ -1,23 +1,24 @@
 <template>
   <div id="app">
     <flames :active="showFlames" :disabled="!loopClosed"></flames>
+    <div class="status">
+      <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
+      <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
+      <div class="status-indicator">{{ readableTimestamp }}</div>
+      <loop-state indiId="aoloop"></loop-state>
+    </div>
     <nav class="top">
-      <div class="status">
-        <div>
-          <div>WS</div>
-          <div>INDI</div>
-        </div>
-        <div>
-          <div style="background: blue; width: 120px; height: 40px;">logo</div>
-        </div>
-        <div>
-          <div>time</div>
-          <div>loop</div>
-        </div>
+      <div id="logo">
+        <img @click="toggleFlames" src="~/assets/magao-x_logo_white.svg">
       </div>
       <div class="tab-bar">
-        <!-- <li class="tab active"><span class="icon"></span>active</li> -->
-        <router-link to="/" class="tab btn cameras">
+        <router-link to="/" class="tab btn observation">
+          <span class="nav-icon">
+            <i class="material-icons">visibility</i>
+          </span>
+          <span class="label">observation</span>
+        </router-link>
+        <router-link to="/cameras" class="tab btn cameras">
           <span class="nav-icon">
             <i class="material-icons">camera</i>
           </span>
@@ -37,7 +38,7 @@
         </router-link>
         <router-link to="/power" class="tab btn power">
           <span class="nav-icon">
-            <i class="material-icons">emoji_objects</i>
+            <i class="material-icons">power_settings_new</i>
           </span>
           <span class="label">power</span>
         </router-link>
@@ -106,9 +107,27 @@
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
+#logo {
+  height: 100%;
+  display: flex;
+flex: 1;
+position: relative;
+ img {
+    width: 168px;
+    padding: 0 1rem;
+    filter: drop-shadow(0px 0px 5px #3daee9);
+    mix-blend-mode: screen;
+    position: absolute;
+    right: 0;
+    top: 0.5rem;
+  }
+}
+
+
 #app {
   margin: 0 auto;
   // max-width: 80rem;
+  padding-bottom: 25vh;
 }
 .devices {
   display: flex;
@@ -120,29 +139,20 @@ nav.top {
   position: relative;
   // padding-right: 15vw;
   background-color: var(--inset-bg);
-  border-bottom: 1px solid $plasma-blue;
+  border-bottom: 3px solid $plasma-blue;
   display: flex;
   flex-flow: row-reverse wrap;
   margin-bottom: $lggap;
 }
 
-nav.top .status {
-  color: var(--fg-normal);
-  // width: 15vw;
-  // overflow: hidden;
-  // position: absolute;
-  // right: 0;
-  // top: 0;
+.status {
+  color: $icon-gray;
+  background: #1f1f1f;
+  background: linear-gradient(180deg,#1f1f1f 0%,#000);
   flex: 1;
-  padding-top: 1rem;
   padding-right: 1rem;
   box-sizing: border-box;
   display: flex;
-  flex-direction: row-reverse;
-  // .col {
-  //   display: flex;
-  //   flex-direction: column;
-  // }
 }
 
 nav.top .tab-bar {
@@ -152,26 +162,25 @@ nav.top .tab-bar {
   .tab {
     // background: var(--bg-normal);
     display: block;
-    padding: 1rem;
+    padding: calc($unit / 2);
     border-top: 1px solid var(--border);
     border-right: 1px solid var(--border);
     border-bottom: none;
     &:first-child {
       border-left: 1px solid var(--border);
     }
-    // &.active {
-    //   background: $plasma-blue;
-    //   // color: var(--charcoal-gray);
-    //   // border: 1px solid $plasma-blue;
-    // }
+    text-decoration: none;
+    .label {
+      text-decoration: underline;
+    }
     &:hover, &.router-link-exact-active {
       color: var(--fg-normal);
       background: $plasma-blue;
       border-top: 1px solid $plasma-blue;
       border-right: 1px solid $plasma-blue;
-      &:first-child {
+      // &:first-child {
         border-left: 1px solid $plasma-blue;
-      }
+      // }
     }
   }
 }
@@ -200,77 +209,6 @@ nav.top .tab-bar {
     text-align: right;
   }
 }
-// .vertical-selector {
-//   margin-right: $unit;
-//   text-align: center;
-//   width: 100px;
-
-//   .choice {
-//     padding: 0.5 * $unit;
-//     display: block;
-//     border: 1px solid var(--border);
-//     margin: 10px 0;
-//     &:nth-child(1) {
-//       color: $icon-red;
-//       border-color: $icon-red;
-//       &.router-link-exact-active {
-//         color: var(--bg-normal);
-//         background: $icon-red;
-//       }
-//     }
-//     &:nth-child(2) {
-//       color: $icon-violet;
-//       border-color: $icon-violet;
-//       &.router-link-exact-active {
-//         color: var(--bg-normal);
-//         background: $icon-violet;
-//       }
-//     }
-//     &:nth-child(3) {
-//       color: $icon-blue;
-//       border-color: $icon-blue;
-//       &.router-link-exact-active {
-//         color: var(--bg-normal);
-//         background: $icon-blue;
-//       }
-//     }
-//     &:nth-child(4) {
-//       color: $icon-green;
-//       border-color: $icon-green;
-//       &.router-link-exact-active {
-//         color: var(--bg-normal);
-//         background: $icon-green;
-//       }
-//     }
-//     &:nth-child(5) {
-//       color: $icon-yellow;
-//       border-color: $icon-yellow;
-//       &.router-link-exact-active {
-//         color: var(--bg-normal);
-//         background: $icon-yellow;
-//       }
-//     }
-//     &:nth-child(6) {
-//       color: $icon-orange;
-//       border-color: $icon-orange;
-//       &.router-link-exact-active {
-//         color: var(--bg-normal);
-//         background: $icon-orange;
-//       }
-//     }
-//   }
-  // .choice.router-link-exact-active {
-  //   background: var(--bg-alternate);
-  //   color: $linkActive;
-  // }
-//   .nav-icon {
-//     display: block;
-//   }
-//   .material-icons {
-//     font-size: 2 * $unit;
-//     margin: 0;
-//   }
-// }
 .content {
   flex: 1;
   overflow: hidden;
@@ -289,6 +227,15 @@ nav.top .tab-bar {
 .fade-leave-active {
   opacity: 0;
 }
+
+  .nav-icon {
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .material-icons {
+    font-size: 2 * $unit;
+    margin: 0;
+  }
 </style>
 <script>
 import Vue from "vue";
@@ -296,6 +243,7 @@ import io from "socket.io-client";
 import IndiStateIndicator from "~/components/indi/IndiStateIndicator.vue";
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import LoopState from "~/components/instrument/LoopState.vue";
+import StatusIndicator from "~/components/basic/StatusIndicator.vue";
 import constants from "./constants.js";
 import Flames from "~/components/basic/Flames.vue";
 import { DateTime } from "luxon";
@@ -317,7 +265,8 @@ export default Vue.extend({
     IndiStateIndicator,
     Flames,
     ToggleSwitch,
-    LoopState
+    LoopState,
+    StatusIndicator
   },
   data: function () {
     return {

@@ -79,7 +79,11 @@ body {
     --inset-fg: #{$cardboard-gray};
     --bg-alternate: #{$icon-gray};
     --bg-normal: #{$charcoal-gray};
-    background: #{$charcoal-gray};
+    // background: #{$charcoal-gray};
+    background: linear-gradient(180deg, rgba(49,54,59,1) 0%, rgba(49,55,61,1) 57%, rgba(57,75,109,1) 73%, rgba(149,122,146,1) 86%, rgba(189,130,123,1) 92%, rgba(242,146,90,1) 95%, rgba(254,219,116,1) 97%, rgba(245,115,24,1) 100%);
+    background-size: cover;
+    background-attachment: fixed;
+    height: 100vh;
     --deco-focus: #{$plasma-blue};
     --deco-hover: #{$plasma-blue};
     --fg-active: #{$plasma-blue};
@@ -95,7 +99,8 @@ body {
     .view {
       --bg-alternate: #{$charcoal-gray};
       --bg-normal: #{$shade-black};
-      background: #{$shade-black};
+      background: transparentize($shade-black, 0.2);
+      
       --inset-bg: #{$charcoal-gray};
       --inset-fg: #{$cardboard-gray};
       border: 1px solid var(--border);

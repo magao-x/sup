@@ -6,8 +6,8 @@
     :disabled="disabled"
     :busy="busy"
     :prompt="true"
-    labelOn="OPEN"
-    labelOff="SHUT"
+    labelOn="SHUT"
+    labelOff="OPEN"
   ></toggle-switch>
   <div v-else>
     Waiting for shutter
@@ -58,11 +58,11 @@ export default {
     },
     currentState: function () {
       if (!this.thisDevice) return null;
-      return this.thisProperty.elements["current"].value;
+      return this.thisProperty.elements["toggle"].value;
       // return "OPEN";
     },
     shutterState: function () {
-      return this.currentState == "OPEN";
+      return this.currentState ? "SHUT" : "OPEN";
     }
   }
 };

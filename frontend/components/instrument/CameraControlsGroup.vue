@@ -5,6 +5,9 @@
         <div class="label camera-name">{{ camName }}</div>
         <finite-state-machine-status class="control" :device="cam"></finite-state-machine-status>
       </div>
+      <div>power
+        <power-toggle :disabled="true"></power-toggle>
+      </div>
       <div v-if="hasShutter" class="item" style="flex:2">
         <div class="label">shutter</div>
         <shutter-toggle class="control" :device="cam"></shutter-toggle>
@@ -74,7 +77,7 @@
   &:first-child {
     margin-top: 0;
   }
-  margin: $unit;
+  
 }
 </style>
 <script>
@@ -91,6 +94,7 @@ import ExposureTime from "~/components/instrument/ExposureTime.vue";
 import FramesPerSecond from "~/components/instrument/FramesPerSecond.vue";
 import AdcSpeed from "~/components/instrument/AdcSpeed.vue";
 import CameraGain from "~/components/instrument/CameraGain.vue";
+import PowerToggle from './PowerToggle.vue';
 
 const cameraGroup = {
   filterWheel: null,
@@ -118,6 +122,7 @@ export default {
     WavefrontSensor,
     IndiProperty,
     IndiValue,
+    PowerToggle,
   },
   computed: {
     camName() {

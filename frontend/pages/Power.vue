@@ -1,10 +1,11 @@
 <template>
   <div>
-    <power-distribution-unit indiId="pdu0" :disabled="disabled"></power-distribution-unit>
+    <power-distribution-unit indi-id="pdu0" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu1" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu2" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu3" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="usbdu0" :disabled="disabled"></power-distribution-unit>
+    <power-distribution-unit indi-id="usbdu1" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="dcdu0" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="dcdu1" :disabled="disabled"></power-distribution-unit>
   </div>

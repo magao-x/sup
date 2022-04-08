@@ -87,7 +87,7 @@ export default {
   methods: {
     computeDomain(accessor) {
       let dataEntries = Object.entries(this.data);
-      if (!dataEntries[0][1].points.length) return [0, 1];
+      if (dataEntries.length < 1 || !dataEntries[0][1].points.length) return [0, 1];
 
       // take first point of first line as initial min/max vals
       let valMin = accessor(dataEntries[0][1].points[0]),

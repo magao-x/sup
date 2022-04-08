@@ -163,3 +163,18 @@ a:hover,
 a:active {
   color: $linkActive;
 }
+
+.padded {
+  padding: $unit;
+  .view {
+    margin-bottom: $unit;
+  }
+}
+
+.cols {
+  display: flex;
+  .col {
+    flex: 1;
+    max-width: 50%;
+  }
+}

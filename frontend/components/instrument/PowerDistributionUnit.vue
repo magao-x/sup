@@ -1,6 +1,5 @@
 <template>
-  <div v-if="thisDevice" class="pdu">
-    <div class="pdu-row">
+    <div v-if="thisDevice" :class="classes">
       <div class="pdu-label">
         {{ thisDevice.name }}
       </div>
@@ -10,20 +9,26 @@
           <power-toggle :device="thisDevice" :property="channel" :disabled="disabled"></power-toggle>
         </div>
       </div>
+    </div>  
+    <div v-else :class="classes">
+      <div class="pdu-label">
+        {{ indiId }}
+      </div>
+      <div class="pdu-channel">
+        <div class="channel-name"></div>
+        <div class="channel-controls">
+          Waiting for device {{ indiId }}
+        </div>
+      </div>
     </div>
-  </div>
-  <div v-else>
-    Waiting for device {{ device }}
-  </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
-.pdu {
-  .pdu-row {
+  .pdu {
     display: flex;
     flex-direction: row;
-    margin-bottom: $unit;
+    margin: 0 $unit calc($unit / 2) $unit;
     .pdu-label {
       writing-mode: vertical-lr;
       text-align: center;
@@ -32,7 +37,7 @@
     }
     .pdu-channel {
       flex: 1;
-      max-width: 6em;
+      max-width: 7em;
       display: flex;
       flex-direction: column;
       color: var(--fg-normal);
@@ -43,8 +48,29 @@
       padding-left: $unit;
       padding-bottom: $unit;
     }
+    &.disabled {
+      .pdu-channel {
+        max-width: inherit;
+      }
+    }
+    &.usbdu {
+      .pdu-label {
+        border-right: 1px solid $sunbeam-yellow;
+      }
+      .pdu-channel {
+        border-bottom: 1px solid $sunbeam-yellow;
+      }
+    }
+    &.dcdu {
+      .pdu-label {
+        border-right: 1px solid $noble-fir;
+      }
+      .pdu-channel {
+        border-bottom: 1px solid $noble-fir;
+      }
+    }
   }
-}
+
 </style>
 <script>
 import indi from "~/mixins/indi.js";
@@ -60,7 +86,18 @@ export default {
     PowerToggle
   },
   computed: {
+    classes: function() {
+      let elemClasses = ["pdu"];
+      elemClasses.push(this.indiId.replace(/\d+/g, ''));
+      if (this.thisDevice === null) {
+        elemClasses.push("disabled");
+      }
+      return elemClasses;
+    },
     channels: function() {
+      if (this.thisDevice === null) {
+        return [];
+      }
       const channelKeys = Object.keys(this.thisDevice.properties["channelOutlets"].elements);
       const propertyKeys = Object.keys(this.thisDevice.properties);
       const channels = propertyKeys.filter(prop => channelKeys.includes(prop)).sort();

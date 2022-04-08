@@ -6,13 +6,13 @@ export default {
     checkStatus(connection) {
       const connectionState = this.$store.state[connection];
       if (!connectionState.connected) {
-        return 'Alert';
+        return 'alert';
       }
       const delay = this.time.currentTime.diff(connectionState.lastUpdate, 'seconds');
       if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
-        return 'Ok'
+        return 'ok'
       } else {
-        return 'Alert'
+        return 'alert'
       }
     },
     retrieveByIndiId: function (indiId) {

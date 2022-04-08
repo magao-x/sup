@@ -190,15 +190,19 @@ class INDIUpdateBatcher:
             'deletions': deletions,
             'connected': self.client_instance.status == ConnectionStatus.CONNECTED,
         }
+        print(f"{utc_now()=} {batch['connected']=}")
         self.properties_to_delete = set()
         self.properties_to_update = set()
         return batch
 
 async def emit_updates():
     while True:
-        batch = await app.indi_batcher.generate_batch()
-        if batch is not None:
-            await sio.emit('indi_batch_update', batch)
+        try:
+            batch = await app.indi_batcher.generate_batch()
+            if batch is not None:
+                await sio.emit('indi_batch_update', batch)
+        except Exception as e:
+            print(f"Exception in emit_updates(): {e}")
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
 def make_indi_connection(potemkin=False):

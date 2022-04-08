@@ -54,9 +54,9 @@ export default {
   },
   computed: {
     elements() {
-      if (this.indiDefined && this.thisElement) {
+      if (this.indiDefined && this.thisProperty && this.thisElement) {
         return [this.thisElement];
-      } else if (this.indiDefined) {
+      } else if (this.indiDefined && this.thisProperty) {
         return Object.keys(this.thisProperty.elements).map(k => this.thisProperty.elements[k]);
       } else {
         return [];

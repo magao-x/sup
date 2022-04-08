@@ -61,7 +61,8 @@ export default {
       return this.thisProperty.perm == 'ro';
     },
     switchValue: function () {
-      return this.thisElement.value == 'On';
+      
+      return this.thisElement && this.thisElement.value == 'On';
     }
   }
 };

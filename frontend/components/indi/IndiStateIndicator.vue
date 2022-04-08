@@ -1,6 +1,6 @@
 <template>
   <div class="light" :class="state">
-    {{ state }}
+    {{ labelOrState }}
   </div>
 </template>
 <style lang="scss" scoped>
@@ -31,6 +31,15 @@
 <script>
 
 export default {
-  props: ["state"]
+  props: ["state", "label"],
+  computed: {
+    labelOrState: function() {
+      if (typeof this.label === "undefined") {
+        return this.state;
+      } else {
+        return this.label;
+      }
+    }
+  }
 }
 </script>

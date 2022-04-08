@@ -1,5 +1,5 @@
 <template>
-  <div class="fsm" :class="fsmState.toLowerCase()">{{ fsmState }}</div>
+  <span class="fsm" :class="fsmState.toLowerCase()" :title="fsmState.toLowerCase()"><span v-if="verbose">{{ fsmState }}</span> <material-icon :name="fsmStateIcon"></material-icon></span>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
@@ -11,7 +11,7 @@
   color: $alert;
 }
 .ready, .operating {
-  color: $ok;
+  color: $icon-green;
 }
 .shutdown {
   color: $error;
@@ -19,6 +19,28 @@
 </style>
 <script>
 import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
+import MaterialIcon from '../basic/MaterialIcon.vue';
+
+const stateToIcon = {
+  waiting: "link_off",
+  FAILURE: "dangerous",
+  ERROR: "warning",
+  UNINITIALIZED: "hourglass_top",
+  INITIALIZED: "hourglass_bottom",
+  NODEVICE: "sync_problem",
+  POWEROFF: "power",
+  POWERON: "power_settings_new",
+  NOTCONNECTED: "link_off",
+  CONNECTED: "link",
+  LOGGEDIN: "link",
+  CONFIGURING: "sync",
+  NOTHOMED: "home",
+  HOMING: "home",
+  OPERATING: "directions_run",
+  READY: "done",
+  SHUTDOWN: "do_not_disturb_on",
+};
 // FAILURE=-20,       ///< The application has failed, should be used when m_shutdown is set for an error.
 // ERROR=-10,         ///< The application has encountered an error, from which it is recovering (with or without intervention)
 // UNINITIALIZED = 0, ///< The application is unitialized, the default
@@ -37,12 +59,16 @@ import indi from "~/mixins/indi.js";
 // SHUTDOWN = 10000   ///< The application has shutdown, set just after calling appShutdown().
 
 export default {
-  props: ["device", "indiId"],
-  mixins: [indi],
+  components: { MaterialIcon },
+  props: ["device", "indiId", "verbose"],
+  mixins: [indi, utils],
   computed: {
     fsmState() {
       if (!this.thisDevice) return "waiting";
       return this.thisDevice.properties["fsm"].elements["state"].value;
+    },
+    fsmStateIcon() {
+      return stateToIcon[this.fsmState];
     }
   }
 }

@@ -5,6 +5,7 @@ Vue.use(VueRouter)
 
 import store from '~/store';
 import PropertiesTable from "~/pages/PropertiesTable.vue";
+import Observation from "~/pages/Observation.vue";
 import VirtualMachine from "~/pages/VirtualMachine.vue";
 import LabMode from "~/pages/LabMode.vue";
 import Dashboard from "~/pages/Dashboard.vue";
@@ -13,7 +14,8 @@ import AdaptiveOptics from "~/pages/AdaptiveOptics.vue";
 import Power from "~/pages/Power.vue";
 
 const routes = [
-    { path: '/', component: Cameras},
+    { path: '/', component: Observation},
+    { path: '/cameras', component: Cameras},
     { path: '/ao', component: AdaptiveOptics},
     { path: '/power', component: Power},
     { path: '/properties', component: PropertiesTable },
