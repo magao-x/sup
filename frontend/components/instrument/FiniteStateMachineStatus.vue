@@ -37,8 +37,8 @@ const stateToIcon = {
   CONFIGURING: "sync",
   NOTHOMED: "home",
   HOMING: "home",
-  OPERATING: "directions_run",
-  READY: "done",
+  OPERATING: "all_inclusive",
+  READY: "bolt",
   SHUTDOWN: "do_not_disturb_on",
 };
 // FAILURE=-20,       ///< The application has failed, should be used when m_shutdown is set for an error.

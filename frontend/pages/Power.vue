@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="power view">
     <power-distribution-unit indi-id="pdu0" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu1" :disabled="disabled"></power-distribution-unit>
     <power-distribution-unit indi-id="pdu2" :disabled="disabled"></power-distribution-unit>
@@ -12,6 +12,10 @@
 </template>
 <style scoped lang="scss">
 @import "./css/variables.scss";
+.power {
+  margin: $unit;
+  padding: $unit;
+}
 </style>
 <script>
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";

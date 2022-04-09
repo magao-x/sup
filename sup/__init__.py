@@ -46,7 +46,7 @@ def log_updates(update, did_anything_change):
                 print(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
 
 static_folder_name = "static"
-static_path = Path(__file__).parent / static_folder_name
+static_path = (Path(__file__).parent / static_folder_name).resolve()
 
 sup_tasks = []
 
@@ -61,7 +61,8 @@ class NotFound(HTTPException):
 async def catch_all(request):
     path = request.path_params['path']
     real_path = (static_path / path).resolve()
-    debug(f'catch_all caught path{real_path}')
+    print(f'catch_all caught path {real_path}, looking for {static_path=} in {list(real_path.parents)=}')
+    
     if static_path in real_path.parents:  # prevent traversal vulnerability
         if real_path.exists():
             return FileResponse(real_path.as_posix())
@@ -202,7 +203,7 @@ async def emit_updates():
             if batch is not None:
                 await sio.emit('indi_batch_update', batch)
         except Exception as e:
-            print(f"Exception in emit_updates(): {e}")
+            print(f"Exception in emit_updates(): {type(e)=} {e}")
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
 def make_indi_connection(potemkin=False):
@@ -225,7 +226,7 @@ def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
-    uvicorn.run(composite_app, host=bind_host, port=bind_port)
+    uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
     import argparse
@@ -382,7 +383,7 @@ async def cancel_tasks():
 from starlette.routing import Route, Mount
 # from . import video
 
-app = Starlette(
+starlette_app = Starlette(
     debug=True,
     routes=[
         Route('/', endpoint=index),
@@ -396,7 +397,7 @@ app = Starlette(
 )
 
 
-composite_app = socketio.ASGIApp(sio, app)
+app = socketio.ASGIApp(sio, starlette_app)
 
 if __name__ == '__main__':
     console_entrypoint()

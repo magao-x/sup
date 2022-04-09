@@ -1,5 +1,5 @@
 <template>
-  <span><toggle-switch
+  <toggle-switch
     v-if="thisProperty"
     :value="powerState"
     @input="changeState"

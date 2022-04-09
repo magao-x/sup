@@ -1,23 +1,13 @@
 <template>
   <div class="camera-controls-group view">
-    <div class="headerbar">
-      <div class="item" style="flex:1">
-        <div class="label camera-name">{{ camName }}</div>
+    <div class="header">
+      <div class="camera-name">
+        <span class="label">{{ camName }}</span>
         <finite-state-machine-status class="control" :device="cam"></finite-state-machine-status>
       </div>
-      <div>power
-        <power-toggle :disabled="true"></power-toggle>
-      </div>
-      <div v-if="hasShutter" class="item" style="flex:2">
-        <div class="label">shutter</div>
-        <shutter-toggle class="control" :device="cam"></shutter-toggle>
-      </div>
-      <div v-if="streamWriter" class="item" style="flex:2">
-        <div class="label">writer</div>
-        <stream-writer class="control" :device="streamWriter"></stream-writer>
-      </div>
+      <shutter-toggle v-if="hasShutter" class="control" :device="cam"></shutter-toggle>
+      <stream-writer v-if="streamWriter" class="control" :device="streamWriter"></stream-writer>
     </div>
-
     <div v-if="isDefined && baseName !== 'wfs'">
       <div class="flex-row">
         <div class="block" v-if="hasExptime || hasADCSpeed">
@@ -48,28 +38,22 @@
 <style lang="scss" scoped>
 @import './css/variables.scss';
 
+.header {
+  display: flex;
+  & > * {
+    flex: 1;
+  }
+  & > .camera-name {
+    flex: 0;
+    min-width: 7em;
+  }
+}
+
 .block {
   // border: 1px solid $plasma-blue;
   padding: $unit;
 }
 
-.headerbar {
-  display: flex;
-  border-bottom: 1px solid;
-  .item {
-    flex: 1;
-    margin: 0.25em;
-    display: flex;
-    flex-direction: column;
-  }
-  .label {
-    font-weight: bold;
-    padding-right: 2 * $unit;
-  }
-  .control {
-    font-size: 14px;
-  }
-}
 .camera-controls-group {
   background: var(--inset-bg);
   padding: $unit;

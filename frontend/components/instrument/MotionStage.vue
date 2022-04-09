@@ -1,9 +1,8 @@
 <template>
   <div class="motion-stage">
-    <div>{{ name }}</div>
+    <div>{{ name }} <finite-state-machine-status :device="thisDevice" v-if="indiDefined"></finite-state-machine-status></div>
     <div v-if="indiDefined" class="flex-row">
       <div class="ms-details">
-        <div><finite-state-machine-status :device="thisDevice"></finite-state-machine-status></div>
         <indi-property :device="thisDevice" :property="positionProperty"></indi-property>
         <!-- <indi-value :indiId="thisDevice.name + '.' + presetBaseName + '.current'"></indi-value>
         <indi-element :indiId="thisDevice.name + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element> -->

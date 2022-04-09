@@ -6,8 +6,8 @@
     :disabled="disabled"
     :busy="busy"
     :prompt="true"
-    labelOn="SHUT"
-    labelOff="OPEN"
+    labelOn="shuttered"
+    labelOff="open"
   ></toggle-switch>
   <div v-else>
     Waiting for shutter
@@ -39,15 +39,15 @@ export default {
         return;
       }
       this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty.elements["target"], newTarget);
-      this.busy = true;
+      // this.busy = true;
       // console.log(`Would have sent ${newTarget}`)
     }
   },
-  watch: {
-    currentState: function(newValue, oldValue) {
-      this.busy = false;
-    }
-  },
+  // watch: {
+  //   currentState: function(newValue, oldValue) {
+  //     this.busy = false;
+  //   }
+  // },
   computed: {
     busy() {
       return this.thisProperty.state == 'Busy' || this.currentState == 'UNKNOWN' || this.currentState == 'OFF';

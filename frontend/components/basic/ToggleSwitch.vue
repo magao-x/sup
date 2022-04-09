@@ -1,27 +1,52 @@
 <template>
   <div class="toggle-and-commit">
-    <div class="label off" v-if="labelOff">{{ labelOff }}</div>
-    <div class="toggle" :class="classes" @click.prevent="toggleOrPrompt">
-      <div class="doodad">{{ currentValue ? "|" : "O" }}</div>
+    <div :class="switchClasses">
+      <div class="label off" :class="currentValue ? '' : 'current'" v-if="labelOff">{{ labelOff }}</div>
+      <div>
+      <div class="toggle" :class="classes" @click.prevent="toggleOrPrompt">
+        <div class="doodad">{{ currentValue ? "|" : "O" }}</div>
+      </div>
+      </div>
+      <div class="label on" :class="currentValue ? 'current' : ''"  v-if="labelOn">{{ labelOn }}</div>
     </div>
-    <div class="label on" v-if="labelOn">{{ labelOn }}</div>
     <commit-button v-if="prompt" :disabled="!waitingToCommit" @commit="toggle"></commit-button>
   </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 .toggle-and-commit {
-  display: flex;
-  .label {
+  display: inline-flex;
+  .switch {
+    flex: 1;
+    // display: grid;
+    // &.has-off-label.has-on-label {
+    //   grid-template-columns: 1fr 1fr 1fr;
+    // }
+    // &.has-off-label, &.has-on-label {
+    //   grid-template-columns: 1fr 1fr;
+    // }
+    // grid-template-columns: 1fr;
+    display: flex;
     text-align: center;
-  }
-  .label.off {
-    margin-right: 0.5em;
-    text-align: right;
-  }
-  .label.on {
-    margin-left: 0.5em;
-    text-align: left;
+    .toggle {
+      margin: 0 auto;
+      flex: 0;
+    }
+    .label {
+      color: $alternate-gray;
+      flex: 1;
+    }
+    .label.on {
+      text-align: left;
+      margin-left: $medgap;
+    }
+    .label.off {
+      text-align: right;
+      margin-right: $medgap;
+    }
+    .label.current {
+      color: inherit;
+    }
   }
 }
 .toggle {
@@ -97,6 +122,11 @@
     }
   }
 }
+button.commit {
+  &:enabled {
+    box-shadow: 0px 0px 5px $plasma-blue;
+  }
+}
 </style>
 <script>
 import CommitButton from "~/components/basic/CommitButton.vue";
@@ -125,6 +155,12 @@ export default {
         disabled: this.disabled,
         enabled: !this.disabled
       };
+    },
+    switchClasses: function() {
+      let classes = ['switch'];
+      if (this.labelOff) { classes.push('has-off-label'); };
+      if (this.labelOn) { classes.push('has-on-label'); };
+      return classes;
     },
     symbol: function () {
       if (this.classes.inactive || this.classes.activating) {

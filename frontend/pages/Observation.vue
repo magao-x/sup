@@ -1,18 +1,20 @@
 <template>
   <div class="observation-controls cols">
-    <div class="padded col">
-      <observer-control class="observer-control padded"></observer-control>
-      <telescope-status indi-id="tcsi" class="padded"></telescope-status>
-    </div>
-    <div class="padded col">
-      
-      <div class="view flipper warning" v-if="retrieveValueByIndiId('flipacq.position.in') == 'On'">
+    <div class="col">
+      <div class="view flipper warning gap-bottom" v-if="retrieveValueByIndiId('pdu0.source.state') == 'On'">
+        <material-icon name="warning"></material-icon> calibration source is on
+      </div>
+      <div class="view flipper warning gap-bottom" v-if="retrieveValueByIndiId('flipacq.position.in') == 'On'">
         <material-icon name="warning"></material-icon> flipacq is in the beam
       </div>
-      <div class="view flipper warning" v-if="retrieveValueByIndiId('flipwfsf.position.in') == 'On'">
+      <div class="view flipper warning gap-bottom" v-if="retrieveValueByIndiId('flipwfsf.position.in') == 'On'">
         <material-icon name="warning"></material-icon> flipwfsf is in the beam
       </div>
-      <table class="status-table view">
+      <observer-control class="observer-control padded gap-bottom"></observer-control>
+      <telescope-status indi-id="tcsi" class="padded"></telescope-status>
+    </div>
+    <div class="col">
+      <table class="status-table view gap-bottom">
         <thead>
           <tr>
             <th>channel</th>
@@ -61,31 +63,23 @@
           </tr>
         </tbody>
       </table>
-      <table class="status-table view">
-        <thead>
-          <tr>
-            <th v-for="filterWheelName in otherFilterWheels" :key="filterWheelName">
-              {{ filterWheelName }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td v-for="filterWheelName in otherFilterWheels" :key="filterWheelName">
-              <indi-switch-multi-element-value
+      <div class="status-tiles">
+        <div class="status-tile view" v-for="filterWheelName in otherFilterWheels" :key="filterWheelName">
+          <div><span class="name">{{ filterWheelName }}</span> <finite-state-machine-status v-if="retrieveByIndiId(filterWheelName)" :indi-id="filterWheelName"></finite-state-machine-status>
+          <material-icon name="question_mark" v-else></material-icon></div>
+          <indi-switch-multi-element-value
                 :indi-id="`${filterWheelName}.filterName`"
               ></indi-switch-multi-element-value>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="status-tiles">
+        </div>
         <div class="status-tile view" v-for="stageName in otherStages" :key="stageName">
           <div><span class="name">{{ stageName }}</span> <finite-state-machine-status v-if="retrieveByIndiId(stageName)" :indi-id="stageName"></finite-state-machine-status>
           <material-icon name="question_mark" v-else></material-icon></div>
-          <indi-switch-multi-element-value
-                :indi-id="`${stageName}.presetName`"
-              ></indi-switch-multi-element-value>
+          <indi-value
+            :indi-id="`${stageName}.position.current`"
+          ></indi-value>
+          (<indi-switch-multi-element-value
+            :indi-id="`${stageName}.presetName`"
+          ></indi-switch-multi-element-value>)
         </div>
         <div class="status-tile view" v-for="flipName in ['flipacq', 'fliptip', 'flipwfsf']" :key="flipName">
           <div class="name">
@@ -112,22 +106,26 @@
 //   display: flex;
 //   flex-direction: row;
 // }
+
+.gap-bottom { margin-bottom: $unit; }
 .observation-controls {
 .flipper.warning {
   background: $beware-orange;
   border-color: lighten($beware-orange, 20%);
   font-size: 125%;
+  padding: $unit;
 }}
 
 .status-tiles {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   grid-template-rows: 1fr;
-  gap: $lggap;
+  gap: $unit;
   align-items: stretch;
   .status-tile {
     margin-bottom: 0;
     text-align: center;
+    padding: $medgap;
     .name {
       color: var(--fg-active);
       font-weight: bold;
@@ -135,7 +133,7 @@
   }
 }
 
-.observer-control { padding: $unit; }
+// .observer-control { padding: $unit; }
 </style>
 <script>
 import utils from "~/mixins/utils.js";

@@ -1,6 +1,5 @@
 <template>
-  <div>
-    <div class="controls">
+    <div class="cols">
       <div class="col">
         <camera-controls-group base-name="sci1"></camera-controls-group>
         <camera-controls-group base-name="sci2"></camera-controls-group>
@@ -20,7 +19,6 @@
         <motion-stage kind="stage" indi-id="stagescibs"></motion-stage>
       </div>
     </div>
-  </div>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";

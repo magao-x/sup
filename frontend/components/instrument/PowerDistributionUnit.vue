@@ -43,10 +43,11 @@
       color: var(--fg-normal);
       .channel-name, .channel-controls {
         flex: 1;
+        margin-bottom: $medgap;
       }
       border-bottom: 1px solid $plasma-blue;
-      padding-left: $unit;
-      padding-bottom: $unit;
+      padding-left: $medgap;
+      padding-bottom: $medgap;
     }
     &.disabled {
       .pdu-channel {

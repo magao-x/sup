@@ -4,8 +4,8 @@
       class="stream-writer-toggle"
       :prompt="true"
       :indi-id="thisDevice.name + '.writing.toggle'"
-      labelOn="WRITING"
-      labelOff="PAUSED"
+      labelOn="writing"
+      labelOff="paused"
     ></indi-toggle-switch>
     <div v-else>Waiting for streamwriter</div>
 </template>

@@ -1,11 +1,12 @@
 <template>
   <div id="app">
-    <flames :active="showFlames" :disabled="!loopClosed"></flames>
+    <flames :active="showFlames"></flames>
     <div class="status">
+      <div class="status-indicator">{{ readableTimestamp }}</div>
       <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
       <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
-      <div class="status-indicator">{{ readableTimestamp }}</div>
-      <loop-state indiId="aoloop"></loop-state>
+      <loop-state indi-id="holoop"></loop-state>
+      <loop-state indi-id="loloop-fpm"></loop-state>
     </div>
     <nav class="top">
       <div id="logo">
@@ -142,7 +143,6 @@ nav.top {
   border-bottom: 3px solid $plasma-blue;
   display: flex;
   flex-flow: row-reverse wrap;
-  margin-bottom: $lggap;
 }
 
 .status {
@@ -153,6 +153,9 @@ nav.top {
   padding-right: 1rem;
   box-sizing: border-box;
   display: flex;
+  & > * {
+    margin: $smgap $medgap;
+  }
 }
 
 nav.top .tab-bar {

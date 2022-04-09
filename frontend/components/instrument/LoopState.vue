@@ -1,6 +1,6 @@
 <template>
-    <div class="loop status-indicator ">
-      <span class="loop-state" :class="state">{{ state }}</span>
+    <div class="loop status-indicator">
+      <span class="loop-state" :class="state">{{ state }} {{ gain }}</span>
     </div>
 </template>
 <style lang="scss" scoped>
@@ -8,7 +8,6 @@
 
 .loop {
   color: white;
-  background: var(--bg-alternate);
 }
 
 .waiting {
@@ -37,13 +36,18 @@ export default {
   mixins: [indi, utils],
   props: ["device", "indiId"],
   computed: {
+    loopClosed: function () {
+      return this.thisDevice.properties['loop_state'].elements['toggle'].value == "On";
+    },
     state: function() {
       if (!this.thisDevice) return "waiting for AO state";
-      return "loop " + this.thisDevice.properties['loopState'].elements['state'].value;
+      const clopen = this.loopClosed ? "closed" : "open";
+      return `${this.indiId} ${clopen}`;
     },
     gain: function() {
       if (!this.thisDevice) return "?";
-      return this.thisDevice.properties['loopGain'].elements['gain'].value;
+      if (!this.loopClosed) return "";
+      return this.thisDevice.properties['loop_gain'].elements['current'].value;
     }
   }
 };
