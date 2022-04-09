@@ -191,7 +191,6 @@ class INDIUpdateBatcher:
             'deletions': deletions,
             'connected': self.client_instance.status == ConnectionStatus.CONNECTED,
         }
-        print(f"{utc_now()=} {batch['connected']=}")
         self.properties_to_delete = set()
         self.properties_to_update = set()
         return batch
