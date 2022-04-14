@@ -17,7 +17,13 @@ function buildConnectionString() {
   return connectionString;
 }
 
-const socket = io(process.env.NODE_ENV == 'development' ? buildConnectionString() : null);
+// const socket = io(? buildConnectionString() : null);
+let socket;
+if (process.env.NODE_ENV == 'development') {
+  socket = io(buildConnectionString());
+} else {
+  socket = io();
+}
 for (let evt of ['pong', 'connect']) {
   socket.on(evt, () => {store.commit('heartbeat');});
 }

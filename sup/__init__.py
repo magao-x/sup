@@ -5,6 +5,8 @@ import math
 import orjson
 import asyncio
 import aiohttp
+from astropy.time import Time
+from astropy.coordinates import EarthLocation
 import logging
 import uvicorn
 import os
@@ -29,9 +31,11 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 from collections.abc import MutableMapping, MutableSequence
 
+LCO_COORDINATES = EarthLocation.of_site('Las Campanas Observatory')
 BATCH_UPDATE_INTERVAL = 0.2 # second
 PING_INTERVAL = 10
 MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
+
 
 def utc_now():
     dt = datetime.datetime.utcnow()
@@ -82,6 +86,8 @@ sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins="*", # TODO only CORS in dev
     ping_interval=PING_INTERVAL,
+    # engineio_logger=True,
+    # logger=True,
 )
 
 @sio.event
@@ -182,7 +188,12 @@ class INDIUpdateBatcher:
                 (device_name, "*") in self.properties_to_delete
             ):
                 continue
-            updates[f'{device_name}.{property_name}'] = self._get_jsonable(device_name, property_name)
+            try:
+                updates[f'{device_name}.{property_name}'] = self._get_jsonable(device_name, property_name)
+            except KeyError:
+                # race condition where device or property can be deleted
+                # before the batch gets sent
+                continue
         for device_name, property_name in self.properties_to_delete:
             deletions.append(f'{device_name}.{property_name}')
 

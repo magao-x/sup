@@ -1,5 +1,5 @@
 <template>
-  <select :disabled="disabled" @change="onChange" :value="selectedSwitch">
+  <select :disabled="disabledOrMissing" @change="onChange" :value="selectedSwitch">
     <option
       v-for="elem in switchElements"
       :key="elem.name"
@@ -21,13 +21,6 @@
   </div> -->
 </template>
 <style lang="scss" scoped>
-.buttons {
-  // display: flex;
-  padding: 0;
-  &.vertical {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
 <script>
 import indi from "~/mixins/indi.js";
@@ -37,7 +30,7 @@ import utils from "~/mixins/utils.js";
 const noneSelected = "-none selected-";
 
 export default {
-  props: ["device", "property", "indiId", "disabled", "orientation"],
+  props: ["device", "property", "indiId", "disabled", "orientation", "allowNone"],
   mixins: [indi, utils],
   components: {
     ToggleButton
@@ -56,13 +49,6 @@ export default {
     }
   },
   computed: {
-    switchType: function() {
-      if (this.thisProperty.rule == "OneOfMany") {
-        return "radio";
-      } else {
-        return "checkbox";
-      }
-    },
     propertyId: function() {
       if (!(this.thisDevice && this.thisProperty)) return null;
       return this.thisDevice.name + "." + this.thisProperty.name;
@@ -76,7 +62,9 @@ export default {
           defaultElement.value = 'Off';
         }
       };
-      elements[noneSelected] = defaultElement;
+      if (this.allowNone) {
+        elements[noneSelected] = defaultElement;
+      }
       return elements;
     },
     selectedSwitch: function() {
@@ -86,6 +74,9 @@ export default {
           return el;
         }
       }
+    },
+    disabledOrMissing: function () {
+      return this.disabled || !this.thisProperty || this.thisProperty.propertyState == 'Busy';
     }
   }
 };

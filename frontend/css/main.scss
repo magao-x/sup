@@ -89,6 +89,7 @@ button:enabled,
   @include disabled-button();
   &.active {
     border: 1px solid $plasma-blue;
+    background-image: var(--btn-active-bg-gradient);
   }
   // &.commit {
   //   background: $commit;
@@ -179,3 +180,10 @@ a:active {
   align-items: stretch;
   padding: $lggap;
 }
+select {
+  background: var(--inset-bg);
+  border: 1px solid var(--border);
+  color: var(--fg-normal) !important;
+}
+
+.gap-bottom { margin-bottom: $unit; }

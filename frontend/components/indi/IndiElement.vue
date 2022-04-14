@@ -28,6 +28,7 @@
       @focus="stopUpdating"
       @blur="maybeResumeUpdating"
       @input="updateUserInput"
+      @keydown.enter="onCommit"
     ></vanilla-input>
     <commit-button v-if="propertyKind !== 'swt'" :disabled="isDisabled" @commit="onCommit"></commit-button>
   </div>

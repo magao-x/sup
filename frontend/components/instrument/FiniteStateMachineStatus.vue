@@ -4,10 +4,10 @@
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
-.failure, .error, .nodevice, .poweroff {
+.failure, .error, .nodevice, .nothomed, .poweroff {
   color: $error;
 }
-.poweron, .notconnected, .connected, .loggedin, .configuring, .nothomed, .homing {
+.poweron, .notconnected, .connected, .loggedin, .configuring, .homing {
   color: $alert;
 }
 .ready, .operating {
@@ -64,7 +64,7 @@ export default {
   mixins: [indi, utils],
   computed: {
     fsmState() {
-      if (!this.thisDevice) return "waiting";
+      if (!this.indiDefined) return "waiting";
       return this.thisDevice.properties["fsm"].elements["state"].value;
     },
     fsmStateIcon() {

@@ -6,8 +6,10 @@ init:
 	pip install -e .
 	cd frontend/ && yarn install
 
-buildjs: init
+justjs:
 	cd frontend/ && NODE_ENV=production yarn parcel build -d ../sup/static/ index.html
+
+buildjs: init justjs
 
 servejs:
 	mkdir -p /tmp/supjs

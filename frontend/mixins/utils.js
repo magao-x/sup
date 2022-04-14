@@ -113,6 +113,19 @@ export default {
     objectAsSortedArray: function (ob) {
       let keys = Object.keys(ob).sort();
       return keys.map((val) => ob[val]);
+    },
+    sendIndiNewByNames: function (deviceName, propertyName, elementName, value) {
+      const payload = {
+        'device': deviceName,
+        'property': propertyName,
+        'element': elementName,
+        'value': value
+      };
+      this.$socket.emit('indi_new', payload);
+      console.log('Emitted indi_new', payload)
+    },
+    sendIndiNew: function (device, property, element, value) {
+      this.sendIndiNewByNames(device.name, property.name, element.name, value);
     }
   },
   computed: {

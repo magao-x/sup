@@ -3,11 +3,11 @@
     v-if="thisProperty"
     :value="shutterState"
     @input="changeState"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :busy="busy"
     :prompt="true"
-    labelOn="shuttered"
-    labelOff="open"
+    labelOn="open"
+    labelOff="shuttered"
   ></toggle-switch>
   <div v-else>
     Waiting for shutter
@@ -52,6 +52,7 @@ export default {
     busy() {
       return this.thisProperty.state == 'Busy' || this.currentState == 'UNKNOWN' || this.currentState == 'OFF';
     },
+    
     thisProperty() {
       if (!this.thisDevice) return null;
       return this.thisDevice.properties['shutter'];
@@ -63,6 +64,10 @@ export default {
     },
     shutterState: function () {
       return this.currentState ? "SHUT" : "OPEN";
+    },
+    isDisabled() {
+      console.log(this.thisDevice);
+      return this.disabled || this.thisDevice.properties['shutter_status'].elements['status'] == "POWEROFF";
     }
   }
 };

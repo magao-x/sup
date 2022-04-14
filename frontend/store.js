@@ -14,7 +14,9 @@ export default new Vuex.Store({
         connected: false,
         lastUpdate: null
       },
-      devices: {}
+      devices: {},
+      localSiderealTime: null,
+      UTC: null,
     },
     mutations: {
       heartbeat (state) {
@@ -24,6 +26,11 @@ export default new Vuex.Store({
       disconnected (state) {
         state.webSocketConnection.connected = false;
         state.indiConnection.connected = false;
+      },
+      updateTime (state, payload) {
+        const { localSiderealTime, UTC } = payload;
+        state.localSiderealTime = localSiderealTime;
+        state.UTC = UTC;
       },
       indi_connect(state){
         state.indiConnection.connected = true;
@@ -84,6 +91,8 @@ export default new Vuex.Store({
         // }
         const updates = payload.updates;
         const deletions = payload.deletions;
+        const localSiderealTime = payload.localSiderealTime;
+        const UTC = payload.UTC;
         for (let propSpec of deletions) {
           let [deviceName, propertyName] = propSpec.split(".");
           commit('indi_del', {deviceName, propertyName});
@@ -93,6 +102,7 @@ export default new Vuex.Store({
           commit('indi_update', {deviceName, propertyName, propertyState: updates[propSpec]});
         }
         commit('heartbeat');
+        commit('updateTime', {localSiderealTime, UTC: payload.UTC});
         if (payload.connected) {
           commit('indi_connect');
         } else {

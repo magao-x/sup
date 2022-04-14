@@ -6,7 +6,6 @@
       <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
       <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
       <loop-state indi-id="holoop"></loop-state>
-      <loop-state indi-id="loloop-fpm"></loop-state>
     </div>
     <nav class="top">
       <div id="logo">
@@ -280,9 +279,21 @@ export default Vue.extend({
   methods: {
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;
-    }
+    },
+    // decimalHoursToTime(value) {
+    //   console.log(value);
+    //   const hours = String(Math.floor(value)).padStart(2, "0");
+    //   let fracHour = value - hours;
+    //   const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
+    //   fracHour = fracHour - minutes / 60;
+    //   const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
+    //   return `${hours}:${minutes}:${seconds}`;
+    // },
   },
   computed: {
+    // lst() {
+    //   return this.decimalHoursToTime(this.$store.state.localSiderealTime);
+    // },
     devices() {
       return this.$store.state.devices;
     },

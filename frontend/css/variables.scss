@@ -74,6 +74,8 @@ body {
   &.dark {
     --btn-bg: #{$charcoal-gray};
     --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
+    --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{darken($icon-blue, 40)});
+    --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{darken($danger-red, 40)});
     --btn-fg: #{$cardboard-gray};
     --inset-bg: #{$shade-black};
     --inset-fg: #{$cardboard-gray};

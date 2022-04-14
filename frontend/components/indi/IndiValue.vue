@@ -10,13 +10,23 @@ import utils from "~/mixins/utils.js";
 
 export default {
   mixins: [indi, utils],
-  props: ["device", "property", "element", "indiId", "onText", "offText"],
+  props: ["device", "property", "element", "indiId", "onText", "offText", "placeholder", "formatFunction"],
   computed: {
     value: function() {
-      if (!this.thisElement) return "";
-      if (this.thisProperty.kind == 'num') {
-        return this.applyFormatString(this.thisElement.format, this.thisElement.value);
+      let value;  // assign to value so formatFunction can be applied at end before return
+      // if value is missing, show placeholder
+      if (!this.thisElement) {
+        value = this.placeholder ? this.placeholder : "";
+      } else if (this.thisProperty.kind == 'num') {
+        // number format functions should receive values to format as numbers
+        if (this.formatFunction) {
+          return this.formatFunction(this.thisElement.value);
+        } else {
+          value = this.applyFormatString(this.thisElement.format, this.thisElement.value);
+        }
       } else if (this.thisProperty.kind == 'swt') {
+        // switches default to On and Off if onText and offText are not given
+        // TODO make this a default prop value
         let onLabel = 'On', offLabel = 'Off';
         if (typeof this.onText !== "undefined") {
           onLabel = this.onText;
@@ -24,9 +34,16 @@ export default {
         if (typeof this.offText !== "undefined") {
           offLabel = this.offText;
         }
-        return this.thisElement.value == 'On' ? onLabel : offLabel;
+        value = this.thisElement.value == 'On' ? onLabel : offLabel;
       } else {
-        return this.thisElement.value;
+        // "normal" values
+        value = this.thisElement.value;
+      }
+      // apply formatting last (if needed)
+      if (this.formatFunction) {
+        return this.formatFunction(value);
+      } else {
+        return value;
       }
     }
   }

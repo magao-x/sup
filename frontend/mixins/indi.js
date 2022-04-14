@@ -34,17 +34,5 @@ export default {
       if (this.thisIndiId !== null) return true;
       else return false;
     }
-  },
-  methods: {
-    sendIndiNew: function (device, property, element, value) {
-      const payload = {
-        'device': device.name,
-        'property': property.name,
-        'element': element.name,
-        'value': value
-      };
-      this.$socket.emit('indi_new', payload);
-      console.log('Emitted indi_new', payload)
-    }
   }
 }

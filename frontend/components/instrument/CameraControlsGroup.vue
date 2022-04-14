@@ -5,8 +5,20 @@
         <span class="label">{{ camName }}</span>
         <finite-state-machine-status class="control" :device="cam"></finite-state-machine-status>
       </div>
-      <shutter-toggle v-if="hasShutter" class="control" :device="cam"></shutter-toggle>
-      <stream-writer v-if="streamWriter" class="control" :device="streamWriter"></stream-writer>
+      <indi-toggle-switch
+        v-if="hasShutter"
+        class="control"
+        :indi-id="`${camName}.shutter.toggle`"
+        label-off="open"
+        label-on="shut"
+      ></indi-toggle-switch>
+      <indi-toggle-switch
+        v-if="streamWriter"
+        class="control"
+        :indi-id="`${streamWriterName}.writing.toggle`"
+        label-off="paused"
+        label-on="writing"
+      ></indi-toggle-switch>
     </div>
     <div v-if="isDefined && baseName !== 'wfs'">
       <div class="flex-row">
@@ -68,6 +80,7 @@
 import IndiProperty from "~/components/indi/IndiProperty.vue";
 import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
+import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
 import MotionStage from "~/components/instrument/MotionStage.vue";
 import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
 // import RegionOfInterest from "~/components/instrument/RegionOfInterest.vue";
@@ -97,7 +110,7 @@ export default {
     MotionStage,
     // RegionOfInterest,
     StreamWriter,
-    ShutterToggle,
+    IndiToggleSwitch,
     FiniteStateMachineStatus,
     ExposureTime,
     FramesPerSecond,

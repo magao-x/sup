@@ -39,6 +39,10 @@ export default {
       type: Boolean,
       default: () => false
     },
+    ignoreBusyState: {
+      type: Boolean,
+      default: () => false
+    },
   },
   methods: {
     toggle: function() {
@@ -54,6 +58,9 @@ export default {
   computed: {
     switchBusy: function () {
       if (!this.thisProperty) return true;
+      if (this.ignoreBusyState) {
+        return false;
+      }
       return this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert";
     },
     switchDisabled: function () {
