@@ -1,5 +1,6 @@
 <template>
   <div>
+    <!-- <celestial-map></celestial-map> -->
     <telescope-simulator></telescope-simulator>
     <!-- <basler-camera indiId="camtip"></basler-camera> -->
     <camera-controls-group indiId="camtip"></camera-controls-group>
@@ -26,6 +27,7 @@ import TelescopeSimulator from "~/components/instrument/TelescopeSimulator.vue";
 import CameraControlsGroup from "~/components/instrument/CameraControlsGroup.vue";
 import BaslerCamera from "~/components/instrument/BaslerCamera.vue";
 import MotionStage from "~/components/instrument/MotionStage.vue";
+// import CelestialMap from "~/components/plots/CelestialMap.vue";
 
 export default {
   components: {
@@ -33,6 +35,7 @@ export default {
     CameraControlsGroup,
     MotionStage,
     BaslerCamera,
+    // CelestialMap
   }
 };
 </script>

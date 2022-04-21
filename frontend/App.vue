@@ -50,6 +50,7 @@
         </router-link>
       </div>
     </nav>
+    <observation-warnings></observation-warnings>
     <!-- <div class="status-bar">
       <div class="status-left">
         <div>{{ readableTimestamp }}</div>
@@ -247,6 +248,7 @@ import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import LoopState from "~/components/instrument/LoopState.vue";
 import StatusIndicator from "~/components/basic/StatusIndicator.vue";
 import constants from "./constants.js";
+import ObservationWarnings from "~/components/instrument/ObservationWarnings.vue";
 import Flames from "~/components/basic/Flames.vue";
 import { DateTime } from "luxon";
 import utils from "~/mixins/utils.js";
@@ -268,7 +270,8 @@ export default Vue.extend({
     Flames,
     ToggleSwitch,
     LoopState,
-    StatusIndicator
+    StatusIndicator,
+    ObservationWarnings,
   },
   data: function () {
     return {
@@ -280,20 +283,8 @@ export default Vue.extend({
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;
     },
-    // decimalHoursToTime(value) {
-    //   console.log(value);
-    //   const hours = String(Math.floor(value)).padStart(2, "0");
-    //   let fracHour = value - hours;
-    //   const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
-    //   fracHour = fracHour - minutes / 60;
-    //   const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
-    //   return `${hours}:${minutes}:${seconds}`;
-    // },
   },
   computed: {
-    // lst() {
-    //   return this.decimalHoursToTime(this.$store.state.localSiderealTime);
-    // },
     devices() {
       return this.$store.state.devices;
     },

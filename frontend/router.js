@@ -12,6 +12,7 @@ import Dashboard from "~/pages/Dashboard.vue";
 import Cameras from "~/pages/Cameras.vue";
 import AdaptiveOptics from "~/pages/AdaptiveOptics.vue";
 import Power from "~/pages/Power.vue";
+import PlantStatus from "~/pages/PlantStatus.vue";
 
 const routes = [
     { path: '/', component: Observation},
@@ -21,7 +22,8 @@ const routes = [
     { path: '/properties', component: PropertiesTable },
     { path: '/vm', component: VirtualMachine },
     { path: '/lab', component: LabMode },
-    { path: '/dashboard', component: Dashboard }
+    { path: '/dashboard', component: Dashboard },
+    { path: '/plant-status', component: PlantStatus},
 ];
 export default new VueRouter({
     routes

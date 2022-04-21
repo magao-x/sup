@@ -1,6 +1,6 @@
 export default {
   colorCycle: [
-    "#1f77b4",
+    "#3daee9",
     "#ff7f0e",
     "#2ca02c",
     "#d62728",

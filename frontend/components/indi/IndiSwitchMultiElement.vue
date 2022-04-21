@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="buttons minigrid" :class="{'vertical': orientation == 'vertical', 'horizontal': orientation == 'horizontal'}">
+    <div class="buttons" :style="styleProperties">
       <toggle-button
         v-for="elem in switchElements" 
         :key="elem.name"
@@ -15,10 +15,11 @@
 <style lang="scss" scoped>
 .buttons {
   // display: flex;
+  display:grid;
   padding: 0;
-  &.vertical {
-    grid-template-columns: 1fr;
-  }
+  // &.vertical {
+  //   grid-template-columns: 1fr;
+  // }
 }
 </style>
 <script>
@@ -27,7 +28,25 @@ import ToggleButton from "~/components/basic/ToggleButton.vue";
 import utils from "~/mixins/utils.js";
 
 export default {
-  props: ["device", "property", "indiId", "disabled", "orientation"],
+  props: {
+    device: {
+      type: Object,
+    },
+    property: {
+      type: Object,
+    },
+    indiId: {
+      type: String,
+    },
+    disabled: {
+      type: Boolean,
+      default: false
+    },
+    columns: {
+      type: Number,
+      default: 3,
+    }
+  },
   mixins: [indi, utils],
   components: {
     ToggleButton
@@ -43,6 +62,19 @@ export default {
     }
   },
   computed: {
+    styleProperties() {
+      let colBits = [];
+      let cols;
+      if (typeof this.columns !== "undefined") {
+        cols = this.columns;
+      } else {
+        cols = Object.keys(this.thisProperty.elements).length;
+      }
+      for (let i = 0; i < cols; i++) {
+        colBits.push("1fr");
+      }
+      return {"grid-template-columns": colBits.join(" ")}
+    },
     switchType: function() {
       if (this.thisProperty.rule == "OneOfMany") {
         return "radio";

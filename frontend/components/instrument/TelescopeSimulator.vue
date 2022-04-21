@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div style="font-size: 2em;">Lamp power: <power-toggle indi-id="pdu0.source" :confirm="true"></power-toggle></div>
+    <div style="font-size: 2em;">Source power: <power-toggle indi-id="pdu0.source" :confirm="true"></power-toggle></div>
     <motion-stage kind="filterwheel" indi-id="fwtelsim"></motion-stage>
     <motion-stage kind="stage" indi-id="stagepickoff"></motion-stage>
   </div>

@@ -7,8 +7,15 @@
     :markerSize="markerSize"
     :timeSeries="timeSeries"
     :numMinutes="numMinutes"
+    :showNowUTC="showNowUTC"
+    :fixedYDomain="fixedYDomain"
+    :fixedXDomain="fixedXDomain"
+    :fixedXTicks="fixedXTicks"
+    :fixedYTicks="fixedYTicks"
   ></plot-axes>
-  <plot-legend :data="data" :dataColors="dataColors"></plot-legend>
+  <plot-legend
+    v-if="legend"
+    :data="data" :dataColors="dataColors"></plot-legend>
 </div>
 </template>
 <style lang="scss" scoped>
@@ -17,9 +24,6 @@
 .plot {
   display: flex;
   flex-direction: column;
-  background: var(--bg-alternate);
-  margin: $unit / 2;
-  padding: $unit / 2;
   overflow: hidden;
 }
 </style>
@@ -57,6 +61,30 @@ export default {
       default: function() {
         return false;
       }
+    },
+    legend: {
+      type: Boolean,
+      default: true
+    },
+    showNowUTC: {
+      type: Boolean,
+      default: false
+    },
+    fixedYDomain: {
+      type: Array,
+      default: null
+    },
+    fixedXDomain: {
+      type: Array,
+      default: null
+    },
+    fixedYTicks: {
+      type: Array,
+      default: null
+    },
+    fixedXTicks: {
+      type: Array,
+      default: null
     },
     showLegend: {
       type: Boolean,

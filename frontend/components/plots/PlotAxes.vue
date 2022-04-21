@@ -3,7 +3,7 @@
     <svg class="axes" />
   </div>
 </template>
-<style lang="scss" scoped>
+<style lang="scss">
 .axes-container {
   flex: 1;
   min-width: 300px;
@@ -19,6 +19,9 @@
   max-height: 100%;
   flex: 1;
 }
+.y.axis, .x.axis {
+  font-size: 100%;
+}
 </style>
 <script>
 import { DateTime } from "luxon";
@@ -26,7 +29,15 @@ import * as ElementQueries from "css-element-queries";
 import * as d3 from "d3";
 import constants from "./constants.js";
 
-const tickSpacing = 40;
+const tickSpacing = 80;
+
+function timeZoneify(d, customTimeZone) {
+  const newDate = DateTime.fromISO(d.replace(" ", "T"), {zone: customTimeZone});
+  return newDate.toJSDate();
+}
+
+const FIVE_MINUTES = 1000 * 60;
+
 
 export default {
   props: {
@@ -54,9 +65,29 @@ export default {
         return false;
       }
     },
+    showNowUTC: {
+      type: Boolean,
+      default: false
+    },
     numMinutes: {
       type: Number,
       default: function () { return null; }
+    },
+    fixedYDomain: {
+      type: Array,
+      default: null
+    },
+    fixedXDomain: {
+      type: Array,
+      default: null
+    },
+    fixedYTicks: {
+      type: Array,
+      default: null
+    },
+    fixedXTicks: {
+      type: Array,
+      default: null
     },
     data: {
       type: Object,
@@ -118,6 +149,7 @@ export default {
       return hash;
     },
     updatePlot() {
+      console.log("Update plot");
       // Calculate plot dimensions in screen coords from margins
       // and element dimensions in screen coords
       var margin = { top: 10, right: 30, bottom: 50, left: 50 };
@@ -128,8 +160,10 @@ export default {
       let yGetter = d => d.y;
       let xDomain;
       if (this.timeSeries) {
-        xGetter = d => d3.isoParse(d.x);
-        if (this.numMinutes !== null) {
+        xGetter = d => timeZoneify(d.x, 'Etc/UTC');
+        if (this.fixedXDomain !== null) {
+          xDomain = this.fixedXDomain;
+        } else if (this.numMinutes !== null) {
           const startTime = this.time.currentTime.minus({minutes: this.numMinutes});
           xDomain = [startTime, this.time.currentTime];
         } else {
@@ -147,13 +181,34 @@ export default {
           .domain(xDomain) // input
           .range([0, width]); // output
       }
+      this.xFractionalScale = d3
+        .scaleLinear()
+        .domain([0, 1])
+        .range([0, width]);
 
-      let yDomain = this.computeDomain(yGetter);
+      let yDomain;
+      if (this.fixedYDomain !== null) {
+        yDomain = this.fixedYDomain;
+        yGetter = function (d) {
+          if (d.y >= yDomain[0] && d.y <= yDomain[1]) {
+            return d.y;
+          } else {
+            return 0;
+          }
+        };
+      } else {
+        yDomain = this.computeDomain(yGetter);
+      }
 
       this.yScale = d3
         .scaleLinear()
         .domain(yDomain) // input
         .range([height, 0]); // output
+      
+      this.yFractionalScale = d3
+        .scaleLinear()
+        .domain([0, 1])
+        .range([height, 0]);
 
       // 7. d3's line generator
       this.line = d3
@@ -174,21 +229,56 @@ export default {
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
       // 3. Call the x axis in a group tag
       var xAxis = this.d3svg
         .append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
-        .style("color", this.axisColor)
-        .call(d3.axisBottom(this.xScale).ticks(width / tickSpacing)); // Create an axis component with d3.axisBottom
+        .style("color", this.axisColor);
+
+      let axesSpecX = d3.axisBottom(this.xScale);
+      if (this.fixedXTicks) {
+        axesSpecX = axesSpecX.tickValues(this.fixedXTicks);
+      } else {
+        axesSpecX = axesSpecX.ticks(width / tickSpacing);
+      }
+      if (this.timeSeries) {
+        axesSpecX = axesSpecX.tickFormat(d3.utcFormat("%H:%M"));
+      }
+      xAxis.call(axesSpecX); // Create an axis component with d3.axisBottom
 
       // 4. Call the y axis in a group tag
       var yAxis = this.d3svg
         .append("g")
         .attr("class", "y axis")
-        .style("color", this.axisColor)
-        .call(d3.axisLeft(this.yScale).ticks(height / tickSpacing)); // Create an axis component with d3.axisLeft
+        .style("color", this.axisColor);
+      let axesSpecY = d3.axisLeft(this.yScale);
+      if (this.fixedYTicks) {
+        axesSpecY = axesSpecY.tickValues(this.fixedYTicks);
+      } else {
+        axesSpecY = axesSpecY.ticks(height / tickSpacing);
+      }
+      yAxis.call(axesSpecY); // Create an axis component with d3.axisLeft
+      // // 3. Call the x axis in a group tag
+      // var xAxis = this.d3svg
+      //   .append("g")
+      //   .attr("class", "x axis")
+      //   .attr("transform", "translate(0," + height + ")")
+      //   .style("color", this.axisColor);
+        
+
+      // if (this.timeSeries) {
+      //   xAxis.call(d3.axisBottom(this.xScale).ticks(width / tickSpacing, "%H:%M")); // Create an axis component with d3.axisBottom
+      // } else {
+      //   xAxis.call(d3.axisBottom(this.xScale).ticks(width / tickSpacing)); // Create an axis component with d3.axisBottom
+      // }
+
+      // // 4. Call the y axis in a group tag
+      // var yAxis = this.d3svg
+      //   .append("g")
+      //   .attr("class", "y axis")
+      //   .style("color", this.axisColor)
+      //   .call(d3.axisLeft(this.yScale).ticks(height / tickSpacing)); // Create an axis component with d3.axisLeft
 
       let idx = 0;
       for (let [name, dataset] of Object.entries(this.data)) {
@@ -198,7 +288,8 @@ export default {
           .datum(dataset.points) // 10. Binds data to the line
           // .classed("line", true) // Assign a class for styling
           .style("fill", "none")
-          .style("stroke-width", 1)
+          .style("stroke-width", 3)
+          .style("filter", "drop-shadow(0px 0px 5px #3daee9)")
           .style("stroke", this.dataColors[idx])
           .attr("d", this.line); // 11. Calls the line generator
 
@@ -215,6 +306,25 @@ export default {
         //   .attr("r", this.markerSize);
         idx = (idx + 1) % this.dataColors.length;
       }
+      
+      if (this.showNowUTC) {
+        this.line = d3
+          .line()
+          .x(d => this.xScale(xGetter(d))) // set the x values for the line generator
+          .y(d => this.yScale(yGetter(d))); 
+        this.d3svg
+          .append("path")
+          .datum([
+            {x: this.time.currentTime.toISO(), y: 0},
+            {x: this.time.currentTime.toISO(), y: 1}
+          ])
+          .style("stroke", "#f47750")
+          .style("stroke-dasharray", "5,5")
+          .attr("d", d3.line()
+            .x(d=>this.xScale(xGetter(d)))
+            .y(d=>this.yFractionalScale(yGetter(d)))
+          );
+      }
     }
   },
   mounted: function() {
@@ -222,9 +332,15 @@ export default {
     this.resizeSensor = new ElementQueries.ResizeSensor(this.$el, () =>
       this.updatePlot()
     );
+    this.updater = () => {
+      this.updatePlot();
+      this.timer = setTimeout(this.updater, FIVE_MINUTES);
+    };
+    this.timer = setTimeout(this.updater, FIVE_MINUTES);
   },
   beforeDestroy: function() {
     this.resizeSensor.detach();
+    clearTimeout(this.timer);
   }
 };
 </script>

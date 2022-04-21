@@ -152,6 +152,15 @@ button.square {
   vertical-align: middle;
 }
 
+button.red {
+  &:enabled {
+    background: var(--btn-warn-bg-gradient);
+  }
+  &:enabled:hover, &:enabled:active {
+    border: 1px solid $danger-red;
+  }
+}
+
 .flex-row {
   display: flex;
 }

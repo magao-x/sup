@@ -1,10 +1,10 @@
 <template>
     <div class="nudger">
-        <div>Nudger</div>
         <div>
-            <clicky-stepper></clicky-stepper>
+            <clicky-stepper label="x" @step="nudge"></clicky-stepper>
+            <clicky-stepper label="y" @step="nudge"></clicky-stepper>
         </div>
-        <div class="controls">
+        <!-- <div class="controls">
             <button @click="nudge(1, 'x')">+x</button>
             <button @click="nudge(1, 'y')">+y</button>
             <button @click="nudge(1, 'z')">+z</button>
@@ -14,25 +14,10 @@
             <button @click="nudge(-1, 'x')">-x</button>
             <button @click="nudge(-1, 'y')">-y</button>
             <button @click="nudge(-1, 'z')">-z</button>
-        </div>
+        </div> -->
     </div>
 </template>
 <style scoped>
-.controls {
-    font-size: 150%;
-    display: grid;
-    grid-template-columns: 3em 3em 3em;
-}
-input.xy {
-    grid-column: 1 / 3;
-}
-/* .side {
-    display: flex;
-    flex-direction: column;
-}
-.side.z button, .side.z input {
-    display: block;
-} */
 </style>
 <script>
 import utils from "~/mixins/utils.js";
@@ -46,8 +31,8 @@ export default {
     },
     components: {IndiMomentarySwitch, ClickyStepper},
     methods: {
-        nudge(sign, direction) {
-            this.sendIndiNewByNames("tcsi", "pyrNudge", direction, sign * this.amount[direction]);
+        nudge(payload) {
+            this.sendIndiNewByNames("tcsi", "pyrNudge", payload.label, payload.amount);
         },
     }
 }

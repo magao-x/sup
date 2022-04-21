@@ -1,81 +1,122 @@
 <template>
-  <div class="view" v-if="indiDefined">
-    {{ lst }}
-    <div class="cols">
-      <div class="col">
-        <div>Catalog</div>
-        <div>
-          RA:
-          <indi-value :indi-id="`${thisDevice.name}.catdata.ra`" :formatFunction="decimalDegreesToTime"></indi-value>
+  <div class="telescope-status" v-if="indiDefined">
+      <div class="super-important view gap-bottom">
+        <div class="status-item">
+          <div class="datum">LST:</div>
+          <div class="value">{{ lst }}</div>
         </div>
-        <div>
-          Dec:
-          <indi-value :indi-id="`${thisDevice.name}.catdata.dec`"></indi-value>
+        <div class="status-item">
+          <div class="datum">Altitude:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDevice.name}.telpos.el`"
+              :formatFunction="(v) => String(Number(v).toFixed(4))"
+            ></indi-value>º
+          </div>
         </div>
-        <div>
-          Epoch:
+        <div class="status-item">
+          <div class="datum">Azimuth:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDevice.name}.teldata.az`"
+              :formatFunction="(v) => String(Number(v).toFixed(4))"
+            ></indi-value>º
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">PA:</div>
+          <div class="value">
           <indi-value
-            :indi-id="`${thisDevice.name}.catdata.epoch`"
+            :indi-id="`${thisDevice.name}.teldata.pa`"
+            :formatFunction="(v) => String(Number(v).toFixed(4))"
           ></indi-value>
+          </div>
         </div>
-        <div>
-          Object:
-          <indi-value
-            :indi-id="`${thisDevice.name}.catalog.object`"
-          ></indi-value>
+        <div class="status-item">
+          <div class="datum">RA:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDevice.name}.catdata.ra`"
+              :formatFunction="decimalDegreesToTime"
+            ></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Dec:</div>
+          <div class="value">
+            <indi-value :indi-id="`${thisDevice.name}.catdata.dec`"></indi-value>º
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">HA:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDevice.name}.telpos.ha`"
+              :formatFunction="decimalHoursToTime"
+            ></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Epoch:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDevice.name}.telpos.epoch`"
+              :formatFunction="(v) => String(Number(v).toFixed(1))"
+            ></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Object:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDevice.name}.catalog.object`"
+            ></indi-value>
+          </div>
         </div>
       </div>
-      <div class="col">
-        <div>Current</div>
-        <div>
-          Az:
-          <indi-value :indi-id="`${thisDevice.name}.teldata.az`"></indi-value>
-        </div>
-        <div>
-          El:
-          <indi-value :indi-id="`${thisDevice.name}.telpos.el`"></indi-value>
-        </div>
-        <div>
-          HA:
-          <indi-value :indi-id="`${thisDevice.name}.telpos.ha`" :formatFunction="decimalHoursToTime"></indi-value>
-        </div>
-        <div>
-          RA:
-          <indi-value :indi-id="`${thisDevice.name}.telpos.ra`" :formatFunction="decimalDegreesToTime"></indi-value>
-        </div>
-        <div>
-          Dec:
-          <indi-value :indi-id="`${thisDevice.name}.telpos.dec`"
-            :formatFunction="(v) => Number(v).toFixed(4)"
-          ></indi-value>º
-        </div>
-        <div>
-          Epoch:
-          <indi-value
-            :indi-id="`${thisDevice.name}.telpos.epoch`"
-            :formatFunction="(v) => String(Number(v).toFixed(1))"
-          ></indi-value>
-        </div>
-      </div>
-      <div class="col">
-        <nudger></nudger>
-      </div>
-    </div>
+      <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
   </div>
   <div v-else class="view">Waiting for tcsi...</div>
 </template>
+<style lang="scss" scoped>
+@import "./css/variables.scss";
+
+.plots img {
+  display: block;
+  width: 100%;
+}
+
+.status-item {
+  display: flex;
+}
+.datum {
+  color: $alternate-gray;
+}
+.value {
+  flex: 1;
+  text-align: right;
+}
+
+.super-important {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-gap: 0 2 * $unit;
+  font-size: 125%;
+  padding: $unit;
+}
+</style>
 <script>
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 import IndiValue from "../indi/IndiValue.vue";
-import Nudger from "~/components/instrument/Nudger.vue";
+import ObservabilityPlots from '../plots/ObservabilityPlots.vue';
 
 export default {
   props: ["device", "indiId"],
   mixins: [indi, utils],
   components: {
     IndiValue,
-    Nudger,
+    ObservabilityPlots,
   },
   methods: {
     decimalHoursToTime(value) {
@@ -87,7 +128,7 @@ export default {
       return `${hours}:${minutes}:${seconds}`;
     },
     decimalDegreesToTime(value) {
-      let origHours = value / 360 * 24;
+      let origHours = (value / 360) * 24;
       const hours = String(Math.floor(origHours)).padStart(2, "0");
       let fracHour = origHours - hours;
       const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
@@ -101,10 +142,24 @@ export default {
       if (!this.indiDefined) {
         return "";
       }
-      const telpos = this.thisDevice.properties.telpos;
-      const raHours = telpos.elements.ra.value / 360 * 24;
-      return this.decimalHoursToTime(raHours + telpos.elements.ha.value);
+      const teltime = this.thisDevice.properties.teltime;
+      
+      return this.decimalHoursToTime(teltime.elements.sidereal_time.value);
+    },
+    airmassPlot() {
+      if (!this.indiDefined) {
+        return "";
+      }
+      const catdata = this.thisDevice.properties.catdata;
+      return `/airmass?ra=${catdata.elements.ra.value}&dec=${catdata.elements.dec.value}`;
+    },
+    equatorialCoords() {
+      const catdata = this.thisDevice.properties.catdata;
+      return {
+        ra: catdata.elements.ra.value,
+        dec: catdata.elements.dec.value,
+      };
     }
-  }
+  },
 };
 </script>

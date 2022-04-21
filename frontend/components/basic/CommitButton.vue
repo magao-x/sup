@@ -5,6 +5,10 @@
 @import "./css/variables.scss";
 button.commit {
   border-bottom: 1px solid $commit;
+  font-weight: bold;
+  &:enabled {
+    background: var(--btn-commit-bg-gradient);
+  }
   &:enabled:hover, &:enabled:active {
     border: 1px solid $commit;
   }

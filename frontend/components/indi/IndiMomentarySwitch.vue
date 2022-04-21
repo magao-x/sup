@@ -3,13 +3,7 @@
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
-button {
-    width: 2em;
-    height: 2em;
-    border-radius: 50%;
-    overflow: hidden;
-    padding: 0.5em;
-}
+
 </style>
 <script>
 import indi from "~/mixins/indi.js";

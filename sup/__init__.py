@@ -1,30 +1,49 @@
+from io import BytesIO
+
+import numpy as np
+import matplotlib
+from astroplan.plots import dark_style_sheet
+from astropy.coordinates import SkyCoord
+
+matplotlib.use('Agg')
+import asyncio
+import datetime
+import logging
+import math
+import os
 import os.path
 import sys
-import uvloop
-import math
-import orjson
-import asyncio
-import aiohttp
-from astropy.time import Time
-from astropy.coordinates import EarthLocation
-import logging
-import uvicorn
-import os
-from pprint import pformat
-import socketio
-from starlette.exceptions import HTTPException
-from starlette.applications import Starlette
-from starlette.responses import FileResponse
-from pathlib import Path
-from purepyindi.constants import (
-    INDIPropertyKind, INDIActions, DEFAULT_HOST, DEFAULT_PORT, parse_string_into_enum, SwitchState, ConnectionStatus
-)
-from .indi import BogusINDIClient, SupINDIClient
 from copy import deepcopy
-from .log import debug, info, warn, error, critical, set_log_level
-from .utils import OrjsonResponse
-import datetime
+from pathlib import Path
+from pprint import pformat
+
+import aiohttp
+import astropy.units as u
+import matplotlib.pyplot as plt
+import orjson
 import pkg_resources
+import socketio
+import toml
+import uvicorn
+import uvloop
+from astroplan import FixedTarget, Observer
+from astroplan.plots import plot_airmass, plot_parallactic
+from astropy.coordinates import EarthLocation
+from astropy.time import Time
+from purepyindi.constants import (DEFAULT_HOST, DEFAULT_PORT, ConnectionStatus,
+                                  INDIActions, INDIPropertyKind, SwitchState,
+                                  parse_string_into_enum)
+from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.responses import FileResponse, StreamingResponse
+from starlette.routing import Mount, Route
+
+from .indi import BogusINDIClient, SupINDIClient
+from .log import critical, debug, error, info, set_log_level, warn
+from .utils import OrjsonResponse
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
     __version__ = f.read().strip()
@@ -35,7 +54,18 @@ LCO_COORDINATES = EarthLocation.of_site('Las Campanas Observatory')
 BATCH_UPDATE_INTERVAL = 0.2 # second
 PING_INTERVAL = 10
 MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
+import pathlib
 
+MAGAOX_CONFIG_PATH = pathlib.Path("/opt/MagAOX/config")
+
+async def light_path(request):
+    light_path_config = MAGAOX_CONFIG_PATH / 'light_path.toml'
+    if not light_path_config.exists():
+        light_path_config = Path(__file__).parent / 'light_path_ex.toml'
+    
+    with open(light_path_config) as fh:
+        light_path_dict = toml.loads(fh.read())
+    return OrjsonResponse(light_path_dict)
 
 def utc_now():
     dt = datetime.datetime.utcnow()
@@ -81,6 +111,58 @@ async def index(request):
 async def demo(request):
     return FileResponse((static_path / 'demo.html').as_posix())
 
+
+
+LCO_SITE = Observer.at_site('Las Campanas Observatory')
+
+async def airmass(request):
+    ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
+    if ra_str is None or dec_str is None:
+        raise HTTPException(400)
+    coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
+    target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
+    current_time = Time(utc_now())
+    sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
+    altitude = LCO_SITE.altaz(sample_times, target).alt
+    p_angle = LCO_SITE.parallactic_angle(sample_times, target)
+    
+    payload = {
+        'parallactic_angles': [
+            {'x': ts.to_value('iso'), 'y': angle}
+            for (ts, angle) in zip(sample_times, p_angle.to(u.degree).value)
+        ],
+        'altitudes': [
+            {'x': ts.to_value('iso'), 'y': angle}
+            for (ts, angle) in zip(sample_times, altitude.to(u.degree).value)
+        ],
+    }
+    return OrjsonResponse(payload)
+    
+    
+    # with plt.style.context('dark_background'):
+    #     fig, (airmass_ax, parang_ax) = plt.subplots(ncols=2, figsize=(6, 6))
+    #     plot_airmass(
+    #         target,
+    #         LCO_SITE,
+    #         current_time,
+    #         # altitude_yaxis=True,
+    #         ax=airmass_ax,
+    #         brightness_shading=True,
+    #         style_sheet=dark_style_sheet,
+    #     )
+    #     airmass_ax.grid(True)
+    #     plot_parallactic(
+    #         target,
+    #         LCO_SITE,
+    #         current_time,
+    #         ax=parang_ax,
+    #         style_sheet=dark_style_sheet,
+    #     )
+    #     plt.tight_layout()
+    #     fig.savefig(buf, dpi=300)
+    # buf.seek(0)
+    # return StreamingResponse(buf, media_type='image/png')
+    
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
@@ -232,11 +314,11 @@ CONFIG = {
 
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     global CONFIG
-    logging.basicConfig(level='INFO')
+    logging.basicConfig(level='WARN')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
-    uvicorn.run(app, host=bind_host, port=bind_port)
+    uvicorn.run(wrapped_app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
     import argparse
@@ -281,16 +363,22 @@ def console_entrypoint():
         sys.exit(1)
     sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
 
+
+def orjson_to_utf8(obj):
+    buf = orjson.dumps(obj)
+    return buf.decode('utf8')
+
 RUNNING_TASKS = set()
 VIZZY_API_URL = 'https://vizzy.xwcl.science/api/magao-x/events'
 async def vizzy_relay(message_queue):
-    async with aiohttp.ClientSession(json_serialize=orjson.dumps) as session:
+    async with aiohttp.ClientSession(json_serialize=orjson_to_utf8) as session:
         while True:
             msgdict = await message_queue.get()
             print(f'vizzy_relay: got {msgdict}')
-            async with session.post(VIZZY_API_URL, json=msgdict) as resp:
-                print(resp.status)
-                print(await resp.json())
+            if app.state.should_notify:
+                async with session.post(VIZZY_API_URL, json=msgdict) as resp:
+                    print(resp.status)
+                    print(await resp.json())
 
 last_pointing_announced = None
 
@@ -314,34 +402,29 @@ async def register_onsky(indi_client, indi_notifier, vizzy_queue):
         'tcsi.catalog.object',
         handler=pointing_changes
     )
-    async def on_sky_loop_changes(indi_id, current_value):
-        if indi_client['pdu0.lamp.state'] == 'On' or indi_client['stagepickoff.presetName.in'] == SwitchState.ON:
-            return
-        try:
-            target_message = f" on {indi_client['tcsi.catalog.object']}"
-        except KeyError:
-            target_message = ''
-        if current_value == 'closed':
-            msgdict = {
-                'message': f'Loop is closed{target_message}! :star2:',
-                'channel': '#observing'
-            }
-        elif current_value == 'paused':
-            msgdict = {
-                'message': f'Loop is paused! :grimacing:',
-                'channel': '#observing'
-            }
-        elif current_value == 'open':
-            msgdict = {
-                'message': f'Loop is open!',
-                'channel': '#observing'
-            }
-        print(msgdict)
-        await vizzy_queue.put(msgdict)
-    await indi_notifier.add_notifier(
-        'aoloop.loopState.state',
-        handler=on_sky_loop_changes
-    )
+    # async def on_sky_loop_changes(indi_id, current_value):
+    #     if indi_client['pdu0.source.state'] == 'On' or indi_client['stagepickoff.presetName.in'] == SwitchState.ON:
+    #         return
+    #     try:
+    #         target_message = f" on {indi_client['tcsi.catalog.object']}"
+    #     except KeyError:
+    #         target_message = ''
+    #     if current_value == SwitchState.ON:
+    #         msgdict = {
+    #             'message': f'Loop is closed{target_message}! :star2:',
+    #             'channel': '#observing'
+    #         }
+    #     elif current_value == SwitchState.OFF:
+    #         msgdict = {
+    #             'message': f'Loop is open!',
+    #             'channel': '#observing'
+    #         }
+    #     print(msgdict)
+    #     await vizzy_queue.put(msgdict)
+    # await indi_notifier.add_notifier(
+    #     'holoop.loop_state.toggle',
+    #     handler=on_sky_loop_changes
+    # )
 
 async def register_transitions(indi_client, indi_notifier, vizzy_queue):
     print("Registering transition notifiers")
@@ -382,6 +465,9 @@ async def spawn_tasks():
     emit_updates_coro = emit_updates()
     RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
 
+    app.state.should_notify = os.environ.get('SUP_VIZZY') is not None
+    if app.state.should_notify:
+        print("Initialized vizzy relay")
     vizzy_relay_coro = vizzy_relay(app.vizzy_queue)
     RUNNING_TASKS.add(loop.create_task(vizzy_relay_coro))
 
@@ -390,24 +476,29 @@ async def cancel_tasks():
     for task in RUNNING_TASKS:
         task.cancel()
 
-from starlette.routing import Route, Mount
-# from . import video
 
-starlette_app = Starlette(
+
+app = Starlette(
     debug=True,
     routes=[
         Route('/', endpoint=index),
         Route('/indi', endpoint=indi),
+        Route('/light-path', endpoint=light_path),
         Route('/demo', endpoint=demo),
+        Route('/airmass', endpoint=airmass),
         # Mount('/video', routes=video.ROUTES),
         Route('/{path:path}', endpoint=catch_all),
     ],
     on_startup=[spawn_tasks],
     on_shutdown=[cancel_tasks],
+    middleware=[
+        Middleware(GZipMiddleware),
+        Middleware(CORSMiddleware, allow_origins=['*'])
+    ]
 )
 
 
-app = socketio.ASGIApp(sio, starlette_app)
+wrapped_app = socketio.ASGIApp(sio, app)
 
 if __name__ == '__main__':
     console_entrypoint()

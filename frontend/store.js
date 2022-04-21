@@ -17,6 +17,7 @@ export default new Vuex.Store({
       devices: {},
       localSiderealTime: null,
       UTC: null,
+      lightPath: null,
     },
     mutations: {
       heartbeat (state) {
@@ -27,6 +28,7 @@ export default new Vuex.Store({
         state.webSocketConnection.connected = false;
         state.indiConnection.connected = false;
       },
+      
       updateTime (state, payload) {
         const { localSiderealTime, UTC } = payload;
         state.localSiderealTime = localSiderealTime;

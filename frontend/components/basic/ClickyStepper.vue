@@ -1,16 +1,20 @@
 <template>
-  <div>
-    <button>
-      {{ plusLabel }}
+  <div class="clicky-stepper">
+    <button @click="step(-1 * increment)">
+      {{ minusLabel }}
     </button>
     <button @click="advanceIncrement">{{ increment }}</button>
-    <button>
-      {{ minusLabel }}
+    <button @click="step(increment)">
+      {{ plusLabel }}
     </button>
   </div>
 </template>
 <style lang="scss" scoped>
 button { min-width: 3em;}
+.clicky-stepper {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
 </style>
 <script>
 export default {
@@ -20,26 +24,25 @@ export default {
   props: {
     increments: {
       type: Array,
-      default: () => [0.5, 1, 5],
+      default: () => [5, 1, 0.5],
     },
-    plusLabel: {
+    label: {
       type: String,
-      default: "+",
+      default: "",
     },
-    plusCallback: {
+    callback: {
       type: Function,
-      default: () => console.log("+!")
-    },
-    minusLabel: {
-      type: String,
-      default: "-",
-    },
-    minusCallback: {
-      type: Function,
-      default: () => console.log("-!")
+      default: (amount) => console.log(label, amount)
     },
   },
+  computed: {
+    plusLabel() { return `+${this.label}`; },
+    minusLabel() { return `-${this.label}`; }
+  },
   methods: {
+    step(amount) {
+      this.$emit("step", {label: this.label, amount: amount})
+    },
     advanceIncrement() {
       this.index += 1;
       if (this.index >= this.increments.length) {

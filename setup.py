@@ -78,6 +78,12 @@ setup(
         'aiodns>=3.0.0,<4',
         'aiortc>=1.3.1',
         'orjson>=3.6.7',
+        'astroplan>=0.8',
+        'matplotlib>=3.5.1',
+        'uvloop>=0.16',
+        'purepyindi>=0.1.0',
+        'toml>=0.10.2',
+        'websockets>=10.2',
     ],
     include_package_data=True,
     entry_points={

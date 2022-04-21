@@ -1,0 +1,10 @@
+[camsci1-sw]
+camsci1 = true
+camsci1-sw.writing.toggle = "On"
+
+[camsci1]
+fwsci1 = true
+stagesci1 = true
+stagescibs = true
+camsci1.shutter.toggle = "Off"
+holoop.state.toggle = "On"

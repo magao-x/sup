@@ -1,3 +1,4 @@
+import 'regenerator-runtime/runtime'
 import Vue from 'vue';
 import { DateTime } from "luxon";
 import store from "./store";

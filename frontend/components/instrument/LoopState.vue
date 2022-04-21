@@ -47,7 +47,8 @@ export default {
     gain: function() {
       if (!this.thisDevice) return "?";
       if (!this.loopClosed) return "";
-      return this.thisDevice.properties['loop_gain'].elements['current'].value;
+      const gain = this.thisDevice.properties['loop_gain'].elements['current'].value
+      return gain.toFixed(2);
     }
   }
 };

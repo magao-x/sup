@@ -1,12 +1,9 @@
 <template>
   <div class="observation-controls cols">
     <div class="col">
-      <observation-warnings></observation-warnings>
       <observer-control class="observer-control padded gap-bottom"></observer-control>
-      <div class="telescope-controls">
-        <telescope-status indi-id="tcsi" class="padded"></telescope-status>
-        <offloading class="padded"></offloading>
-      </div>
+      <telescope-status indi-id="tcsi"></telescope-status>
+      <danger-zone class="padded"></danger-zone>
     </div>
     <div class="col">
       <div class="status-tiles gap-bottom">
@@ -62,8 +59,8 @@
             <th>channel</th>
             <th>camera</th>
             <th>exptime</th>
+            <th>emgain</th>
             <th>shutter</th>
-            <!-- <th>writer</th> -->
             <th>filter</th>
             <th>focus</th>
           </tr>
@@ -73,7 +70,6 @@
             <td>{{ camName }}</td>
             <td>
               <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)" :indi-id="`cam${camName}`"></finite-state-machine-status>
-              <material-icon name="question_mark" v-else></material-icon>
             </td>
             <td v-if="!retrieveByIndiId(`cam${camName}.exptime`)">
               <indi-value
@@ -87,14 +83,15 @@
                 :indi-id="`cam${camName}.exptime.current`"
               ></indi-value> s
             </td>
+            <td><indi-value
+                :indi-id="`cam${camName}.emgain.current`"
+                :formatFunction="(v) => String(Number(v).toFixed(0))"
+              ></indi-value></td>
             <td>
               <indi-toggle-switch
                 v-if="retrieveByIndiId(`cam${camName}.shutter`)"
                 :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut" :prompt="true"></indi-toggle-switch>
             </td>
-            <!-- <td>
-              <indi-toggle-switch :indi-id="`cam${camName}-sw.writing.toggle`" label-off="" label-on="" :prompt="true"></indi-toggle-switch>
-            </td> -->
             <td>
               <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)" :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
             </td>
@@ -175,7 +172,7 @@
 
 .telescope-controls {
   display: grid;
-  grid-template-columns: 7fr 2fr;
+  grid-template-columns: 5fr 12fr;
   grid-gap: $unit;
 }
 
@@ -199,8 +196,7 @@
 <script>
 import utils from "~/mixins/utils.js";
 import ObserverControl from "~/components/instrument/ObserverControl.vue";
-import Offloading from "~/components/instrument/Offloading.vue";
-import ObservationWarnings from "~/components/instrument/ObservationWarnings.vue";
+import DangerZone from "~/components/instrument/DangerZone.vue";
 import IndiValue from "../components/indi/IndiValue.vue";
 import IndiSwitchMultiElementValue from "../components/indi/IndiSwitchMultiElementValue.vue";
 import IndiSwitchDropdown from '~/components/indi/IndiSwitchDropdown.vue';
@@ -220,6 +216,7 @@ export default {
       flipNames: ['flipacq', 'fliptip', 'flipwfsf'],
     };
   },
+
   components: {
     ObserverControl,
     IndiValue,
@@ -228,8 +225,7 @@ export default {
     TelescopeStatus,
     MaterialIcon,
     FiniteStateMachineStatus,
-    ObservationWarnings,
-    Offloading,
+    DangerZone,
     IndiSwitchDropdown,
     IndiMomentarySwitch,
   },

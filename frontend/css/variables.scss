@@ -75,6 +75,7 @@ body {
     --btn-bg: #{$charcoal-gray};
     --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
     --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{darken($icon-blue, 40)});
+    --btn-commit-bg-gradient: linear-gradient(#{lighten($commit, 10)}, #{$commit});
     --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{darken($danger-red, 40)});
     --btn-fg: #{$cardboard-gray};
     --inset-bg: #{$shade-black};
