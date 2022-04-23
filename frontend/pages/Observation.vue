@@ -59,10 +59,10 @@
             <th>channel</th>
             <th>camera</th>
             <th>exptime</th>
+            <th>filter</th>
+            <th>mode</th>
             <th>emgain</th>
             <th>shutter</th>
-            <th>filter</th>
-            <th>focus</th>
           </tr>
         </thead>
         <tbody>
@@ -83,27 +83,22 @@
                 :indi-id="`cam${camName}.exptime.current`"
               ></indi-value> s
             </td>
-            <td><indi-value
-                :indi-id="`cam${camName}.emgain.current`"
-                :formatFunction="(v) => String(Number(v).toFixed(0))"
-              ></indi-value></td>
-            <td>
-              <indi-toggle-switch
-                v-if="retrieveByIndiId(`cam${camName}.shutter`)"
-                :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut" :prompt="true"></indi-toggle-switch>
-            </td>
             <td>
               <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)" :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
             </td>
             <td>
-              <indi-value
-                v-if="retrieveByIndiId(`stage${camName}`)"
-                :indi-id="`stage${camName}.position.current`"
+              <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)" :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
+            </td>
+            <td><indi-value
+                v-if="retrieveByIndiId(`cam${camName}.emgain`)"
+                :indi-id="`cam${camName}.emgain.current`"
+                :formatFunction="(v) => String(Number(v).toFixed(0))"
               ></indi-value>
-              (<indi-switch-multi-element-value
-                v-if="retrieveByIndiId(`stage${camName}`)"
-                :indi-id="`stage${camName}.presetName`"
-              ></indi-switch-multi-element-value>)
+            </td>
+            <td>
+              <indi-toggle-switch
+                v-if="retrieveByIndiId(`cam${camName}.shutter`)"
+                :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut" :prompt="true"></indi-toggle-switch>
             </td>
           </tr>
         </tbody>
@@ -126,17 +121,15 @@
             <div v-else>waiting for app</div>
           </div>
           <indi-momentary-switch
-              v-if="stageName == 'stageadc2' && retrieveValueByIndiId('stageadc2.fsm.state') == 'NOTHOMED'"
-              indi-id="stageadc2.home.request"
+              v-if="retrieveValueByIndiId(`${stageName}.fsm.state`) == 'NOTHOMED'"
+              :indi-id="`${stageName}.home.request`"
               label="😾"
               style="line-height: 100%; padding:0; vertical-align: middle"
           ></indi-momentary-switch>
-          <indi-value
+          <indi-switch-dropdown v-if="retrieveByIndiId(`${stageName}`)" :indi-id="`${stageName}.presetName`"></indi-switch-dropdown>
+          (<indi-value
             :indi-id="`${stageName}.position.current`"
-          ></indi-value>
-          (<indi-switch-multi-element-value
-            :indi-id="`${stageName}.presetName`"
-          ></indi-switch-multi-element-value>)
+          ></indi-value>)
         </div>
         <div class="status-tile view" v-for="flipName in flipNames" :key="flipName">
           <div class="name">
@@ -144,9 +137,10 @@
             <finite-state-machine-status v-if="retrieveByIndiId(flipName)" :indi-id="flipName"></finite-state-machine-status>
             <div v-else>waiting for app</div>
           </div>
-          <indi-switch-multi-element-value
+          <indi-switch-multi-element
             :indi-id="`${flipName}.position`"
-          ></indi-switch-multi-element-value>
+            :columns="2"
+          ></indi-switch-multi-element>
         </div>
       </div>
     </div>
@@ -160,7 +154,7 @@
     }
     select {
       width: 100%;
-      max-width: 6em;
+      max-width: 10em;
       padding: $medgap;
       text-align: center;
     }
@@ -169,6 +163,9 @@
 //   display: flex;
 //   flex-direction: row;
 // }
+.observation-controls {
+  grid-template-columns: 1fr 1fr;
+}
 
 .telescope-controls {
   display: grid;
@@ -199,6 +196,7 @@ import ObserverControl from "~/components/instrument/ObserverControl.vue";
 import DangerZone from "~/components/instrument/DangerZone.vue";
 import IndiValue from "../components/indi/IndiValue.vue";
 import IndiSwitchMultiElementValue from "../components/indi/IndiSwitchMultiElementValue.vue";
+import IndiSwitchMultiElement from "../components/indi/IndiSwitchMultiElement.vue";
 import IndiSwitchDropdown from '~/components/indi/IndiSwitchDropdown.vue';
 import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
 import TelescopeStatus from "../components/instrument/TelescopeStatus.vue";
@@ -212,7 +210,12 @@ export default {
     return {
       camNames: ["sci1", "sci2", "wfs", "lowfs", "tip", "acq"],
       otherFilterWheels: ["fwlyot", "fwpupil", "fwscind", "fwfpm", "fwlowfs", "fwtelsim"],
-      otherStages: ["stageadc1", "stageadc2", "stagebs", "stagecamlensx", "stagecamlensy", "stagek", "stagelosel", "stagelowfs", "stagescibs", "stagepickoff"],
+      otherStages: [
+        "stagescibs", "stagepickoff", "stagebs", 
+        "stageadc1", "stageadc2", 
+        "stagecamlensx", "stagecamlensy", "stagek", 
+        "stagelosel", "stagelowfs",
+      ],
       flipNames: ['flipacq', 'fliptip', 'flipwfsf'],
     };
   },
@@ -228,6 +231,7 @@ export default {
     DangerZone,
     IndiSwitchDropdown,
     IndiMomentarySwitch,
+    IndiSwitchMultiElement,
   },
 };
 </script>

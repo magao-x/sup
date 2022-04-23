@@ -191,7 +191,12 @@ a:active {
 }
 select {
   background: var(--inset-bg);
-  border: 1px solid var(--border);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  padding: $medgap;
+  font-size: 115%;
+  border-bottom: 1px solid var(--border);
   color: var(--fg-normal) !important;
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div>
-  <button v-if="couldScram && !preparing" :disabled="!couldScram || preparing" class="scram red" @click="prepareToScram">SCRAM</button>
+  <button :disabled="!couldScram || preparing" class="scram red" @click="prepareToScram">SCRAM</button>
   <button v-if="preparing" class="scram red" @click="scram">really 🙀 SCRAM 🙀</button>
   <button v-if="preparing" @click="cancel">cancel</button>
   </div>
