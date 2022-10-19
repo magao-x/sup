@@ -1,5 +1,5 @@
 <template>
-  <div class="telescope-status" v-if="indiDefined">
+  <div class="telescope-status" v-if="connected">
       <div class="super-important view gap-bottom">
         <div class="status-item">
           <div class="datum">LST:</div>
@@ -138,8 +138,15 @@ export default {
     },
   },
   computed: {
-    lst() {
+    connected() {
       if (!this.indiDefined) {
+        return false;
+      }
+      let state = this.retrieveValueByIndiId(`${this.thisDevice.name}.fsm.state`);
+      return state !== null && state !== "NOTCONNECTED";
+    },
+    lst() {
+      if (!this.connected) {
         return "";
       }
       const teltime = this.thisDevice.properties.teltime;
@@ -147,13 +154,16 @@ export default {
       return this.decimalHoursToTime(teltime.elements.sidereal_time.value);
     },
     airmassPlot() {
-      if (!this.indiDefined) {
+      if (!this.connected) {
         return "";
       }
       const catdata = this.thisDevice.properties.catdata;
       return `/airmass?ra=${catdata.elements.ra.value}&dec=${catdata.elements.dec.value}`;
     },
     equatorialCoords() {
+      if (!this.connected) {
+        return "";
+      }
       const catdata = this.thisDevice.properties.catdata;
       return {
         ra: catdata.elements.ra.value,

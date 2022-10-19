@@ -64,8 +64,8 @@ export default {
   mixins: [indi, utils],
   computed: {
     fsmState() {
-      if (!this.indiDefined) return "waiting";
-      return this.thisDevice.properties["fsm"].elements["state"].value;
+      let state = this.retrieveValueByIndiId(`${this.thisDevice.name}.fsm.state`) || "waiting";
+      return state;
     },
     fsmStateIcon() {
       return stateToIcon[this.fsmState];

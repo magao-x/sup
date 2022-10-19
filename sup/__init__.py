@@ -137,32 +137,7 @@ async def airmass(request):
         ],
     }
     return OrjsonResponse(payload)
-    
-    
-    # with plt.style.context('dark_background'):
-    #     fig, (airmass_ax, parang_ax) = plt.subplots(ncols=2, figsize=(6, 6))
-    #     plot_airmass(
-    #         target,
-    #         LCO_SITE,
-    #         current_time,
-    #         # altitude_yaxis=True,
-    #         ax=airmass_ax,
-    #         brightness_shading=True,
-    #         style_sheet=dark_style_sheet,
-    #     )
-    #     airmass_ax.grid(True)
-    #     plot_parallactic(
-    #         target,
-    #         LCO_SITE,
-    #         current_time,
-    #         ax=parang_ax,
-    #         style_sheet=dark_style_sheet,
-    #     )
-    #     plt.tight_layout()
-    #     fig.savefig(buf, dpi=300)
-    # buf.seek(0)
-    # return StreamingResponse(buf, media_type='image/png')
-    
+
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
@@ -499,6 +474,8 @@ app = Starlette(
 
 
 wrapped_app = socketio.ASGIApp(sio, app)
+logging.basicConfig(level='WARN')
+set_log_level('DEBUG')
 
 if __name__ == '__main__':
     console_entrypoint()
