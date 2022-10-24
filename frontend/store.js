@@ -42,6 +42,7 @@ export default new Vuex.Store({
         state.indiConnection.connected = false;
       },
       indi_init(state, payload) {
+        console.log("Inited INDI state", payload);
         Vue.set(state, "devices", payload);
       },
       indi_update(state, payload) {

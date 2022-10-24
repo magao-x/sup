@@ -28,6 +28,17 @@ if (process.env.NODE_ENV == 'development') {
 for (let evt of ['pong', 'connect']) {
   socket.on(evt, () => {store.commit('heartbeat');});
 }
+socket.on('connect', () => {
+  let prefix;
+  if (process.env.NODE_ENV == 'development') {
+    prefix = buildConnectionString();
+  } else {
+    prefix = "";
+  }
+  fetch(prefix + "/indi").then((resp) => resp.json()).then((data) =>{
+    store.commit('indi_init', data);
+  })
+})
 for (let evt of ['connect_error', 'connect_timeout', 'disconnect']) {
   socket.on(evt, () => store.commit('disconnected'));
 }

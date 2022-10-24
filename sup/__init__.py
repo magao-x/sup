@@ -475,7 +475,7 @@ app = Starlette(
 
 wrapped_app = socketio.ASGIApp(sio, app)
 logging.basicConfig(level='WARN')
-set_log_level('DEBUG')
+set_log_level(os.environ.get('SUP_LOG_LEVEL', 'ERROR'))
 
 if __name__ == '__main__':
     console_entrypoint()

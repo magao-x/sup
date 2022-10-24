@@ -12,7 +12,7 @@
           ></indi-toggle-switch>
         </div>
         <div>
-          <span class="label">Observation name:</span>
+          <span class="label">Purpose:</span>
           <indi-value indi-id="observers.obs_name.current"></indi-value>
         </div>
         <div>
@@ -44,7 +44,8 @@
       </div>
     </div>
     <div class="writing-toggles">
-      <div v-for="camName in camNames" :key="camName">
+      <indi-switch-multi-element  indi-id="observers.writers"></indi-switch-multi-element>
+      <!-- <div v-for="camName in camNames" :key="camName">
         <div>write {{ camName }}</div>
         <indi-toggle-switch
           :indi-id="`cam${camName}-sw.writing.toggle`"
@@ -52,7 +53,7 @@
           label-on=""
           :prompt="true"
         ></indi-toggle-switch>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
