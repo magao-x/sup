@@ -84,7 +84,7 @@ sup_tasks = []
 
 
 async def indi(request):
-    return OrjsonResponse(request.app.indi.to_serializable())
+    return OrjsonResponse(request.app.indi.to_serializable()['devices'])
 
 class NotFound(HTTPException):
     def __init__(self, *args, **kwargs):
@@ -136,30 +136,6 @@ async def airmass(request):
     }
     return OrjsonResponse(payload)
 
-
-sio = socketio.AsyncServer(
-    async_mode='asgi',
-    cors_allowed_origins="*", # TODO only CORS in dev
-    ping_interval=PING_INTERVAL,
-    # engineio_logger=True,
-    # logger=True,
-)
-
-@sio.event
-async def connect(sid, environ):
-    debug(f'socket.io client connected with sid: {sid}')
-    await sio.emit('indi_init', app.indi.to_jsonable(), room=sid)
-
-@sio.event
-async def disconnect(sid):
-    debug(f'socket.io client disconnected with sid: {sid}')
-
-@sio.on('indi_new')
-def handle_indi_new(sid, data):
-    element_id = f"{data['device']}.{data['property']}.{data['element']}"
-    info(f"indi_new setting ={data['value']}")
-    app.indi[element_id] = data['value']
-
 class INDIUpdateBatcher:
     def __init__(self, client_instance):
         self.client_instance = client_instance
@@ -169,10 +145,10 @@ class INDIUpdateBatcher:
         if isinstance(message, messages.DelProperty):
             prop_to_del = (message.device, message.name if message.name is not None else "*")
             self.properties_to_delete.add(prop_to_del)
-        elif isinstance(message, message.IndiDefSetMessage):
+        elif isinstance(message, messages.IndiDefSetMessage):
             self.properties_to_update.add((message.device, message.name))
-    def _get_jsonable(self, device_name, property_name):
-        return self.client_instance.devices[device_name].properties[property_name].to_jsonable()
+    def _get_serializable(self, device_name, property_name):
+        return self.client_instance.devices[device_name].properties[property_name].to_serializable()
     async def generate_batch(self):
         updates = {}
         deletions = []
@@ -185,7 +161,7 @@ class INDIUpdateBatcher:
             ):
                 continue
             try:
-                updates[f'{device_name}.{property_name}'] = self._get_jsonable(device_name, property_name)
+                updates[f'{device_name}.{property_name}'] = self.client_instance[f'{device_name}.{property_name}'].to_serializable()
             except KeyError:
                 # race condition where device or property can be deleted
                 # before the batch gets sent
@@ -228,7 +204,8 @@ CONFIG = {
 
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     global CONFIG
-    logging.basicConfig(level='DEBUG')
+    logging.basicConfig(level='WARN')
+    log.set_log_level('DEBUG')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
