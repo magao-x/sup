@@ -73,7 +73,6 @@ setup(
     install_requires=[
         'starlette>=0.19.0',
         'uvicorn>=0.17.5,<0.18',
-        'python-socketio>=4.0,<5',
         'aiohttp>=3.8.1,<4',
         'aiodns>=3.0.0,<4',
         'aiortc>=1.3.1',
@@ -81,7 +80,7 @@ setup(
         'astroplan>=0.8',
         'matplotlib>=3.5.1',
         'uvloop>=0.16',
-        'purepyindi>=0.1.0',
+        'purepyindi2>=0.0.0',
         'toml>=0.10.2',
         'websockets>=10.2',
     ],

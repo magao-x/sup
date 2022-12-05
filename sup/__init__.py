@@ -27,12 +27,10 @@ import toml
 import uvicorn
 import uvloop
 from astroplan import FixedTarget, Observer
-from astroplan.plots import plot_airmass, plot_parallactic
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
-from purepyindi.constants import (DEFAULT_HOST, DEFAULT_PORT, ConnectionStatus,
-                                  INDIActions, INDIPropertyKind, SwitchState,
-                                  parse_string_into_enum)
+from purepyindi2 import messages, constants
+import purepyindi2
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
@@ -41,7 +39,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import FileResponse, StreamingResponse
 from starlette.routing import Mount, Route
 
-from .indi import BogusINDIClient, SupINDIClient
+# from .indi import BogusINDIClient, SupINDIClient
 from .log import critical, debug, error, info, set_log_level, warn
 from .utils import OrjsonResponse
 
@@ -86,7 +84,7 @@ sup_tasks = []
 
 
 async def indi(request):
-    return OrjsonResponse(request.app.indi.to_jsonable())
+    return OrjsonResponse(request.app.indi.to_serializable())
 
 class NotFound(HTTPException):
     def __init__(self, *args, **kwargs):
@@ -158,82 +156,21 @@ async def disconnect(sid):
 
 @sio.on('indi_new')
 def handle_indi_new(sid, data):
-    info(f"indi_new setting {data['device']}.{data['property']}.{data['element']}={data['value']}")
-    prop = app.indi.devices[data['device']].properties[data['property']]
-    try:
-        if prop.KIND == INDIPropertyKind.NUMBER:
-            prop.elements[data['element']].value = float(data['value'])
-        elif prop.KIND == INDIPropertyKind.SWITCH:
-            prop.elements[data['element']].value = parse_string_into_enum(data['value'], SwitchState)
-        elif prop.KIND == INDIPropertyKind.TEXT:
-            prop.elements[data['element']].value = data['value']
-    except ValueError:
-        pass
-
-class INDIStateTransitionNotifier:
-    def __init__(self, client_instance):
-        self._elements_watched = {}
-        self._element_checks = {}
-        self._element_notifiers = {}
-        self.client_instance = client_instance
-    async def add_notifier(self, indi_id, handler):
-        async def notifier_closure():
-            previous_value = self._elements_watched.get(indi_id)
-            current_value = self.client_instance[indi_id]
-            if current_value != previous_value:
-                await handler(indi_id, current_value)
-                self._elements_watched[indi_id] = current_value
-        self._element_notifiers[indi_id] = notifier_closure
-        self._elements_watched[indi_id] = None
-    async def trigger_notifier(self, indi_id):
-        if indi_id in self._element_notifiers:
-            await self._element_notifiers[indi_id]()
-    async def add_transition(self, indi_id, was, now, handler):
-        async def transition_closure():
-            previous_value = self._elements_watched.get(indi_id)
-            if previous_value == was:
-                await handler(indi_id, previous_value, now)
-                self._elements_watched[indi_id] = now
-        self._element_checks[(indi_id, now)] = transition_closure
-        self._elements_watched[indi_id] = None
-    async def trigger_transition(self, indi_id, current_value):
-        if (indi_id, current_value) in self._element_checks:
-            await self._element_checks[(indi_id, current_value)]()
-    async def process_update(self, update, *_, **__):
-        if update['action'] is INDIActions.PROPERTY_SET:
-            device_name = update['device']
-            property_name = update['property']['name']
-            for elt in update['property']['elements'].values():
-                indi_id = f"{device_name}.{property_name}.{elt['name']}"
-                if indi_id in self._elements_watched:
-                    new_value = elt['value']
-                    # Fire any matching state-transition handler
-                    await self.trigger_notifier(indi_id)
-                    # Fire any matching notification handler
-                    await self.trigger_transition(indi_id, new_value)
-                    # Update _elements_watched with current value
-                    self._elements_watched[indi_id] = new_value
+    element_id = f"{data['device']}.{data['property']}.{data['element']}"
+    info(f"indi_new setting ={data['value']}")
+    app.indi[element_id] = data['value']
 
 class INDIUpdateBatcher:
     def __init__(self, client_instance):
         self.client_instance = client_instance
         self.properties_to_update = set()
         self.properties_to_delete = set()
-    async def process_update(self, update, *args, **kwargs):
-        if update['action'] in (INDIActions.PROPERTY_SET, INDIActions.PROPERTY_DEF):
-            device_name = update['device']
-            property_name = update['property']['name']
-            if device_name == 'observers':
-                print(update)
-            self.properties_to_update.add((device_name, property_name))
-        elif update['action'] is INDIActions.PROPERTY_DEL:
-            device_name = update['device']
-            if 'name' in update:
-                property_name = update['name']
-                prop_to_del = (device_name, property_name)
-            else:
-                prop_to_del = (device_name, "*")
+    async def process_update(self, message : messages.IndiMessage):
+        if isinstance(message, messages.DelProperty):
+            prop_to_del = (message.device, message.name if message.name is not None else "*")
             self.properties_to_delete.add(prop_to_del)
+        elif isinstance(message, message.IndiDefSetMessage):
+            self.properties_to_update.add((message.device, message.name))
     def _get_jsonable(self, device_name, property_name):
         return self.client_instance.devices[device_name].properties[property_name].to_jsonable()
     async def generate_batch(self):
@@ -259,7 +196,7 @@ class INDIUpdateBatcher:
         batch = {
             'updates': updates,
             'deletions': deletions,
-            'connected': self.client_instance.status == ConnectionStatus.CONNECTED,
+            'connected': self.client_instance.status == constants.ConnectionStatus.CONNECTED,
         }
         self.properties_to_delete = set()
         self.properties_to_update = set()
@@ -275,13 +212,13 @@ async def emit_updates():
             print(f"Exception in emit_updates(): {type(e)=} {e}")
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
-def make_indi_connection(potemkin=False):
-    if potemkin:
-        with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
-            initial_state = orjson.loads(f.read())
-        return BogusINDIClient(sio, initial_state)
-    else:
-        return SupINDIClient(sio, CONFIG['indi_host'], CONFIG['indi_port'])
+# def make_indi_connection(potemkin=False):
+#     if potemkin:
+#         with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
+#             initial_state = orjson.loads(f.read())
+#         return BogusINDIClient(sio, initial_state)
+#     else:
+#         return purepyindi2.IndiClient(purepyindi2.AsyncIndiTcpConnection(host=CONFIG['indi_host'], port=CONFIG['indi_port']))
 
 CONFIG = {
     'indi_host': '127.0.0.1',
@@ -291,7 +228,7 @@ CONFIG = {
 
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     global CONFIG
-    logging.basicConfig(level='WARN')
+    logging.basicConfig(level='DEBUG')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
@@ -312,15 +249,16 @@ def console_entrypoint():
     )
     parser.add_argument(
         "-h", "--host",
-        help=f"Specify hostname to connect to for INDI messages (default: {DEFAULT_HOST})",
+        help=f"Specify hostname to connect to for INDI messages (default: {constants.DEFAULT_HOST})",
         nargs="?",
-        default=DEFAULT_HOST,
+        default=constants.DEFAULT_HOST,
     )
     parser.add_argument(
         "-p", "--port",
-        help=f"Specify port to connect to for INDI messages (default: {DEFAULT_PORT})",
+        help=f"Specify port to connect to for INDI messages (default: {constants.DEFAULT_PORT})",
         nargs="?",
-        default=DEFAULT_PORT,
+        type=int,
+        default=constants.DEFAULT_PORT,
     )
     parser.add_argument(
         "-b", "--bind-host",
@@ -332,6 +270,7 @@ def console_entrypoint():
         "-n", "--bind-port",
         help="Specify port to bind web server to (default: 8000)",
         nargs="?",
+        type=int,
         default=8000,
     )
     args = parser.parse_args()
@@ -409,7 +348,7 @@ async def register_transitions(indi_client, indi_notifier, vizzy_queue):
         print('timeSeriesSimulator.function_out.value was=0, now=1')
     await indi_notifier.add_transition('timeSeriesSimulator.function_out.value', was=0, now=1, handler=function_out_transition)
     async def function_selected_transition(indi_id, current_value):
-        if current_value is SwitchState.ON:
+        if current_value is constants.SwitchState.ON:
             msg = f'{indi_id} now {current_value}'
             await vizzy_queue.put(msg)
     for name in ['constant', 'cos', 'sin', 'square']:
@@ -420,36 +359,42 @@ async def register_transitions(indi_client, indi_notifier, vizzy_queue):
     if MAGAOX_ROLE == 'AOC':
         await register_onsky(indi_client, indi_notifier, vizzy_queue)
 
+async def trigger_get_properties(message):
+    log.debug(f"Trigger get properties: {message}")
+    app.indi.get_properties()
+
 async def spawn_tasks():
     loop = asyncio.get_event_loop()
-    app.indi = make_indi_connection(potemkin=CONFIG['potemkin'])
+    conn = purepyindi2.AsyncIndiTcpConnection(host=CONFIG['indi_host'], port=CONFIG['indi_port'])
+    app.indi = purepyindi2.IndiClient(conn)
+    conn.add_async_callback(constants.TransportEvent.connection, trigger_get_properties)
 
     app.indi_batcher = INDIUpdateBatcher(app.indi)
-    app.indi.add_async_watcher(app.indi_batcher.process_update)
+    conn.add_async_callback(constants.TransportEvent.inbound, app.indi_batcher.process_update)
 
     app.vizzy_queue = asyncio.Queue()
 
-    app.indi_notifier = INDIStateTransitionNotifier(app.indi)
-    await register_transitions(app.indi, app.indi_notifier, app.vizzy_queue)
-    app.indi.add_async_watcher(app.indi_notifier.process_update)
+    # app.indi_notifier = INDIStateTransitionNotifier(app.indi)
+    # await register_transitions(app.indi, app.indi_notifier, app.vizzy_queue)
+    # app.indi.add_async_watcher(app.indi_notifier.process_update)
 
-    indi_coro = app.indi.run(reconnect_automatically=True)
+    indi_coro = app.indi.connection.run()
     RUNNING_TASKS.add(loop.create_task(indi_coro))
-    if CONFIG['potemkin']:
-        fiddling_coro = app.indi.fiddle_connection_status()
-        RUNNING_TASKS.add(loop.create_task(fiddling_coro))
+    # if CONFIG['potemkin']:
+    #     fiddling_coro = app.indi.fiddle_connection_status()
+    #     RUNNING_TASKS.add(loop.create_task(fiddling_coro))
 
     emit_updates_coro = emit_updates()
     RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
 
-    app.state.should_notify = os.environ.get('SUP_VIZZY') is not None
-    if app.state.should_notify:
-        print("Initialized vizzy relay")
-    vizzy_relay_coro = vizzy_relay(app.vizzy_queue)
-    RUNNING_TASKS.add(loop.create_task(vizzy_relay_coro))
+    # app.state.should_notify = os.environ.get('SUP_VIZZY') is not None
+    # if app.state.should_notify:
+    #     print("Initialized vizzy relay")
+    # vizzy_relay_coro = vizzy_relay(app.vizzy_queue)
+    # RUNNING_TASKS.add(loop.create_task(vizzy_relay_coro))
 
 async def cancel_tasks():
-    await app.indi.stop()
+    await app.indi.connection.stop()
     for task in RUNNING_TASKS:
         task.cancel()
 
