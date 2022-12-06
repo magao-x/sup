@@ -44,16 +44,22 @@
       </div>
     </div>
     <div class="writing-toggles">
-      <indi-switch-multi-element  indi-id="observers.writers"></indi-switch-multi-element>
-      <!-- <div v-for="camName in camNames" :key="camName">
+      <!-- <indi-switch-multi-element  indi-id="observers.writers"></indi-switch-multi-element> -->
+      <div v-for="camName in camNames" :key="camName">
         <div>write {{ camName }}</div>
         <indi-toggle-switch
-          :indi-id="`cam${camName}-sw.writing.toggle`"
+          :indi-id="`observers.writers.cam${camName}`"
           label-off=""
           label-on=""
           :prompt="true"
         ></indi-toggle-switch>
-      </div> -->
+        <div><indi-value 
+          :indi-id="`cam${camName}-sw.writing.toggle`"
+          :placeholder="`looking for cam${camName}-sw...`"
+          on-text="writing"
+          off-text="ready"
+        ></indi-value></div>
+      </div>
     </div>
   </div>
 </template>

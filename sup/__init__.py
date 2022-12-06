@@ -223,6 +223,8 @@ class INDIUpdateBatcher:
         if update['action'] in (INDIActions.PROPERTY_SET, INDIActions.PROPERTY_DEF):
             device_name = update['device']
             property_name = update['property']['name']
+            if device_name == 'observers':
+                print(update)
             self.properties_to_update.add((device_name, property_name))
         elif update['action'] is INDIActions.PROPERTY_DEL:
             device_name = update['device']

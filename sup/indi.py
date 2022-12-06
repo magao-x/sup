@@ -47,9 +47,9 @@ class SupINDIClient(AsyncINDIClient):
                 log.info(f"Connected to {addr!r}")
                 self.status = ConnectionStatus.CONNECTED
                 await self.sio.emit('indi_connection_status', {'status': self.status.name})
-                self.get_properties()
                 self._reader = asyncio.ensure_future(self._handle_inbound(reader_handle))
                 self._writer = asyncio.ensure_future(self._handle_outbound(writer_handle))
+                self.get_properties()
 
                 # Reload state after we take a second to process properties
                 await asyncio.sleep(1)

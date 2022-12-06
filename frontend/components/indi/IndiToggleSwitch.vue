@@ -47,12 +47,7 @@ export default {
   methods: {
     toggle: function() {
       if (this.switchBusy) return;
-      this.$socket.emit('indi_new', {
-          'device': this.thisDevice.name,
-          'property': this.thisProperty.name,
-          'element': this.thisElement.name,
-          'value': !this.switchValue ? 'On' : 'Off'
-      });
+      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisElement, !this.switchValue ? 'On' : 'Off');
     }
   },
   computed: {
