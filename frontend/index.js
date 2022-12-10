@@ -11,14 +11,28 @@ import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 Vue.use(VueVirtualScroller)
 
+let buildConnectionString;
+if (process.env.NODE_ENV == 'development') {
+  buildConnectionString = function() {
+    const apiPort = 8000;
+    const wsProto = window.location.protocol == "https:" ? "wss:" : "ws:";
+    let connectionString = wsProto + '//' + window.location.hostname;
+    if (window.location.port) {
+      connectionString += ':' + String(apiPort);
+    }
+    return connectionString;
+  }
+} else {
+  buildConnectionString = function() {
+    const wsProto = window.location.protocol == "https:" ? "wss:" : "ws:";
+    let connectionString = wsProto + '//' + window.location.hostname;
+    if (window.location.port) {
+      connectionString += ':' + String(window.location.port);
+    }
+    return connectionString;
+  }
 
-function buildConnectionString() {
-  const apiPort = 8001;
-  const wsProto = window.location.protocol == "https:" ? "wss:" : "ws:";
-  const connectionString = wsProto + '//' + window.location.hostname + ':' + String(apiPort);
-  return connectionString;
 }
-
 Vue.use((Vue) => {
   // Assign a unique id to each component
   let uuid = 0;
@@ -88,7 +102,7 @@ new Vue({
       onWebSocketError(event) {
         console.error(event);
         this.ws.close();
-      },      
+      },
       connectWebSocket() {
         if (this.ws !== null && (this.ws.readyState == WebSocket.CONNECTING || this.ws.readyState == WebSocket.OPEN)) {
           return this.ws;
