@@ -38,13 +38,13 @@ export default {
   methods: {
     sendSwitch: function(element) {
       if (this.disabled) return;
-      this.sendIndiNew(this.thisDevice, this.thisProperty, element, "On");
+      this.sendIndiNew(this.thisProperty, element, "On");
     },
     onChange: function(evt) {
       if (this.$el.value !== noneSelected) {
         this.sendSwitch(this.thisProperty._elements[this.$el.value]);
       } else {
-        this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty._elements[this.selectedSwitch], "Off");
+        this.sendIndiNew(this.thisProperty, this.thisProperty._elements[this.selectedSwitch], "Off");
       }
     }
   },

@@ -8,14 +8,12 @@
             indi-id="observers.obs_on.toggle"
             label-on="Recording"
             label-off="Off"
-            :prompt="true"
           ></indi-toggle-switch>
         </div>
         <div>
           <span class="label">Purpose:</span>
           <indi-value indi-id="observers.obs_name.current"></indi-value>
         </div>
-        <div><indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value></div>
         <div>
           <indi-element indi-id="observers.obs_name.target"></indi-element>
         </div>
@@ -61,12 +59,6 @@
           off-text="ready"
         ></indi-value></div>
       </div>
-    </div>
-    <div>
-      Uptime (sec): <indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value>
-    </div>
-    <div>
-      Example: <AlternateIndiToggleSwitch indi-id="purepyindi_example.obs_on.toggle"></AlternateIndiToggleSwitch>
     </div>
   </div>
 </template>

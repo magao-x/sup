@@ -85,10 +85,8 @@ new Vue({
       onWebSocketMessage(event) {
         event.data.arrayBuffer().then((buf) => {
           let msg = JSON.parse(textDecoder.decode(buf));
-          console.log(msg)
           if (msg.action == "init") {
             this.reinitializeIndiWorld(msg.payload);
-            // this.indiWorld = msg.payload;
           } else if (msg.action == "batch_update") {
             this.batchUpdate(msg.payload);
           }
@@ -132,6 +130,7 @@ new Vue({
             this.singlePropertyUpdate(deviceName, propertyName, device[propertyName]);
           }
         }
+        this.lastUpdate = DateTime.utc();
       },
       batchUpdate(payload) {
         const updates = payload.updates;
@@ -144,6 +143,7 @@ new Vue({
           let [deviceName, propertyName] = propSpec.split(".");
           this.singlePropertyUpdate(deviceName, propertyName, updates[propSpec]);
         }
+        this.lastUpdate = DateTime.utc();
       },
       singlePropertyDelete(deviceName, propertyName) {
         Vue.delete(this.indiWorld[deviceName], propertyName);
@@ -161,6 +161,7 @@ new Vue({
         indiWorld: {},
         ws: null,
         webSocketIsConnected: false,
+        lastUpdate: null,
         reconnectionTimer: null,
       };
     },
@@ -172,7 +173,7 @@ new Vue({
           this.connectWebSocket();
         }
       }, 1000);
-      console.log("Set reconnectionTimer", reconnectionTimer);
+      console.log("Set reconnectionTimer id:", this.reconnectionTimer);
     },
     beforeUnmount() {
       if (this.reconnectionTimer) {
@@ -185,10 +186,20 @@ new Vue({
          enumerable: true,
          get: () => this.currentTime,
       })
-      const indi = {sendIndiNewByNames: this.sendIndiNewByNames};
+      const indi = {
+        sendIndiNewByNames: this.sendIndiNewByNames,
+      };
       Object.defineProperty(indi, 'world', {
          enumerable: true,
          get: () => this.indiWorld,
+      })
+      Object.defineProperty(indi, 'lastUpdate', {
+        enumerable: true,
+        get: () => this.lastUpdate,
+      })
+      Object.defineProperty(indi, 'connected', {
+        enumerable: true,
+        get: () => this.webSocketIsConnected,
       })
       return { time, indi }
     }

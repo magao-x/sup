@@ -51,52 +51,7 @@
       </div>
     </nav>
     <observation-warnings></observation-warnings>
-    <!-- <div class="status-bar">
-      <div class="status-left">
-        <div>{{ readableTimestamp }}</div>
-        <loop-state indiId="aoloop"></loop-state>
-      </div>
-      <div class="logo" @click="toggleFlames">MagAO-X</div>
-      <div class="status-right">
-        <div>WebSocket:
-        <indi-state-indicator :state="webSocketConnectionStatus"></indi-state-indicator></div>
-        <div>INDI:
-        <indi-state-indicator :state="indiConnectionStatus"></indi-state-indicator></div>
-      </div>
-    </div> -->
     <div class="flex-row">
-      <!-- <div class="vertical-selector">
-        <router-link to="/" class="choice cameras">
-          <span class="nav-icon">
-            <i class="material-icons">camera</i>
-          </span>
-          <span class="label">cameras</span>
-        </router-link>
-        <router-link to="/ao" class="choice ao">
-          <span class="nav-icon">
-            <i class="material-icons">blur_on</i>
-          </span>
-          <span class="label">AO</span>
-        </router-link>
-        <router-link to="/dashboard" class="choice dashboard">
-          <div class="nav-icon">
-            <i class="material-icons">speed</i>
-          </div>
-          <div class="label">dashboard</div>
-        </router-link>
-        <router-link to="/power" class="choice power">
-          <span class="nav-icon">
-            <i class="material-icons">emoji_objects</i>
-          </span>
-          <span class="label">power</span>
-        </router-link>
-        <router-link to="/lab" class="choice">
-          <span class="nav-icon">
-            <i class="material-icons">build</i>
-          </span>
-          <span class="label">lab</span>
-        </router-link>
-      </div> -->
       <div class="content">
         <keep-alive>
           <router-view></router-view>
@@ -301,6 +256,18 @@ export default Vue.extend({
         " " +
         this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
       );
+    },
+    webSocketConnectionStatus() {
+      return this.indi.connected ? "ok" : "alert";
+    },
+    indiConnectionStatus() {
+      if (this.indi.lastUpdate !== null) {
+        const delay = this.time.currentTime.diff(this.indi.lastUpdate, 'seconds');
+        if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
+          return 'ok'
+        }
+      }
+      return "alert";
     }
   }
 });

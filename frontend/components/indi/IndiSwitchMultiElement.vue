@@ -55,9 +55,9 @@ export default {
     sendSwitch: function(element) {
       if (this.disabled) return;
       if (element._value == 'Off') {
-        this.sendIndiNew(this.thisDevice, this.thisProperty, element, "On");
+        this.sendIndiNew(this.thisProperty, element, "On");
       } else {
-        this.sendIndiNew(this.thisDevice, this.thisProperty, element, "Off");
+        this.sendIndiNew(this.thisProperty, element, "Off");
       }
     }
   },

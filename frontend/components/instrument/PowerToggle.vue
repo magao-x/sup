@@ -35,7 +35,7 @@ export default {
       } else if (this.currentState === "On") {
         newTarget = "Off";
       }
-      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty._elements["target"], newTarget);
+      this.sendIndiNew(this.thisProperty, this.thisProperty._elements["target"], newTarget);
     }
   },
   computed: {

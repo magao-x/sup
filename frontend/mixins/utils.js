@@ -3,18 +3,6 @@ import constants from "~/constants.js";
 export default {
   inject: ['time', "indi"],
   methods: {
-    checkStatus(connection) {
-      const connectionState = this.$store.state[connection];
-      if (!connectionState.connected) {
-        return 'alert';
-      }
-      const delay = this.time.currentTime.diff(connectionState.lastUpdate, 'seconds');
-      if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
-        return 'ok'
-      } else {
-        return 'alert'
-      }
-    },
     retrieveByIndiId: function (indiId) {
       const parts = indiId.split('.');
       const deviceName = parts.shift();
@@ -115,19 +103,8 @@ export default {
       return keys.map((val) => ob[val]);
     },
     
-    sendIndiNew: function (device, property, element, value) {
-      this.indi.sendIndiNewByNames(device.name, property.name, element.name, value);
+    sendIndiNew: function (property, element, value) {
+      this.indi.sendIndiNewByNames(property.device, property.name, element.name, value);
     }
-  },
-  computed: {
-    webSocketConnectionStatus() {
-      return this.checkStatus('webSocketConnection');
-    },
-    indiConnectionStatus() {
-      return this.checkStatus('indiConnection');
-    },
-    connectionStatus() {
-      return this.indiConnectionStatus && this.webSocketConnectionStatus;
-    },
   }
 }

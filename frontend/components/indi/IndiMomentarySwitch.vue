@@ -19,7 +19,7 @@ export default {
     methods: {
         onClick() {
             if (!this.disabled) {
-                this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisElement, "On");
+                this.sendIndiNew(this.thisProperty, this.thisElement, "On");
             }
         }
     }

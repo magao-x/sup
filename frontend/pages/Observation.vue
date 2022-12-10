@@ -4,6 +4,14 @@
       <observer-control class="observer-control padded gap-bottom"></observer-control>
       <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi"></telescope-status>
       <danger-zone class="padded"></danger-zone>
+      <div class="padded view">
+        <div>
+          purepyindi_example.uptime.uptime_sec: <indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value>
+        </div>
+        <div>
+          Toggle example: <IndiToggleSwitch indi-id="purepyindi_example.obs_on.toggle"></IndiToggleSwitch>
+        </div>
+      </div>
     </div>
     <div class="col">
       <div class="status-tiles gap-bottom">

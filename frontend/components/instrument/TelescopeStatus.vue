@@ -1,5 +1,5 @@
 <template>
-  <div class="telescope-status" v-if="connected">
+  <div class="telescope-status" v-if="indi.connected">
       <div class="super-important view gap-bottom">
         <div class="status-item">
           <div class="datum">LST:</div>
@@ -146,7 +146,7 @@ export default {
       return "";
     },
     airmassPlot() {
-      if (!this.connected) {
+      if (!this.indi.connected) {
         return "";
       }
       const catdata = this.thisDevice.catdata;

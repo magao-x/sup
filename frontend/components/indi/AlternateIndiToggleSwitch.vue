@@ -45,12 +45,6 @@
     methods: {
       toggle: function() {
         if (this.switchBusy) return;
-        // this.$socket.emit('indi_new', {
-        //     'device': this.thisDeviceName,
-        //     'property': this.thisProperty.name,
-        //     'element': this.thisElement.name,
-        //     'value': !this.switchValue ? 'On' : 'Off'
-        // });
         this.indi.sendIndiNewByNames(this.thisDeviceName, this.thisProperty.name, this.thisElement.name, !this.switchValue ? 'On' : 'Off');
         this.pendingUpdate = true;
       }

@@ -38,7 +38,7 @@ export default {
       } else {
         return;
       }
-      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty._elements["target"], newTarget);
+      this.sendIndiNew(this.thisProperty, this.thisProperty._elements["target"], newTarget);
       // this.busy = true;
       // console.log(`Would have sent ${newTarget}`)
     }

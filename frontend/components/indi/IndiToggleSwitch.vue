@@ -3,7 +3,7 @@
     :value="switchValue"
     :busy="switchBusy"
     :disabled="switchDisabled"
-    :prompt="prompt"
+    :prompt="false"
     :labelOn="labelOn"
     :labelOff="labelOff"
     @input="toggle"
@@ -35,35 +35,34 @@ export default {
       type: String,
       default: () => 'Off',
     },
-    prompt: {
-      type: Boolean,
-      default: () => false
-    },
-    ignoreBusyState: {
-      type: Boolean,
-      default: () => false
-    },
+  },
+  data: function () {
+      return {
+          pendingUpdate: false,
+
+      }
   },
   methods: {
     toggle: function() {
       if (this.switchBusy) return;
-      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisElement, !this.switchValue ? 'On' : 'Off');
+      this.indi.sendIndiNewByNames(this.thisDeviceName, this.thisProperty.name, this.thisElement.name, !this.switchValue ? 'On' : 'Off');
+      this.pendingUpdate = true;
     }
+  },
+  watch: {
+      switchValue (newValue, oldValue) {
+          this.pendingUpdate = false;
+      }
   },
   computed: {
     switchBusy: function () {
-      if (!this.thisProperty) return true;
-      if (this.ignoreBusyState) {
-        return false;
-      }
-      return this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert";
+      return !this.thisProperty || this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert" || this.pendingUpdate;
     },
     switchDisabled: function () {
       if (!this.thisProperty) return true;
       return this.thisProperty.perm == 'ro';
     },
     switchValue: function () {
-      
       return this.thisElement && this.thisElement._value == 'On';
     }
   }
