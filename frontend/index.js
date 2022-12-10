@@ -122,10 +122,7 @@ new Vue({
       },
       purgeIndiWorld: function() {
         for (let deviceName of Object.keys(this.indiWorld)) {
-          let device = payload[deviceName]
-          for (let propertyName of Object.keys(device)) {
-            Vue.delete(this.indiWorld[deviceName][propertyName]);
-          }
+          Vue.delete(this.indiWorld, deviceName);
         }
       },
       reinitializeIndiWorld: function(payload) {
