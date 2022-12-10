@@ -2,11 +2,11 @@
   <div v-if="indiDefined">
     <div class="flex-row">
       <div style="min-width: 50%">
-        <div>FPS: <indi-property :device="thisDevice" :property="thisDevice.properties['fps']"></indi-property></div>
-        <div>Mode: <indi-property :device="thisDevice" :property="thisDevice.properties['mode']"></indi-property></div>
+        <div>FPS: <indi-property :device="thisDevice" :property="thisDevice['fps']"></indi-property></div>
+        <div>Mode: <indi-property :device="thisDevice" :property="thisDevice['mode']"></indi-property></div>
       </div>
       <div style="min-width: 50%">
-        <div>EM protection: <indi-property :device="thisDevice" :property="thisDevice.properties['emProtectionReset']"></indi-property></div>
+        <div>EM protection: <indi-property :device="thisDevice" :property="thisDevice['emProtectionReset']"></indi-property></div>
       </div>
     </div>
   </div>

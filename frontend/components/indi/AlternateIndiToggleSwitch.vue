@@ -1,0 +1,76 @@
+<template>
+    <toggle-switch
+      :value="switchValue"
+      :busy="switchBusy"
+      :disabled="switchDisabled"
+      :prompt="false"
+      :labelOn="labelOn"
+      :labelOff="labelOff"
+      @input="toggle"
+    ></toggle-switch>
+  </template>
+  <style lang="scss" scoped>
+  @import "./css/variables.scss";
+  </style>
+  <script>
+  import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
+  import indi from "~/mixins/indi.js";
+  import utils from "~/mixins/utils.js";
+  
+  export default {
+    mixins: [indi, utils],
+    components: {
+      ToggleSwitch
+    },
+    props: {
+      device: Object,
+      property: Object,
+      element: Object,
+      indiId: String,
+      labelOn: {
+        type: String,
+        default: () => 'On',
+      },
+      labelOff: {
+        type: String,
+        default: () => 'Off',
+      },
+    },
+    data: function () {
+        return {
+            pendingUpdate: false,
+
+        }
+    },
+    methods: {
+      toggle: function() {
+        if (this.switchBusy) return;
+        // this.$socket.emit('indi_new', {
+        //     'device': this.thisDeviceName,
+        //     'property': this.thisProperty.name,
+        //     'element': this.thisElement.name,
+        //     'value': !this.switchValue ? 'On' : 'Off'
+        // });
+        this.indi.sendIndiNewByNames(this.thisDeviceName, this.thisProperty.name, this.thisElement.name, !this.switchValue ? 'On' : 'Off');
+        this.pendingUpdate = true;
+      }
+    },
+    watch: {
+        switchValue (newValue, oldValue) {
+            this.pendingUpdate = false;
+        }
+    },
+    computed: {
+      switchBusy: function () {
+        return !this.thisProperty || this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert" || this.pendingUpdate;
+      },
+      switchDisabled: function () {
+        if (!this.thisProperty) return true;
+        return this.thisProperty.perm == 'ro';
+      },
+      switchValue: function () {
+        return this.thisElement && this.thisElement._value == 'On';
+      }
+    }
+  };
+  </script>

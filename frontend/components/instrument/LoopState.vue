@@ -37,7 +37,7 @@ export default {
   props: ["device", "indiId"],
   computed: {
     loopClosed: function () {
-      return this.thisDevice.properties['loop_state'].elements['toggle'].value == "On";
+      return this.thisDevice['loop_state']._elements['toggle']._value == "On";
     },
     state: function() {
       if (!this.thisDevice) return "waiting for AO state";
@@ -47,7 +47,7 @@ export default {
     gain: function() {
       if (!this.thisDevice) return "?";
       if (!this.loopClosed) return "";
-      const gain = this.thisDevice.properties['loop_gain'].elements['current'].value
+      const gain = this.thisDevice['loop_gain']._elements['current']._value
       return gain.toFixed(2);
     }
   }

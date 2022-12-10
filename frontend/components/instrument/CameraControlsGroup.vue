@@ -38,8 +38,8 @@
       <p>Waiting for device</p>
     </div>
     <div v-if="isDefined" class="flex-row block">
-      <div style="min-width: 400px;">CCD temperature: <indi-property :device="cam" :property="cam.properties['temp_ccd']"></indi-property></div>
-      <div v-if="cam.properties['temp_control']">Temperature control: <indi-value :device="cam" :property="cam.properties['temp_control']" :element="cam.properties['temp_control'].elements['status']"></indi-value></div>
+      <div style="min-width: 400px;">CCD temperature: <indi-property :device="cam" :property="cam['temp_ccd']"></indi-property></div>
+      <div v-if="cam['temp_control']">Temperature control: <indi-value :device="cam" :property="cam['temp_control']" :element="cam['temp_control']._elements['status']"></indi-value></div>
     </div>
     <div v-if="isDefined && baseName !== 'wfs'">
       <motion-stage v-if="fw" kind="filterwheel" :device="fw" :label="fwName" class="block"></motion-stage>
@@ -150,22 +150,22 @@ export default {
       return typeof this.$store.state.devices[this.camName] !== "undefined";
     },
     hasEmgain() {
-      return this.isDefined && this.cam.properties.hasOwnProperty('emgain');
+      return this.isDefined && this.cam.hasOwnProperty('emgain');
     },
     hasShutter() {
-      return this.isDefined && this.cam.properties.hasOwnProperty('shutter');
+      return this.isDefined && this.cam.hasOwnProperty('shutter');
     },
     hasFPS() {
-      return this.isDefined && this.cam.properties.hasOwnProperty('fps');
+      return this.isDefined && this.cam.hasOwnProperty('fps');
     },
     hasExptime() {
-      return this.isDefined && this.cam.properties.hasOwnProperty('exptime');
+      return this.isDefined && this.cam.hasOwnProperty('exptime');
     },
     hasADCSpeed() {
-      return this.isDefined && this.cam.properties.hasOwnProperty('adcspeed');
+      return this.isDefined && this.cam.hasOwnProperty('adcspeed');
     },
     hasROI() {
-      return this.isDefined && this.cam.properties.hasOwnProperty('roi_bin_x');
+      return this.isDefined && this.cam.hasOwnProperty('roi_bin_x');
     }
   }
 };

@@ -278,7 +278,7 @@ export default Vue.extend({
       flamesEnabled: false
     };
   },
-  inject: ["time"],
+  inject: ["time", "indi"],
   methods: {
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;
@@ -290,7 +290,7 @@ export default Vue.extend({
     },
     loopClosed () {
       let elt = this.retrieveByIndiId('aoloop.loopState.state');
-      return elt && elt.value == 'closed';
+      return elt && elt._value == 'closed';
     },
     showFlames() {
       return this.flamesEnabled;

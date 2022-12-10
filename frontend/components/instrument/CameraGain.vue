@@ -18,7 +18,7 @@ export default {
   computed: {
     emgain() {
       if (!this.thisDevice) return null;
-      return this.thisDevice.properties.emgain;
+      return this.thisDevice.emgain;
     }
   }
 };

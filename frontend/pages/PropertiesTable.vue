@@ -115,8 +115,8 @@ export default {
       const devs = [];
       let sstr = this.searchString;
       for (let device of this.objectAsSortedArray(this.$store.state.devices)) {
-        for (let property of this.objectAsSortedArray(device.properties)) {
-          for (let element of this.objectAsSortedArray(property.elements)) {
+        for (let property of this.objectAsSortedArray(device)) {
+          for (let element of this.objectAsSortedArray(property._elements)) {
             const indiId = `${device.name}.${property.name}.${element.name}`;
             if (!this.doFilter || indiId.includes(sstr)) {
               devs.push({

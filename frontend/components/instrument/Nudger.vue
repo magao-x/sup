@@ -32,7 +32,7 @@ export default {
     components: {IndiMomentarySwitch, ClickyStepper},
     methods: {
         nudge(payload) {
-            this.sendIndiNewByNames("tcsi", "pyrNudge", payload.label, payload.amount);
+            this.indi.sendIndiNewByNames("tcsi", "pyrNudge", payload.label, payload.amount);
         },
     }
 }

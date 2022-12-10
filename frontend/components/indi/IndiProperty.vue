@@ -12,18 +12,18 @@
           class="current"
           :device="thisDevice"
           :property="thisProperty"
-          :element="thisProperty.elements.current"
+          :element="thisProperty._elements.current"
         ></indi-value>
         <indi-element
           class="target"
           :device="thisDevice"
           :property="thisProperty"
-          :element="thisProperty.elements.target"
+          :element="thisProperty._elements.target"
         ></indi-element>
       </div>
       <indi-element
         v-else
-        v-for="elem in objectAsSortedArray(thisProperty.elements)"
+        v-for="elem in objectAsSortedArray(thisProperty._elements)"
         :key="elem.name"
         :device="thisDevice"
         :property="thisProperty"
@@ -70,8 +70,8 @@ export default {
     isPairedCurrentTarget: function() {
       if (
         this.indiDefined &&
-        this.thisProperty.elements.target !== undefined &&
-        this.thisProperty.elements.current !== undefined
+        this.thisProperty._elements.target !== undefined &&
+        this.thisProperty._elements.current !== undefined
       ) {
         return true;
       }

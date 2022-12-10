@@ -2,7 +2,7 @@
   <div class="observation-controls cols">
     <div class="col">
       <observer-control class="observer-control padded gap-bottom"></observer-control>
-      <telescope-status indi-id="tcsi"></telescope-status>
+      <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi"></telescope-status>
       <danger-zone class="padded"></danger-zone>
     </div>
     <div class="col">
@@ -206,6 +206,7 @@ import IndiMomentarySwitch from '../components/indi/IndiMomentarySwitch.vue';
 
 export default {
   mixins: [utils],
+  inject: ["indi"],
   data: function () {
     return {
       camNames: ["sci1", "sci2", "wfs", "lowfs", "tip", "acq"],

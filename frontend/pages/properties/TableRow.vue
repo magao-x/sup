@@ -12,11 +12,11 @@
     <td
       v-if="record.property.kind == 'num'"
       class="value"
-    >{{ applyFormatString(record.element.format, record.element.value) }}</td>
+    >{{ applyFormatString(record.element.format, record.element._value) }}</td>
     <td v-else-if="record.property.name == 'fsm'" class="value">
       <finite-state-machine-status :device="record.device"></finite-state-machine-status>
     </td>
-    <td v-else class="value">{{ record.element.value }}</td>
+    <td v-else class="value">{{ record.element._value }}</td>
     <td class="controls">
       <indi-element :device="record.device" :property="record.property" :element="record.element"></indi-element>
     </td>

@@ -17,14 +17,14 @@ export default {
       // if value is missing, show placeholder
       if (!this.thisElement) {
         value = this.placeholder ? this.placeholder : "";
-      } else if (this.thisProperty.kind == 'num') {
+      } else if (this.thisProperty._kind == 'num') {
         // number format functions should receive values to format as numbers
         if (this.formatFunction) {
-          return this.formatFunction(this.thisElement.value);
+          return this.formatFunction(this.thisElement._value);
         } else {
-          value = this.applyFormatString(this.thisElement.format, this.thisElement.value);
+          value = this.applyFormatString(this.thisElement.format, this.thisElement._value);
         }
-      } else if (this.thisProperty.kind == 'swt') {
+      } else if (this.thisProperty._kind == 'swt') {
         // switches default to On and Off if onText and offText are not given
         // TODO make this a default prop value
         let onLabel = 'On', offLabel = 'Off';
@@ -34,10 +34,10 @@ export default {
         if (typeof this.offText !== "undefined") {
           offLabel = this.offText;
         }
-        value = this.thisElement.value == 'On' ? onLabel : offLabel;
+        value = this.thisElement._value == 'On' ? onLabel : offLabel;
       } else {
         // "normal" values
-        value = this.thisElement.value;
+        value = this.thisElement._value;
       }
       // apply formatting last (if needed)
       if (this.formatFunction) {

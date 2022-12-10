@@ -3,7 +3,7 @@
       v-if="thisDevice"
       class="stream-writer-toggle"
       :prompt="true"
-      :indi-id="thisDevice.name + '.writing.toggle'"
+      :indi-id="thisDeviceName + '.writing.toggle'"
       labelOn="writing"
       labelOff="paused"
     ></indi-toggle-switch>

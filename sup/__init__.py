@@ -1,5 +1,7 @@
 from io import BytesIO
-
+import traceback
+# from starlette.websockets import WebSocket
+from starlette.endpoints import WebSocketEndpoint
 import numpy as np
 import matplotlib
 from astroplan.plots import dark_style_sheet
@@ -37,7 +39,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import FileResponse, StreamingResponse
-from starlette.routing import Mount, Route
+from starlette.routing import Route, WebSocketRoute
 
 # from .indi import BogusINDIClient, SupINDIClient
 from .log import critical, debug, error, info, set_log_level, warn
@@ -135,18 +137,87 @@ async def airmass(request):
         ],
     }
     return OrjsonResponse(payload)
+<<<<<<< HEAD
+=======
+    
+    
+    # with plt.style.context('dark_background'):
+    #     fig, (airmass_ax, parang_ax) = plt.subplots(ncols=2, figsize=(6, 6))
+    #     plot_airmass(
+    #         target,
+    #         LCO_SITE,
+    #         current_time,
+    #         # altitude_yaxis=True,
+    #         ax=airmass_ax,
+    #         brightness_shading=True,
+    #         style_sheet=dark_style_sheet,
+    #     )
+    #     airmass_ax.grid(True)
+    #     plot_parallactic(
+    #         target,
+    #         LCO_SITE,
+    #         current_time,
+    #         ax=parang_ax,
+    #         style_sheet=dark_style_sheet,
+    #     )
+    #     plt.tight_layout()
+    #     fig.savefig(buf, dpi=300)
+    # buf.seek(0)
+    # return StreamingResponse(buf, media_type='image/png')
+
+class OrjsonWrapper:
+    def loads(self, value, *args, **kwargs):
+        return orjson.loads(value)
+    def dumps(self, value, *args, **kwargs):
+        return orjson.dumps(value).decode('utf8')
+
+# sio = socketio.AsyncServer(
+#     async_mode='asgi',
+#     cors_allowed_origins="*", # TODO only CORS in dev
+#     ping_interval=PING_INTERVAL,
+#     json=OrjsonWrapper(),
+#     # engineio_logger=True,
+#     # logger=True,
+# )
+
+# @sio.event
+# async def connect(sid, environ):
+#     debug(f'socket.io client connected with sid: {sid}')
+#     await sio.emit('indi_init', app.indi.to_serializable(), room=sid)
+
+# @sio.event
+# async def disconnect(sid):
+#     debug(f'socket.io client disconnected with sid: {sid}')
+
+# @sio.on('indi_new')
+# def handle_indi_new(sid, data):
+#     element_id = f"{data['device']}.{data['property']}.{data['element']}"
+#     info(f"indi_new setting ={data['value']}")
+#     app.indi[element_id] = data['value']
+>>>>>>> 1dcad3a (Major refactor to (start to) remove Vuex/socket.io nonsense)
 
 class INDIUpdateBatcher:
     def __init__(self, client_instance):
         self.client_instance = client_instance
         self.properties_to_update = set()
         self.properties_to_delete = set()
+        self.logs = []
     async def process_update(self, message : messages.IndiMessage):
         if isinstance(message, messages.DelProperty):
             prop_to_del = (message.device, message.name if message.name is not None else "*")
             self.properties_to_delete.add(prop_to_del)
-        elif isinstance(message, messages.IndiDefSetMessage):
+        elif isinstance(message, messages.IndiDefMessage):
+            key = (message.device, message.name)
+            if key in self.properties_to_delete:
+                self.properties_to_delete.remove(key)
+            key = (message.device, "*")
+            if key in self.properties_to_delete:
+                self.properties_to_delete.remove(key)
             self.properties_to_update.add((message.device, message.name))
+        elif isinstance(message, messages.IndiSetMessage):
+            self.properties_to_update.add((message.device, message.name))
+        elif isinstance(message, messages.Message):
+            self.logs.append(message)
     def _get_serializable(self, device_name, property_name):
         return self.client_instance.devices[device_name].properties[property_name].to_serializable()
     async def generate_batch(self):
@@ -173,19 +244,24 @@ class INDIUpdateBatcher:
             'updates': updates,
             'deletions': deletions,
             'connected': self.client_instance.status == constants.ConnectionStatus.CONNECTED,
+            'logs': self.logs,
         }
         self.properties_to_delete = set()
         self.properties_to_update = set()
+        self.logs = []
         return batch
 
 async def emit_updates():
     while True:
         try:
             batch = await app.indi_batcher.generate_batch()
-            if batch is not None:
-                await sio.emit('indi_batch_update', batch)
+            for websocket in connected_clients:
+                await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
+            # if batch is not None:
+                # await sio.emit('indi_batch_update', batch)
         except Exception as e:
-            print(f"Exception in emit_updates(): {type(e)=} {e}")
+            warn(f"Exception in emit_updates(): {type(e)=} {e}")
+            traceback.print_exc(file=sys.stdout)
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
 # def make_indi_connection(potemkin=False):
@@ -209,7 +285,7 @@ def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
-    uvicorn.run(wrapped_app, host=bind_host, port=bind_port)
+    uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
     import argparse
@@ -344,10 +420,10 @@ async def spawn_tasks():
     loop = asyncio.get_event_loop()
     conn = purepyindi2.AsyncIndiTcpConnection(host=CONFIG['indi_host'], port=CONFIG['indi_port'])
     app.indi = purepyindi2.IndiClient(conn)
-    conn.add_async_callback(constants.TransportEvent.connection, trigger_get_properties)
+    loop.create_task(conn.add_async_callback(constants.TransportEvent.connection, trigger_get_properties))
 
     app.indi_batcher = INDIUpdateBatcher(app.indi)
-    conn.add_async_callback(constants.TransportEvent.inbound, app.indi_batcher.process_update)
+    loop.create_task(conn.add_async_callback(constants.TransportEvent.inbound, app.indi_batcher.process_update))
 
     app.vizzy_queue = asyncio.Queue()
 
@@ -375,7 +451,37 @@ async def cancel_tasks():
     for task in RUNNING_TASKS:
         task.cancel()
 
+connected_clients = []
 
+class SupWebSocket(WebSocketEndpoint):
+    encoding = "bytes"
+    async def on_connect(self, websocket):
+        print('in on_connect')
+        connected_clients.append(websocket)
+        await websocket.accept()
+        await websocket.send_bytes(orjson.dumps({
+            'action': 'init',
+            'payload': app.indi.to_serializable()['devices'],
+        }))
+        print('setn')
+
+    async def on_receive(self, websocket, data):
+        print('in on_receive')
+        data_obj = orjson.loads(data)
+        print(data_obj)
+        if data_obj.get('action') == 'indi_new':
+            payload = data_obj['payload']
+            app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = payload['value']
+        await websocket.send_bytes(data)
+
+
+    async def on_disconnect(self, websocket, close_code):
+        print('in on_disconnect')
+        try:
+            idx = connected_clients.index(websocket)
+            connected_clients.pop(idx)
+        except ValueError:
+            pass
 
 app = Starlette(
     debug=True,
@@ -386,6 +492,7 @@ app = Starlette(
         Route('/demo', endpoint=demo),
         Route('/airmass', endpoint=airmass),
         # Mount('/video', routes=video.ROUTES),
+        WebSocketRoute('/websocket', endpoint=SupWebSocket),
         Route('/{path:path}', endpoint=catch_all),
     ],
     on_startup=[spawn_tasks],
@@ -397,9 +504,12 @@ app = Starlette(
 )
 
 
+<<<<<<< HEAD
 wrapped_app = socketio.ASGIApp(sio, app)
 logging.basicConfig(level='WARN')
 set_log_level(os.environ.get('SUP_LOG_LEVEL', 'ERROR'))
+=======
+>>>>>>> 1dcad3a (Major refactor to (start to) remove Vuex/socket.io nonsense)
 
 if __name__ == '__main__':
     console_entrypoint()

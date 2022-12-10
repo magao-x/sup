@@ -1,8 +1,8 @@
 <template>
   <div v-if="thisDevice" class="device">
     <indi-property
-      v-for="prop in thisDevice.properties"
-      :key="thisDevice.name + '.' + prop.name"
+      v-for="prop in thisDevice"
+      :key="thisDeviceName + '.' + prop.name"
       :device="thisDevice"
       :property="prop"
     ></indi-property>
@@ -25,7 +25,7 @@ import utils from "~/mixins/utils.js";
 
 export default {
   props: ["device", "indiId"],
-  inject: ["time"],
+  inject: ["indi"],
   components: {
     IndiProperty
   },

@@ -21,9 +21,10 @@ body.dark .view.warning {
 </style>
 <script>
 import utils from "~/mixins/utils.js";
+import indi from "~/mixins/indi.js";
 import MaterialIcon from "~/components/basic/MaterialIcon.vue";
 export default {
-    mixins: [utils],
+    mixins: [utils, indi],
     components: {
         MaterialIcon
     },

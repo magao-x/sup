@@ -35,12 +35,12 @@ export default {
       } else if (this.currentState === "On") {
         newTarget = "Off";
       }
-      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty.elements["target"], newTarget);
+      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty._elements["target"], newTarget);
     }
   },
   computed: {
     currentState: function () {
-      return this.thisProperty.elements["state"].value;
+      return this.thisProperty._elements["state"]._value;
     },
     powerState: function () {
       return this.currentState == "On";
@@ -50,9 +50,9 @@ export default {
         this.thisProperty.state === "Busy" ||
         this.currentState == "Int" ||
         (
-          (this.currentState !== this.thisProperty.elements["target"].value)
+          (this.currentState !== this.thisProperty._elements["target"]._value)
           &&
-          (this.thisProperty.elements["target"].value !== null)
+          (this.thisProperty._elements["target"]._value !== null)
         )
       );
     }

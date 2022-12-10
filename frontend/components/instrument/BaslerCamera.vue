@@ -1,8 +1,8 @@
 <template>
   <div class="basler-camera" v-if="indiDefined">
-    <div>{{ thisDevice.name }}</div>
+    <div>{{ thisDeviceName }}</div>
     <p>Exposure time:</p>
-    <indi-property :device="thisDevice" :property="thisDevice.properties['exptime']"></indi-property>
+    <indi-property :device="thisDevice" :property="thisDevice['exptime']"></indi-property>
   </div>
   <div class="basler-camera" v-else>
     Waiting for Basler camera...

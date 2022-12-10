@@ -17,7 +17,7 @@ export default {
     computed: {
       adcSpeedProperty() {
         if (!this.thisDevice) return null;
-        return this.thisDevice.properties['adcspeed'];
+        return this.thisDevice['adcspeed'];
       }
     }
 }

@@ -19,7 +19,7 @@ export default {
   computed: {
     exptime() {
       if (!this.thisDevice) return null;
-      return this.thisDevice.properties.exptime;
+      return this.thisDevice.exptime;
     }
   }
 };

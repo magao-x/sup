@@ -1,7 +1,7 @@
 <template>
     <div v-if="thisDevice" :class="classes">
       <div class="pdu-label">
-        {{ thisDevice.name }}
+        {{ thisDeviceName }}
       </div>
       <div class="pdu-channel" v-for="channel in channels" :key="channel.name">
         <div class="channel-name">{{ channel.name }}</div>
@@ -99,10 +99,10 @@ export default {
       if (this.thisDevice === null) {
         return [];
       }
-      const channelKeys = Object.keys(this.thisDevice.properties["channelOutlets"].elements);
-      const propertyKeys = Object.keys(this.thisDevice.properties);
+      const channelKeys = Object.keys(this.thisDevice["channelOutlets"]._elements);
+      const propertyKeys = Object.keys(this.thisDevice);
       const channels = propertyKeys.filter(prop => channelKeys.includes(prop)).sort();
-      return channels.map(key => this.thisDevice.properties[key]);
+      return channels.map(key => this.thisDevice[key]);
     }
   }
 };

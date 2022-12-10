@@ -15,6 +15,7 @@
           <span class="label">Purpose:</span>
           <indi-value indi-id="observers.obs_name.current"></indi-value>
         </div>
+        <div><indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value></div>
         <div>
           <indi-element indi-id="observers.obs_name.target"></indi-element>
         </div>
@@ -61,6 +62,12 @@
         ></indi-value></div>
       </div>
     </div>
+    <div>
+      Uptime (sec): <indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value>
+    </div>
+    <div>
+      Example: <AlternateIndiToggleSwitch indi-id="purepyindi_example.obs_on.toggle"></AlternateIndiToggleSwitch>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -98,6 +105,7 @@ import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import IndiSwitchDropdown from "../indi/IndiSwitchDropdown.vue";
 import IndiToggleSwitch from "../indi/IndiToggleSwitch.vue";
+import AlternateIndiToggleSwitch from "../indi/AlternateIndiToggleSwitch.vue";
 import IndiElement from "../indi/IndiElement.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
 
@@ -120,7 +128,8 @@ export default {
     IndiToggleSwitch,
     IndiElement,
     IndiProperty,
-  },
+    AlternateIndiToggleSwitch
+},
   computed: {},
 };
 </script>

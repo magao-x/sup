@@ -42,24 +42,24 @@ export default {
     },
     onChange: function(evt) {
       if (this.$el.value !== noneSelected) {
-        this.sendSwitch(this.thisProperty.elements[this.$el.value]);
+        this.sendSwitch(this.thisProperty._elements[this.$el.value]);
       } else {
-        this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty.elements[this.selectedSwitch], "Off");
+        this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty._elements[this.selectedSwitch], "Off");
       }
     }
   },
   computed: {
     propertyId: function() {
       if (!(this.thisDevice && this.thisProperty)) return null;
-      return this.thisDevice.name + "." + this.thisProperty.name;
+      return this.thisDeviceName + "." + this.thisProperty.name;
     },
     switchElements: function () {
       if (!(this.thisDevice && this.thisProperty)) return null;
-      let elements = Object.assign({}, this.thisProperty.elements);
-      let defaultElement = {value: "On", label: noneSelected, name: noneSelected};
+      let elements = Object.assign({}, this.thisProperty._elements);
+      let defaultElement = {_value: "On", label: noneSelected, name: noneSelected};
       for (let el in elements) {
-        if (elements[el].value == 'On') {
-          defaultElement.value = 'Off';
+        if (elements[el]._value == 'On') {
+          defaultElement._value = 'Off';
         }
       };
       if (this.allowNone) {
@@ -70,7 +70,7 @@ export default {
     selectedSwitch: function() {
       if (!this.thisProperty) return noneSelected;
       for (let el in this.switchElements) {
-        if (this.switchElements[el].value == 'On') {
+        if (this.switchElements[el]._value == 'On') {
           return el;
         }
       }

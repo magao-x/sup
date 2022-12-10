@@ -1,7 +1,7 @@
 import { sprintf } from '~/node_modules/printj/printj.mjs';
 import constants from "~/constants.js";
 export default {
-  inject: ['time'],
+  inject: ['time', "indi"],
   methods: {
     checkStatus(connection) {
       const connectionState = this.$store.state[connection];
@@ -18,16 +18,16 @@ export default {
     retrieveByIndiId: function (indiId) {
       const parts = indiId.split('.');
       const deviceName = parts.shift();
-      if (typeof this.$store.state.devices[deviceName] !== "undefined") {
-        const device = this.$store.state.devices[deviceName];
+      if (typeof this.indi.world[deviceName] !== "undefined") {
+        const device = this.indi.world[deviceName];
         if (parts.length > 0) {
           const propName = parts.shift();
-          if (typeof device.properties[propName] !== "undefined") {
-            const property = device.properties[propName];
+          if (typeof device[propName] !== "undefined") {
+            const property = device[propName];
             if (parts.length > 0) {
               const eltName = parts.shift();
-              if (typeof property.elements[eltName] !== "undefined") {
-                const element = property.elements[eltName];
+              if (typeof property._elements[eltName] !== "undefined") {
+                const element = property._elements[eltName];
                 return element;
               } else {
                 return null;
@@ -48,7 +48,7 @@ export default {
     retrieveValueByIndiId: function (indiId) {
       const elt = this.retrieveByIndiId(indiId);
       if (elt && elt.hasOwnProperty('value')) {
-        return elt.value;
+        return elt._value;
       } else {
         return null;
       }
@@ -114,18 +114,9 @@ export default {
       let keys = Object.keys(ob).sort();
       return keys.map((val) => ob[val]);
     },
-    sendIndiNewByNames: function (deviceName, propertyName, elementName, value) {
-      const payload = {
-        'device': deviceName,
-        'property': propertyName,
-        'element': elementName,
-        'value': value
-      };
-      this.$socket.emit('indi_new', payload);
-      console.log('Emitted indi_new', payload)
-    },
+    
     sendIndiNew: function (device, property, element, value) {
-      this.sendIndiNewByNames(device.name, property.name, element.name, value);
+      this.indi.sendIndiNewByNames(device.name, property.name, element.name, value);
     }
   },
   computed: {

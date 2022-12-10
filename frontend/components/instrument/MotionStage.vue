@@ -4,8 +4,8 @@
     <div v-if="indiDefined" class="flex-row">
       <div class="ms-details">
         <indi-property :device="thisDevice" :property="positionProperty"></indi-property>
-        <!-- <indi-value :indiId="thisDevice.name + '.' + presetBaseName + '.current'"></indi-value>
-        <indi-element :indiId="thisDevice.name + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element> -->
+        <!-- <indi-value :indiId="thisDeviceName + '.' + presetBaseName + '.current'"></indi-value>
+        <indi-element :indiId="thisDeviceName + '.' + presetBaseName + '.target'" inputWidth="5"></indi-element> -->
         <div style="display: flex; flex-wrap: wrap;">
           <button class="home" @click.prevent="sendHome">
             <i class="material-icons">home</i> home
@@ -83,8 +83,8 @@ export default {
       if (!this.thisDevice) return;
       this.sendIndiNew(
         this.thisDevice,
-        this.thisDevice.properties["home"],
-        this.thisDevice.properties["home"].elements["request"],
+        this.thisDevice["home"],
+        this.thisDevice["home"]._elements["request"],
         "On"
       );
     },
@@ -92,18 +92,18 @@ export default {
       if (!this.thisDevice) return;
       this.sendIndiNew(
         this.thisDevice,
-        this.thisDevice.properties["stop"],
-        this.thisDevice.properties["stop"].elements["request"],
+        this.thisDevice["stop"],
+        this.thisDevice["stop"]._elements["request"],
         "On"
       );
     }
   },
   computed: {
     isDisabled: function() {
-      if (!(this.thisDevice && this.thisDevice.properties["fsm"])) {
+      if (!(this.thisDevice && this.thisDevice["fsm"])) {
         return true;
       }
-      const fsmState = this.thisDevice.properties["fsm"].elements["state"].value;
+      const fsmState = this.thisDevice["fsm"]._elements["state"]._value;
       return (
         !(fsmState == "READY" || fsmState == "OPERATING") ||
         this.presetNames.state == "Busy"
@@ -111,8 +111,8 @@ export default {
     },
     presetNames: function() {
       const presetBaseName = (this.kind.toLowerCase() == "stage") ? "preset" : "filter";
-      if (this.thisDevice && this.thisDevice.properties[presetBaseName + "Name"]) {
-        return this.thisDevice.properties[presetBaseName + "Name"];
+      if (this.thisDevice && this.thisDevice[presetBaseName + "Name"]) {
+        return this.thisDevice[presetBaseName + "Name"];
       } else {
         return null;
       }
@@ -120,9 +120,9 @@ export default {
     positionProperty() {
       if (this.indiDefined) {
         if (this.kind.toLowerCase() == "stage") {
-          return this.thisDevice.properties['position'];
+          return this.thisDevice['position'];
         } else if (this.kind.toLowerCase() == "filterwheel") {
-          return this.thisDevice.properties['filter'];
+          return this.thisDevice['filter'];
         }
       }
 
@@ -131,14 +131,14 @@ export default {
       if (this.label) {
         return this.label;
       } else if (this.thisDevice) {
-        return this.thisDevice.name;
+        return this.thisDeviceName;
       } else {
         return this.indiId;
       }
     },
     fsmState: function() {
-      if (this.thisDevice && this.thisDevice.properties["fsm"]) {
-        return this.thisDevice.properties["fsm"].elements["state"].value;
+      if (this.thisDevice && this.thisDevice["fsm"]) {
+        return this.thisDevice["fsm"]._elements["state"]._value;
       } else {
         return null;
       }

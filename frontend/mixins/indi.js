@@ -19,13 +19,19 @@ export default {
       if (numParts < 3) return null;
       return this.retrieveByIndiId(this.indiId);
     },
+    thisDeviceName: function() {
+      return this.thisIndiId?.split('.')[0];
+    },
     thisIndiId: function () {
       if (this.thisElement) {
-        return `${this.thisDevice.name}.${this.thisProperty.name}.${this.thisElement.name}`;
+        return `${this.thisProperty.device}.${this.thisProperty.name}.${this.thisElement.name}`;
       } else if (this.thisProperty) {
-        return `${this.thisDevice.name}.${this.thisProperty.name}`;
+        return `${this.thisProperty.device}.${this.thisProperty.name}`;
       } else if (this.thisDevice) {
-        return this.thisDevice.name;
+        for(let k of Object.keys(this.thisDevice)) {
+          return this.thisDevice[k].device;
+        }
+        
       } else {
         return null;
       }

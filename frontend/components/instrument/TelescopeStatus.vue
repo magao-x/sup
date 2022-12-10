@@ -9,7 +9,7 @@
           <div class="datum">Altitude:</div>
           <div class="value">
             <indi-value
-              :indi-id="`${thisDevice.name}.telpos.el`"
+              :indi-id="`${thisDeviceName}.telpos.el`"
               :formatFunction="(v) => String(Number(v).toFixed(4))"
             ></indi-value>º
           </div>
@@ -18,7 +18,7 @@
           <div class="datum">Azimuth:</div>
           <div class="value">
             <indi-value
-              :indi-id="`${thisDevice.name}.teldata.az`"
+              :indi-id="`${thisDeviceName}.teldata.az`"
               :formatFunction="(v) => String(Number(v).toFixed(4))"
             ></indi-value>º
           </div>
@@ -27,7 +27,7 @@
           <div class="datum">PA:</div>
           <div class="value">
           <indi-value
-            :indi-id="`${thisDevice.name}.teldata.pa`"
+            :indi-id="`${thisDeviceName}.teldata.pa`"
             :formatFunction="(v) => String(Number(v).toFixed(4))"
           ></indi-value>
           </div>
@@ -36,7 +36,7 @@
           <div class="datum">RA:</div>
           <div class="value">
             <indi-value
-              :indi-id="`${thisDevice.name}.catdata.ra`"
+              :indi-id="`${thisDeviceName}.catdata.ra`"
               :formatFunction="decimalDegreesToTime"
             ></indi-value>
           </div>
@@ -44,14 +44,14 @@
         <div class="status-item">
           <div class="datum">Dec:</div>
           <div class="value">
-            <indi-value :indi-id="`${thisDevice.name}.catdata.dec`"></indi-value>º
+            <indi-value :indi-id="`${thisDeviceName}.catdata.dec`"></indi-value>º
           </div>
         </div>
         <div class="status-item">
           <div class="datum">HA:</div>
           <div class="value">
             <indi-value
-              :indi-id="`${thisDevice.name}.telpos.ha`"
+              :indi-id="`${thisDeviceName}.telpos.ha`"
               :formatFunction="decimalHoursToTime"
             ></indi-value>
           </div>
@@ -60,7 +60,7 @@
           <div class="datum">Epoch:</div>
           <div class="value">
             <indi-value
-              :indi-id="`${thisDevice.name}.telpos.epoch`"
+              :indi-id="`${thisDeviceName}.telpos.epoch`"
               :formatFunction="(v) => String(Number(v).toFixed(1))"
             ></indi-value>
           </div>
@@ -69,7 +69,7 @@
           <div class="datum">Object:</div>
           <div class="value">
             <indi-value
-              :indi-id="`${thisDevice.name}.catalog.object`"
+              :indi-id="`${thisDeviceName}.catalog.object`"
             ></indi-value>
           </div>
         </div>
@@ -138,36 +138,25 @@ export default {
     },
   },
   computed: {
-    connected() {
-      if (!this.indiDefined) {
-        return false;
-      }
-      let state = this.retrieveValueByIndiId(`${this.thisDevice.name}.fsm.state`);
-      return state !== null && state !== "NOTCONNECTED";
-    },
     lst() {
-      if (!this.connected) {
-        return "";
+      if (this.indiDefined && this.thisDevice.teltime) {
+        const teltime = this.thisDevice.teltime;
+        return this.decimalHoursToTime(teltime._elements.sidereal_time._value);
       }
-      const teltime = this.thisDevice.properties.teltime;
-      
-      return this.decimalHoursToTime(teltime.elements.sidereal_time.value);
+      return "";
     },
     airmassPlot() {
       if (!this.connected) {
         return "";
       }
-      const catdata = this.thisDevice.properties.catdata;
-      return `/airmass?ra=${catdata.elements.ra.value}&dec=${catdata.elements.dec.value}`;
+      const catdata = this.thisDevice.catdata;
+      return `/airmass?ra=${catdata._elements.ra._value}&dec=${catdata._elements.dec._value}`;
     },
     equatorialCoords() {
-      if (!this.connected) {
-        return "";
-      }
-      const catdata = this.thisDevice.properties.catdata;
+      const catdata = this.thisDevice.catdata;
       return {
-        ra: catdata.elements.ra.value,
-        dec: catdata.elements.dec.value,
+        ra: catdata._elements.ra._value,
+        dec: catdata._elements.dec._value,
       };
     }
   },

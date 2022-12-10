@@ -19,7 +19,7 @@ export default {
   computed: {
     fps() {
       if (!this.thisDevice) return null;
-      return this.thisDevice.properties.fps;
+      return this.thisDevice.fps;
     }
   }
 };

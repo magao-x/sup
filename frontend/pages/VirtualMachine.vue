@@ -148,18 +148,18 @@ export default {
     gizmos() {
       return {};
       // if (!this.$store.devices['timeSeriesSimulator']) return {};
-      // let gizmoProps = Object.keys(this.$store.devices['timeSeriesSimulator'].properties).filter(v => v.includes('gizmo'))
+      // let gizmoProps = Object.keys(this.$store.devices['timeSeriesSimulator']).filter(v => v.includes('gizmo'))
       // console.log(gizmoProps);
       // let gizmoObjs = {};
       // for (let name of gizmoProps) {
-      //   gizmoObjs[name] = this.$store.devices['timeSeriesSimulator'].properties[name];
+      //   gizmoObjs[name] = this.$store.devices['timeSeriesSimulator'][name];
       // }
       return gizmoObjs;
     },
     amplitude: function () {
       let elt = this.$root.retrieveByIndiId('timeSeriesSimulator.duty_cycle.amplitude');
       if (elt !== null) {
-        return elt.value;
+        return elt._value;
       } else {
         return null;
       }

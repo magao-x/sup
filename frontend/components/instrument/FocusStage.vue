@@ -4,8 +4,8 @@
     <div class="flex-row">
       <div class="fw-details">
         <div><finite-state-machine-status :device="thisDevice"></finite-state-machine-status></div>
-        <indi-value :indiId="thisDevice.name + '.filter.current'"></indi-value>
-        <indi-element :indiId="thisDevice.name + '.filter.target'" inputWidth="5"></indi-element>
+        <indi-value :indiId="thisDeviceName + '.filter.current'"></indi-value>
+        <indi-element :indiId="thisDeviceName + '.filter.target'" inputWidth="5"></indi-element>
       </div>
       <div class="fw-friendly">
         <div style="display: flex; flex-wrap: wrap;">
@@ -74,8 +74,8 @@ export default {
       if (!this.thisDevice) return;
       this.sendIndiNew(
         this.thisDevice,
-        this.thisDevice.properties["home"],
-        this.thisDevice.properties["home"].elements["request"],
+        this.thisDevice["home"],
+        this.thisDevice["home"]._elements["request"],
         "On"
       );
     },
@@ -83,27 +83,26 @@ export default {
       if (!this.thisDevice) return;
       this.sendIndiNew(
         this.thisDevice,
-        this.thisDevice.properties["stop"],
-        this.thisDevice.properties["stop"].elements["request"],
+        this.thisDevice["stop"],
+        this.thisDevice["stop"]._elements["request"],
         "On"
       );
     }
   },
   computed: {
     isDisabled: function() {
-      if (!(this.thisDevice && this.thisDevice.properties["fsm"])) {
+      if (!(this.thisDevice && this.thisDevice["fsm"])) {
         return true;
       }
-      const fsmState = this.thisDevice.properties["fsm"].elements["state"]
-        .value;
+      const fsmState = this.thisDevice["fsm"]._elements["state"]._value;
       return (
         !(fsmState == "READY" || fsmState == "OPERATING") ||
         this.filterNames.state == "Busy"
       );
     },
     filterNames: function() {
-      if (this.thisDevice && this.thisDevice.properties["filterName"]) {
-        return this.thisDevice.properties["filterName"];
+      if (this.thisDevice && this.thisDevice["filterName"]) {
+        return this.thisDevice["filterName"];
       } else {
         return null;
       }
@@ -112,14 +111,14 @@ export default {
       if (this.label) {
         return this.label;
       } else if (this.thisDevice) {
-        return this.thisDevice.name;
+        return this.thisDeviceName;
       } else {
         return this.indiId;
       }
     },
     fsmState: function() {
-      if (this.thisDevice && this.thisDevice.properties["fsm"]) {
-        return this.thisDevice.properties["fsm"].elements["state"].value;
+      if (this.thisDevice && this.thisDevice["fsm"]) {
+        return this.thisDevice["fsm"]._elements["state"]._value;
       } else {
         return null;
       }

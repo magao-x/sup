@@ -39,7 +39,7 @@ export default {
     },
     scram() {
       for (let name of this.camNames) {
-        this.sendIndiNewByNames(name, "shutter", "toggle", "On");
+        this.indi.sendIndiNewByNames(name, "shutter", "toggle", "On");
       }
       this.preparing = false;
     }

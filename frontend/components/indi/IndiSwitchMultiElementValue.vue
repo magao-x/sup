@@ -18,9 +18,9 @@ export default {
         if (!(this.thisProperty.rule == 'OneOfMany')) {
             console.error("Wrong switch rule for IndiSwitchMultiElementValue");
         }
-        for (const elName in this.thisProperty.elements) {
-            const el = this.thisProperty.elements[elName];
-            if (el.value == 'On') {
+        for (const elName in this.thisProperty._elements) {
+            const el = this.thisProperty._elements[elName];
+            if (el._value == 'On') {
                 return el.label ? el.label : el.name;
             }
         }

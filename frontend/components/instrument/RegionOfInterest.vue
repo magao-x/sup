@@ -153,7 +153,7 @@ export default {
       for (const k of keys) {
         if (this.indiDefined) {
           console.log(k);
-          out[k] = this.thisDevice.properties[k].elements["current"].value;
+          out[k] = this.thisDevice[k]._elements["current"]._value;
         } else {
           out[k] = null;
         }

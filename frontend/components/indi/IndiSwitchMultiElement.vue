@@ -6,7 +6,7 @@
         :key="elem.name"
         :disabled="disabled"
         :label="elem.name"
-        :value="elem.value == 'On'"
+        :value="elem._value == 'On'"
         :busy="thisProperty.state == 'Busy'"
         @input="sendSwitch(elem)"/>
     </div>
@@ -54,7 +54,7 @@ export default {
   methods: {
     sendSwitch: function(element) {
       if (this.disabled) return;
-      if (element.value == 'Off') {
+      if (element._value == 'Off') {
         this.sendIndiNew(this.thisDevice, this.thisProperty, element, "On");
       } else {
         this.sendIndiNew(this.thisDevice, this.thisProperty, element, "Off");
@@ -68,7 +68,7 @@ export default {
       if (typeof this.columns !== "undefined") {
         cols = this.columns;
       } else {
-        cols = Object.keys(this.thisProperty.elements).length;
+        cols = Object.keys(this.thisProperty._elements).length;
       }
       for (let i = 0; i < cols; i++) {
         colBits.push("1fr");
@@ -84,16 +84,16 @@ export default {
     },
     propertyId: function() {
       if (!(this.thisDevice && this.thisProperty)) return null;
-      return this.thisDevice.name + "." + this.thisProperty.name;
+      return this.thisDeviceName + "." + this.thisProperty.name;
     },
     switchElements: function () {
       if (!(this.thisDevice && this.thisProperty)) return null;
-      return this.thisProperty.elements;
+      return this.thisProperty._elements;
     },
     selectedSwitches: function() {
       if (!this.thisProperty) return { selectedSwitches: null };
-      const enabledSwitches = Object.keys(this.thisProperty.elements).filter(
-        key => this.thisProperty.elements[key].value == "On"
+      const enabledSwitches = Object.keys(this.thisProperty._elements).filter(
+        key => this.thisProperty._elements[key]._value == "On"
       );
       return this.switchType == "checkbox"
         ? enabledSwitches

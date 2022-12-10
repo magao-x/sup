@@ -27,11 +27,11 @@ export default {
   inject: ['time'],
   methods: {
     fullIndiId(element) {
-      return `${this.thisDevice.name}.${this.thisProperty.name}.${element.name}`;
+      return `${this.thisDeviceName}.${this.thisProperty.name}.${element.name}`;
     },
     recordPoints() {
       if (!this.indiDefined) return;
-      for (let element of this.elements) {
+      for (let element of this._elements) {
         const fullId = this.fullIndiId(element);
         if (!this.recordedPlotData[fullId]) {
           // initialize recorded data as reactive property
@@ -40,7 +40,7 @@ export default {
         const eltData = this.recordedPlotData[fullId];
         // append to recorded data (only if we're getting good data)
         if (this.connectionStatus) {
-          eltData.points.push({x: this.time.currentTime, y: element.value})
+          eltData.points.push({x: this.time.currentTime, y: element._value})
         }
         // expire old data
         const filterOutdated = function (value) {
@@ -57,13 +57,13 @@ export default {
       if (this.indiDefined && this.thisProperty && this.thisElement) {
         return [this.thisElement];
       } else if (this.indiDefined && this.thisProperty) {
-        return Object.keys(this.thisProperty.elements).map(k => this.thisProperty.elements[k]);
+        return Object.keys(this.thisProperty._elements).map(k => this.thisProperty._elements[k]);
       } else {
         return [];
       }
     },
     plotData: function() {
-      if (!this.indiDefined || Object.keys(this.recordedPlotData).length != this.elements.length) {
+      if (!this.indiDefined || Object.keys(this.recordedPlotData).length != this._elements.length) {
         return {waiting: {points: []}};
       } else {
         return this.recordedPlotData;

@@ -13,46 +13,11 @@ Vue.use(VueVirtualScroller)
 
 
 function buildConnectionString() {
-  const apiPort = 8000;
-  const connectionString = window.location.protocol + '//' + window.location.hostname + ':' + String(apiPort);
+  const apiPort = 8001;
+  const wsProto = window.location.protocol == "https:" ? "wss:" : "ws:";
+  const connectionString = wsProto + '//' + window.location.hostname + ':' + String(apiPort);
   return connectionString;
 }
-
-// const socket = io(? buildConnectionString() : null);
-let socket;
-if (process.env.NODE_ENV == 'development') {
-  socket = io(buildConnectionString());
-} else {
-  socket = io();
-}
-for (let evt of ['pong', 'connect']) {
-  socket.on(evt, () => {store.commit('heartbeat');});
-}
-socket.on('connect', () => {
-  let prefix;
-  if (process.env.NODE_ENV == 'development') {
-    prefix = buildConnectionString();
-  } else {
-    prefix = "";
-  }
-  fetch(prefix + "/indi").then((resp) => resp.json()).then((data) =>{
-    store.commit('indi_init', data);
-  })
-})
-for (let evt of ['connect_error', 'connect_timeout', 'disconnect']) {
-  socket.on(evt, () => store.commit('disconnected'));
-}
-
-socket.on('connect_error', (err) => console.error("socket.io connection error", err));
-
-Vue.use(new VueSocketIO({
-    debug: false, // process.env.NODE_ENV == 'development',
-    connection: socket,
-    vuex: {
-        store,
-        actionPrefix: 'srv_'
-    }
-}));
 
 Vue.use((Vue) => {
   // Assign a unique id to each component
@@ -70,23 +35,138 @@ Vue.use((Vue) => {
   };
 });
 
+// let ws = null;
+// let webSocketIsConnected = false;
+let reconnectionTimer = null;
+let textEncoder = new TextEncoder();
+let textDecoder = new TextDecoder();
+
+
+
+
 new Vue({
-    store,
-    router,
+  store,
+  router,
     render: h => h(App),
     methods: {
       updateCurrentTime: function () {
         this.currentTime = DateTime.utc();
         setTimeout(() => { this.updateCurrentTime(); }, 1000);
-      }
+      },
+      sendIndiNewByNames: function (deviceName, propertyName, elementName, value) {
+        const payload = {
+          'device': deviceName,
+          'property': propertyName,
+          'element': elementName,
+          'value': value
+        };
+        const payloadText = JSON.stringify({'action': 'indi_new', payload});
+        this.ws.send(textEncoder.encode(payloadText));
+        console.log('Emitted indi_new', payloadText);
+      },
+      onWebSocketOpen(event) {
+        this.webSocketIsConnected = true;
+        this.ws.send(textEncoder.encode(JSON.stringify({hello: "world"})));
+      },
+      onWebSocketMessage(event) {
+        event.data.arrayBuffer().then((buf) => {
+          let msg = JSON.parse(textDecoder.decode(buf));
+          console.log(msg)
+          if (msg.action == "init") {
+            this.reinitializeIndiWorld(msg.payload);
+            // this.indiWorld = msg.payload;
+          } else if (msg.action == "batch_update") {
+            this.batchUpdate(msg.payload);
+          }
+        });
+      },
+      onWebSocketClose(event) {
+        this.webSocketIsConnected = false;
+        // this.indiWorld = {};
+        this.purgeIndiWorld();
+      },
+      onWebSocketError(event) {
+        console.error(event);
+        this.ws.close();
+      },      
+      connectWebSocket() {
+        if (this.ws !== null && (this.ws.readyState == WebSocket.CONNECTING || this.ws.readyState == WebSocket.OPEN)) {
+          return this.ws;
+        }
+        const connectionURL = buildConnectionString() + "/websocket";
+        console.log("Connecting to", connectionURL)
+        let ws = new WebSocket(connectionURL);
+        ws.addEventListener('open', this.onWebSocketOpen);
+        ws.addEventListener('message', this.onWebSocketMessage);
+        ws.addEventListener('close', this.onWebSocketClose);
+        ws.addEventListener('error', this.onWebSocketError);
+        this.ws = ws;
+        return ws;
+      },
+      initializeIndiWorld: function() {
+        this.connectWebSocket();
+      },
+      purgeIndiWorld: function() {
+        for (let deviceName of Object.keys(this.indiWorld)) {
+          let device = payload[deviceName]
+          for (let propertyName of Object.keys(device)) {
+            Vue.delete(this.indiWorld[deviceName][propertyName]);
+          }
+        }
+      },
+      reinitializeIndiWorld: function(payload) {
+        for (let deviceName of Object.keys(payload)) {
+          let device = payload[deviceName]
+          for (let propertyName of Object.keys(device)) {
+            this.singlePropertyUpdate(deviceName, propertyName, device[propertyName]);
+          }
+        }
+      },
+      batchUpdate(payload) {
+        const updates = payload.updates;
+        const deletions = payload.deletions;
+        for (let propSpec of deletions) {
+          let [deviceName, propertyName] = propSpec.split(".");
+          this.singlePropertyDelete(deviceName, propertyName);
+        }
+        for (let propSpec of Object.keys(updates)) {
+          let [deviceName, propertyName] = propSpec.split(".");
+          this.singlePropertyUpdate(deviceName, propertyName, updates[propSpec]);
+        }
+      },
+      singlePropertyDelete(deviceName, propertyName) {
+        Vue.delete(this.indiWorld[deviceName], propertyName);
+      },
+      singlePropertyUpdate(deviceName, propertyName, state) {
+        if (!this.indiWorld.hasOwnProperty(deviceName)) {
+          Vue.set(this.indiWorld, deviceName, {});
+        }
+        Vue.set(this.indiWorld[deviceName], propertyName, state);
+      },
     },
     data() {
       return {
-        currentTime: DateTime.utc()
+        currentTime: DateTime.utc(),
+        indiWorld: {},
+        ws: null,
+        webSocketIsConnected: false,
+        reconnectionTimer: null,
       };
     },
     mounted() {
       this.updateCurrentTime();
+      this.initializeIndiWorld();
+      this.reconnectionTimer = setInterval(() => {
+        if(this.ws === null || this.ws.readyState == WebSocket.CLOSED || this.ws.readyState == WebSocket.CLOSING ) {
+          this.connectWebSocket();
+        }
+      }, 1000);
+      console.log("Set reconnectionTimer", reconnectionTimer);
+    },
+    beforeUnmount() {
+      if (this.reconnectionTimer) {
+        clearInterval(this.reconnectionTimer);
+      }
     },
     provide: function () {
       const time = {}
@@ -94,7 +174,12 @@ new Vue({
          enumerable: true,
          get: () => this.currentTime,
       })
-      return { time }
+      const indi = {sendIndiNewByNames: this.sendIndiNewByNames};
+      Object.defineProperty(indi, 'world', {
+         enumerable: true,
+         get: () => this.indiWorld,
+      })
+      return { time, indi }
     }
   }).$mount('#app')
 

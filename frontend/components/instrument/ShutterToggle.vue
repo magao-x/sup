@@ -38,7 +38,7 @@ export default {
       } else {
         return;
       }
-      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty.elements["target"], newTarget);
+      this.sendIndiNew(this.thisDevice, this.thisProperty, this.thisProperty._elements["target"], newTarget);
       // this.busy = true;
       // console.log(`Would have sent ${newTarget}`)
     }
@@ -55,11 +55,11 @@ export default {
     
     thisProperty() {
       if (!this.thisDevice) return null;
-      return this.thisDevice.properties['shutter'];
+      return this.thisDevice['shutter'];
     },
     currentState: function () {
       if (!this.thisDevice) return null;
-      return this.thisProperty.elements["toggle"].value;
+      return this.thisProperty._elements["toggle"]._value;
       // return "OPEN";
     },
     shutterState: function () {
@@ -67,7 +67,7 @@ export default {
     },
     isDisabled() {
       console.log(this.thisDevice);
-      return this.disabled || this.thisDevice.properties['shutter_status'].elements['status'] == "POWEROFF";
+      return this.disabled || this.thisDevice['shutter_status']._elements['status'] == "POWEROFF";
     }
   }
 };

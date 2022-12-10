@@ -64,7 +64,7 @@ export default {
     },
     switchValue: function () {
       
-      return this.thisElement && this.thisElement.value == 'On';
+      return this.thisElement && this.thisElement._value == 'On';
     }
   }
 };

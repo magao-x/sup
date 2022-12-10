@@ -28,7 +28,7 @@ export default new Vuex.Store({
         state.webSocketConnection.connected = false;
         state.indiConnection.connected = false;
       },
-      
+
       updateTime (state, payload) {
         const { localSiderealTime, UTC } = payload;
         state.localSiderealTime = localSiderealTime;
@@ -49,16 +49,13 @@ export default new Vuex.Store({
         let {deviceName, propertyName, propertyState} = payload;
         if (typeof state.devices[deviceName] === "undefined") {
           // create device entry if necessary
-          Vue.set(state.devices, deviceName, {
-            "name": deviceName,
-            "properties": {}
-          });
+          Vue.set(state.devices, deviceName, {});
         }
-        if (typeof state.devices[deviceName].properties[propertyName] === "undefined") {
+        if (typeof state.devices[deviceName][propertyName] === "undefined") {
           // create device entry if necessary
-          Vue.set(state.devices[deviceName].properties, propertyName, propertyState);
+          Vue.set(state.devices[deviceName], propertyName, propertyState);
         } else {
-          state.devices[deviceName].properties[propertyName] = propertyState;
+          state.devices[deviceName][propertyName] = propertyState;
         }
 
       },
@@ -67,7 +64,7 @@ export default new Vuex.Store({
         if (propertyName === "*") {
           Vue.delete(state.devices, deviceName);
         } else {
-          Vue.delete(state.devices[deviceName].properties, propertyName);
+          Vue.delete(state.devices[deviceName], propertyName);
         }
       }
     },

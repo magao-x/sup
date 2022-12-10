@@ -120,7 +120,7 @@ export default {
     },
     dottedName: function() {
       return (
-        this.thisDevice.name + "." + this.thisProperty.name + "." + this.thisElement.name
+        this.thisDeviceName + "." + this.thisProperty.name + "." + this.thisElement.name
       );
     },
     displayName: function() {
@@ -132,7 +132,7 @@ export default {
     },
     currentValue: function() {
       if (this.thisElement) {
-        return this.thisElement.value;
+        return this.thisElement._value;
       } else {
         return "";
       }
@@ -152,7 +152,7 @@ export default {
       if (
         this.element &&
         this.element.name === "current" &&
-        this.thisProperty.elements.hasOwnProperty("target")
+        this.thisProperty._elements.hasOwnProperty("target")
       ) {
         return true;
       }
