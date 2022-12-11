@@ -55,7 +55,7 @@ let reconnectionTimer = null;
 let textEncoder = new TextEncoder();
 let textDecoder = new TextDecoder();
 
-
+const MAX_LOG_ENTRIES = 1000;
 
 
 new Vue({
@@ -144,6 +144,10 @@ new Vue({
           this.singlePropertyUpdate(deviceName, propertyName, updates[propSpec]);
         }
         this.lastUpdate = DateTime.utc();
+        this.systemLogs = this.systemLogs.concat(payload.logs);
+        if (this.systemLogs.length > MAX_LOG_ENTRIES) {
+          this.systemLogs.splice(0, this.systemLogs.length - MAX_LOG_ENTRIES);
+        }
       },
       singlePropertyDelete(deviceName, propertyName) {
         Vue.delete(this.indiWorld[deviceName], propertyName);
@@ -159,6 +163,7 @@ new Vue({
       return {
         currentTime: DateTime.utc(),
         indiWorld: {},
+        systemLogs: [],
         ws: null,
         webSocketIsConnected: false,
         lastUpdate: null,
@@ -193,6 +198,10 @@ new Vue({
          enumerable: true,
          get: () => this.indiWorld,
       })
+      Object.defineProperty(indi, 'logs', {
+        enumerable: true,
+        get: () => this.systemLogs,
+     })
       Object.defineProperty(indi, 'lastUpdate', {
         enumerable: true,
         get: () => this.lastUpdate,
