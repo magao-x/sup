@@ -56,10 +56,10 @@ export default {
   components: { PlotComponent },
   computed: {
     ra() {
-      return this.equatorialCoords.ra;
+      if (this.equatorialCoords) return this.equatorialCoords.ra;
     },
     dec() {
-      return this.equatorialCoords.dec;
+      if (this.equatorialCoords) return this.equatorialCoords.dec;
     },
     altitudePlotData() {
       return {"altitude": {points: this.altitudes}};

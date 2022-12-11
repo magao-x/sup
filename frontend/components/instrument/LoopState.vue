@@ -45,7 +45,7 @@ export default {
       return `${this.indiId} ${clopen}`;
     },
     gain: function() {
-      if (!this.thisDevice) return "?";
+      if (!(this.thisDevice && this.thisDevice.loop_state)) return "?";
       if (!this.loopClosed) return "";
       const gain = this.thisDevice['loop_gain']._elements['current']._value
       return gain.toFixed(2);
