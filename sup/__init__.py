@@ -207,14 +207,6 @@ async def emit_updates():
             traceback.print_exc(file=sys.stdout)
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
-# def make_indi_connection(potemkin=False):
-#     if potemkin:
-#         with open(Path(__file__).parent / 'demo_full_system_state.json', 'r') as f:
-#             initial_state = orjson.loads(f.read())
-#         return BogusINDIClient(sio, initial_state)
-#     else:
-#         return purepyindi2.IndiClient(purepyindi2.AsyncIndiTcpConnection(host=CONFIG['indi_host'], port=CONFIG['indi_port']))
-
 CONFIG = {
     'indi_host': '127.0.0.1',
     'indi_port': 7624,
@@ -224,10 +216,10 @@ CONFIG = {
 def main(indi_host, indi_port, potemkin, bind_host, bind_port):
     global CONFIG
     logging.basicConfig(level='WARN')
-    log.set_log_level('DEBUG')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
+    log.setLevel('DEBUG')
     uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
@@ -281,79 +273,6 @@ def orjson_to_utf8(obj):
     return buf.decode('utf8')
 
 RUNNING_TASKS = set()
-VIZZY_API_URL = 'https://vizzy.xwcl.science/api/magao-x/events'
-async def vizzy_relay(message_queue):
-    async with aiohttp.ClientSession(json_serialize=orjson_to_utf8) as session:
-        while True:
-            msgdict = await message_queue.get()
-            print(f'vizzy_relay: got {msgdict}')
-            if app.state.should_notify:
-                async with session.post(VIZZY_API_URL, json=msgdict) as resp:
-                    print(resp.status)
-                    print(await resp.json())
-
-last_pointing_announced = None
-
-async def register_onsky(indi_client, indi_notifier, vizzy_queue):
-    print("Registering stuff for real ops")
-    not_real_stars = set(('none', 'Pointing'))
-    async def pointing_changes(indi_id, catalog_name):
-        global last_pointing_announced
-        if catalog_name == 'UNKNOWN' or catalog_name in not_real_stars:
-            return
-        simbad_search_url = f"http://simbad.u-strasbg.fr/simbad/sim-id?Ident={catalog_name}&NbIdent=1&Radius=2&Radius.unit=arcmin&submit=submit+id"
-        msgdict = {
-            'message': f'Pointing at <{simbad_search_url}|{catalog_name}>',
-            'channel': '#observing',
-        }
-        print(msgdict)
-        if catalog_name != last_pointing_announced:
-            await vizzy_queue.put(msgdict)
-            last_pointing_announced = catalog_name
-    await indi_notifier.add_notifier(
-        'tcsi.catalog.object',
-        handler=pointing_changes
-    )
-    # async def on_sky_loop_changes(indi_id, current_value):
-    #     if indi_client['pdu0.source.state'] == 'On' or indi_client['stagepickoff.presetName.in'] == SwitchState.ON:
-    #         return
-    #     try:
-    #         target_message = f" on {indi_client['tcsi.catalog.object']}"
-    #     except KeyError:
-    #         target_message = ''
-    #     if current_value == SwitchState.ON:
-    #         msgdict = {
-    #             'message': f'Loop is closed{target_message}! :star2:',
-    #             'channel': '#observing'
-    #         }
-    #     elif current_value == SwitchState.OFF:
-    #         msgdict = {
-    #             'message': f'Loop is open!',
-    #             'channel': '#observing'
-    #         }
-    #     print(msgdict)
-    #     await vizzy_queue.put(msgdict)
-    # await indi_notifier.add_notifier(
-    #     'holoop.loop_state.toggle',
-    #     handler=on_sky_loop_changes
-    # )
-
-async def register_transitions(indi_client, indi_notifier, vizzy_queue):
-    print("Registering transition notifiers")
-    async def function_out_transition(indi_id, previous_value, now):
-        print('timeSeriesSimulator.function_out.value was=0, now=1')
-    await indi_notifier.add_transition('timeSeriesSimulator.function_out.value', was=0, now=1, handler=function_out_transition)
-    async def function_selected_transition(indi_id, current_value):
-        if current_value is constants.SwitchState.ON:
-            msg = f'{indi_id} now {current_value}'
-            await vizzy_queue.put(msg)
-    for name in ['constant', 'cos', 'sin', 'square']:
-        await indi_notifier.add_notifier(
-            f'timeSeriesSimulator.function.{name}',
-            handler=function_selected_transition
-        )
-    if MAGAOX_ROLE == 'AOC':
-        await register_onsky(indi_client, indi_notifier, vizzy_queue)
 
 async def trigger_get_properties(message):
     log.debug(f"Trigger get properties: {message}")
@@ -368,26 +287,11 @@ async def spawn_tasks():
     app.indi_batcher = INDIUpdateBatcher(app.indi)
     loop.create_task(conn.add_async_callback(constants.TransportEvent.inbound, app.indi_batcher.process_update))
 
-    app.vizzy_queue = asyncio.Queue()
-
-    # app.indi_notifier = INDIStateTransitionNotifier(app.indi)
-    # await register_transitions(app.indi, app.indi_notifier, app.vizzy_queue)
-    # app.indi.add_async_watcher(app.indi_notifier.process_update)
-
     indi_coro = app.indi.connection.run()
     RUNNING_TASKS.add(loop.create_task(indi_coro))
-    # if CONFIG['potemkin']:
-    #     fiddling_coro = app.indi.fiddle_connection_status()
-    #     RUNNING_TASKS.add(loop.create_task(fiddling_coro))
 
     emit_updates_coro = emit_updates()
     RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
-
-    # app.state.should_notify = os.environ.get('SUP_VIZZY') is not None
-    # if app.state.should_notify:
-    #     print("Initialized vizzy relay")
-    # vizzy_relay_coro = vizzy_relay(app.vizzy_queue)
-    # RUNNING_TASKS.add(loop.create_task(vizzy_relay_coro))
 
 async def cancel_tasks():
     await app.indi.connection.stop()
@@ -408,7 +312,7 @@ class SupWebSocket(WebSocketEndpoint):
 
     async def on_receive(self, websocket, data):
         data_obj = orjson.loads(data)
-        print(data_obj)
+        log.debug(f"Recv from {websocket.client.host}: {data_obj}")
         if data_obj.get('action') == 'indi_new':
             payload = data_obj['payload']
             if not (
