@@ -73,7 +73,6 @@ export default {
     sendHome: function() {
       if (!this.thisDevice) return;
       this.sendIndiNew(
-        this.thisDevice,
         this.thisDevice["home"],
         this.thisDevice["home"]._elements["request"],
         "On"
@@ -82,7 +81,6 @@ export default {
     sendStop: function() {
       if (!this.thisDevice) return;
       this.sendIndiNew(
-        this.thisDevice,
         this.thisDevice["stop"],
         this.thisDevice["stop"]._elements["request"],
         "On"
