@@ -111,6 +111,10 @@
           </tr>
         </tbody>
       </table>
+      <div class="padded view gap-bottom">
+        <log-stream>
+        </log-stream>
+      </div>
       <div class="status-tiles">
         <div class="status-tile view" v-for="filterWheelName in otherFilterWheels" :key="filterWheelName">
           <div>
@@ -208,6 +212,7 @@ import IndiSwitchMultiElement from "../components/indi/IndiSwitchMultiElement.vu
 import IndiSwitchDropdown from '~/components/indi/IndiSwitchDropdown.vue';
 import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
 import TelescopeStatus from "../components/instrument/TelescopeStatus.vue";
+import LogStream from "~/components/instrument/LogStream.vue";
 import MaterialIcon from '../components/basic/MaterialIcon.vue';
 import FiniteStateMachineStatus from '../components/instrument/FiniteStateMachineStatus.vue';
 import IndiMomentarySwitch from '../components/indi/IndiMomentarySwitch.vue';
@@ -241,6 +246,7 @@ export default {
     IndiSwitchDropdown,
     IndiMomentarySwitch,
     IndiSwitchMultiElement,
+    LogStream,
   },
 };
 </script>
