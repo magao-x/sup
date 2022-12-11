@@ -200,10 +200,10 @@ async def emit_updates():
             for websocket in connected_clients:
                 try:
                     await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
-                except websockets.exceptions.ConnectionClosedOK:
-                    pass
+                except Exception as e:
+                    log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
         except Exception as e:
-            warn(f"Exception in emit_updates(): {type(e)=} {e}")
+            log.warning(f"Exception in emit_updates(): {type(e)=} {e}")
             traceback.print_exc(file=sys.stdout)
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
