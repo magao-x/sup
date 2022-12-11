@@ -40,7 +40,7 @@ export default {
       return this.thisDevice['loop_state']._elements['toggle']._value == "On";
     },
     state: function() {
-      if (!this.thisDevice) return "waiting for AO state";
+      if (!(this.thisDevice && this.thisDevice.loop_state)) return "waiting for AO state";
       const clopen = this.loopClosed ? "closed" : "open";
       return `${this.indiId} ${clopen}`;
     },

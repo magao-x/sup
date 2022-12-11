@@ -153,11 +153,13 @@ export default {
       return `/airmass?ra=${catdata._elements.ra._value}&dec=${catdata._elements.dec._value}`;
     },
     equatorialCoords() {
-      const catdata = this.thisDevice.catdata;
-      return {
-        ra: catdata._elements.ra._value,
-        dec: catdata._elements.dec._value,
-      };
+      if (this.indiDefined && this.thisDevice.catdata) {
+        const catdata = this.thisDevice.catdata;
+        return {
+          ra: catdata._elements.ra._value,
+          dec: catdata._elements.dec._value,
+        };
+      }
     }
   },
 };

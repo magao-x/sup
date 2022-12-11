@@ -102,7 +102,7 @@ export default {
   },
   watch: {
     async equatorialCoords(oldCoords, newCoords) {
-      if (oldCoords.ra !== newCoords.ra || oldCoords.dec !== newCoords.dec) {
+      if (newCoords && (oldCoords.ra !== newCoords.ra || oldCoords.dec !== newCoords.dec)) {
         console.log("loading plot data from watcher");
         await this.loadPlotData();
       }
