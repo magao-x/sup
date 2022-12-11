@@ -2,38 +2,7 @@
   <div class="telescope-status" v-if="indi.connected">
       <div class="super-important view gap-bottom">
         <div class="status-item">
-          <div class="datum">LST:</div>
-          <div class="value">{{ lst }}</div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Altitude:</div>
-          <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.telpos.el`"
-              :formatFunction="(v) => String(Number(v).toFixed(4))"
-            ></indi-value>º
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Azimuth:</div>
-          <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.teldata.az`"
-              :formatFunction="(v) => String(Number(v).toFixed(4))"
-            ></indi-value>º
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">PA:</div>
-          <div class="value">
-          <indi-value
-            :indi-id="`${thisDeviceName}.teldata.pa`"
-            :formatFunction="(v) => String(Number(v).toFixed(4))"
-          ></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">RA:</div>
+          <div class="datum">Right Ascension:</div>
           <div class="value">
             <indi-value
               :indi-id="`${thisDeviceName}.catdata.ra`"
@@ -42,27 +11,9 @@
           </div>
         </div>
         <div class="status-item">
-          <div class="datum">Dec:</div>
+          <div class="datum">Declination:</div>
           <div class="value">
             <indi-value :indi-id="`${thisDeviceName}.catdata.dec`"></indi-value>º
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">HA:</div>
-          <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.telpos.ha`"
-              :formatFunction="decimalHoursToTime"
-            ></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Epoch:</div>
-          <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.telpos.epoch`"
-              :formatFunction="(v) => String(Number(v).toFixed(1))"
-            ></indi-value>
           </div>
         </div>
         <div class="status-item">
@@ -73,11 +24,60 @@
             ></indi-value>
           </div>
         </div>
+        <div class="status-item">
+          <div class="datum">Hour Angle:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDeviceName}.telpos.ha`"
+              :formatFunction="decimalHoursToTime"
+            ></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Altitude:</div>
+          <div class="value">
+            <indi-value
+            :indi-id="`${thisDeviceName}.telpos.el`"
+            :formatFunction="(v) => String(Number(v).toFixed(4))"
+            ></indi-value>º
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Azimuth:</div>
+          <div class="value">
+            <indi-value
+            :indi-id="`${thisDeviceName}.teldata.az`"
+            :formatFunction="(v) => String(Number(v).toFixed(4))"
+            ></indi-value>º
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Local Sidereal Time:</div>
+          <div class="value">{{ lst }}</div>
+        </div>
+        <div class="status-item">
+          <div class="datum">PA:</div>
+          <div class="value">
+            <indi-value
+            :indi-id="`${thisDeviceName}.teldata.pa`"
+            :formatFunction="(v) => String(Number(v).toFixed(4))"
+            ></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Epoch:</div>
+          <div class="value">
+            <indi-value
+            :indi-id="`${thisDeviceName}.telpos.epoch`"
+            :formatFunction="(v) => String(Number(v).toFixed(1))"
+            ></indi-value>
+          </div>
+        </div>
       </div>
       <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
-  </div>
-  <div v-else class="view">Waiting for tcsi...</div>
-</template>
+    </div>
+    <div v-else class="view">Waiting for tcsi...</div>
+  </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
