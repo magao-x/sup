@@ -399,17 +399,14 @@ connected_clients = []
 class SupWebSocket(WebSocketEndpoint):
     encoding = "bytes"
     async def on_connect(self, websocket):
-        print('in on_connect')
         connected_clients.append(websocket)
         await websocket.accept()
         await websocket.send_bytes(orjson.dumps({
             'action': 'init',
             'payload': app.indi.to_serializable()['devices'],
         }))
-        print('setn')
 
     async def on_receive(self, websocket, data):
-        print('in on_receive')
         data_obj = orjson.loads(data)
         print(data_obj)
         if data_obj.get('action') == 'indi_new':
@@ -422,11 +419,13 @@ class SupWebSocket(WebSocketEndpoint):
             ):
                 log.error("Received invalid message: {data_obj}")
                 return
-            app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = payload['value']
+            try:
+                app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = payload['value']
+            except Exception as e:
+                log.exception(f"Swallowed exception: Couldn't set INDI value from {payload}")
 
 
     async def on_disconnect(self, websocket, close_code):
-        print('in on_disconnect')
         try:
             idx = connected_clients.index(websocket)
             connected_clients.pop(idx)
