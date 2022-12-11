@@ -414,8 +414,15 @@ class SupWebSocket(WebSocketEndpoint):
         print(data_obj)
         if data_obj.get('action') == 'indi_new':
             payload = data_obj['payload']
+            if not (
+                'device' in payload and
+                'property' in payload and
+                'element' in payload and
+                'value' in payload
+            ):
+                log.error("Received invalid message: {data_obj}")
+                return
             app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = payload['value']
-        await websocket.send_bytes(data)
 
 
     async def on_disconnect(self, websocket, close_code):
