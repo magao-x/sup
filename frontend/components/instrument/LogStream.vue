@@ -1,20 +1,22 @@
 <template>
-  <div class="short">
+  <div>
     <div class="levels">
       <div class="oneLevel" v-for="l in levels">
         <input :id="l" v-model="showLevels" :value="l" type="checkbox"><label :for="l">{{ l }}</label>
       </div>
     </div>
-    <table v-if="mungedLogs.length > 0">
-      <tbody>
-        <tr v-for="log in mungedLogs">
-          <td class="timestamp">{{ log.timestamp }}</td>
-          <td class="level" :class="log.icon"><material-icon :name="log.icon"></material-icon>&nbsp;{{ log.level }}</td>
-          <td class="device">{{ log.device }}</td>
-          <td>{{ log.message }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="short" v-if="mungedLogs.length > 0">
+      <table>
+        <tbody>
+          <tr v-for="log in mungedLogs">
+            <td class="timestamp">{{ log.timestamp }}</td>
+            <td class="level" :class="log.icon"><material-icon :name="log.icon"></material-icon>&nbsp;{{ log.level }}</td>
+            <td class="device">{{ log.device }}</td>
+            <td>{{ log.message }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <div class="noLogs" v-else>
       no logs matching these filters
     </div>
@@ -26,8 +28,10 @@
 .levels {
   display: flex;
   width: 100%;
+
   .oneLevel {
     flex: 1;
+
     label {
       padding: 0 1em;
     }
