@@ -97,7 +97,7 @@ export default {
       this.sendIndiNew(
         this.thisProperty,
         this.thisElement,
-        this.userInput
+        this.currentValueOrInput
       );
       this.shouldUpdate = true;
     }
