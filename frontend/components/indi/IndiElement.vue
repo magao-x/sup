@@ -95,7 +95,6 @@ export default {
     },
     onCommit: function () {
       this.sendIndiNew(
-        this.thisDevice,
         this.thisProperty,
         this.thisElement,
         this.userInput
