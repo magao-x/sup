@@ -18,16 +18,13 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 from pprint import pformat
+import websockets
 
 import aiohttp
 import astropy.units as u
-import matplotlib.pyplot as plt
 import orjson
-import pkg_resources
-import socketio
 import toml
 import uvicorn
-import uvloop
 from astroplan import FixedTarget, Observer
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
@@ -43,6 +40,9 @@ from starlette.routing import Route, WebSocketRoute
 
 # from .indi import BogusINDIClient, SupINDIClient
 from .log import critical, debug, error, info, set_log_level, warn
+
+log = logging.getLogger(__name__)
+
 from .utils import OrjsonResponse
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
@@ -198,9 +198,10 @@ async def emit_updates():
         try:
             batch = await app.indi_batcher.generate_batch()
             for websocket in connected_clients:
-                await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
-            # if batch is not None:
-                # await sio.emit('indi_batch_update', batch)
+                try:
+                    await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
+                except websockets.exceptions.ConnectionClosedOK:
+                    pass
         except Exception as e:
             warn(f"Exception in emit_updates(): {type(e)=} {e}")
             traceback.print_exc(file=sys.stdout)
