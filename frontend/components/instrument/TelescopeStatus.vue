@@ -75,6 +75,45 @@
         </div>
       </div>
       <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
+      <div class="status-tiles gap-bottom">
+        <div class="status-tile view">
+          <div>
+            <span class="name">seeing</span>
+          </div>
+          <span v-if="retrieveValueByIndiId('tcsi.seeing.mag1_fwhm_corr') > 0">
+            Baade: <indi-value indi-id="tcsi.seeing.mag1_fwhm_corr"></indi-value>&Prime;
+          </span>
+          <span v-else>
+            no Baade
+          </span>
+          /
+          <span v-if="retrieveValueByIndiId('tcsi.seeing.dimm_fwhm_corr') > 0">
+            DIMM: <indi-value indi-id="tcsi.seeing.dimm_fwhm_corr"></indi-value>&Prime;
+          </span>
+          <span v-else>
+            no DIMM
+          </span>
+        </div>
+        <div class="status-tile view">
+          <div>
+            <span class="name">ambient temp.</span>
+          </div>
+          <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
+        </div>
+        <div class="status-tile view">
+          <div>
+            <span class="name">wind</span>
+          </div>
+          <indi-value indi-id="tcsi.environment.wind"></indi-value> Mph @ <indi-value
+            indi-id="tcsi.environment.winddir"></indi-value>º
+        </div>
+        <div class="status-tile view">
+          <div>
+            <span class="name">humidity / dewpoint</span>
+          </div>
+          <indi-value indi-id="tcsi.environment.humidity"></indi-value>% / <indi-value indi-id="tcsi.environment.dewpoint"></indi-value>ºC
+        </div>
+      </div>
     </div>
     <div v-else class="view">Waiting for tcsi...</div>
   </template>

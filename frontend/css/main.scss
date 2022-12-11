@@ -201,3 +201,23 @@ select {
 }
 
 .gap-bottom { margin-bottom: $unit; }
+
+
+.status-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+  gap: $unit;
+  align-items: stretch;
+
+  .status-tile {
+    margin-bottom: 0;
+    text-align: center;
+    padding: $medgap;
+
+    .name {
+      color: var(--fg-active);
+      font-weight: bold;
+    }
+  }
+}

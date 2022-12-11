@@ -35,7 +35,7 @@ export default {
     },
     retrieveValueByIndiId: function (indiId) {
       const elt = this.retrieveByIndiId(indiId);
-      if (elt && elt.hasOwnProperty('value')) {
+      if (elt && elt.hasOwnProperty('_value')) {
         return elt._value;
       } else {
         return null;
