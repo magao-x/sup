@@ -1,5 +1,5 @@
 <template>
-  <span class="fsm" :class="fsmState?.toLowerCase()" :title="fsmState?.toLowerCase()"><span v-if="verbose">{{ fsmState }}</span> <material-icon :name="fsmStateIcon"></material-icon></span>
+  <span class="fsm" :class="fsmState.toLowerCase()" :title="fsmState.toLowerCase()"><span v-if="verbose">{{ fsmState }}</span> <material-icon :name="fsmStateIcon"></material-icon></span>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
@@ -64,7 +64,7 @@ export default {
   mixins: [indi, utils],
   computed: {
     fsmState() {
-      if (!this.indiDefined || !this.thisDevice.hasOwnProperty("fsm")) return "waiting";
+      if (!this.indiDefined || !this.thisDevice.hasOwnProperty("fsm") || !this.thisDevice.fsm._elements.hasOwnProperty("state")) return "waiting";
       return this.thisDevice["fsm"]._elements["state"]._value;
     },
     fsmStateIcon() {
