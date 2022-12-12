@@ -13,7 +13,10 @@
         <div class="status-item">
           <div class="datum">Declination:</div>
           <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.catdata.dec`"></indi-value>º
+            <indi-value
+              :indi-id="`${thisDeviceName}.catdata.dec`"
+              :formatFunction="decimalDegreesToDMS"
+            ></indi-value>
           </div>
         </div>
         <div class="status-item">
@@ -87,8 +90,8 @@
             no Baade
           </span>
           /
-          <span v-if="retrieveValueByIndiId('tcsi.seeing.dimm_fwhm_corr') > 0">
-            DIMM: <indi-value indi-id="tcsi.seeing.dimm_fwhm_corr"></indi-value>&Prime;
+          <span v-if="retrieveValueByIndiId('tcsi.seeing.dimm_fwhm') > 0">
+            DIMM: <indi-value indi-id="tcsi.seeing.dimm_fwhm"></indi-value>&Prime;
           </span>
           <span v-else>
             no DIMM
@@ -175,6 +178,14 @@ export default {
       const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
       return `${hours}:${minutes}:${seconds}`;
     },
+    decimalDegreesToDMS(value) {
+      const deg = Math.floor(value);
+      let fracDeg = (value - deg) * 60;
+      const min = String(Math.floor(fracDeg)).padStart(2, "0");
+      fracDeg = (fracDeg - Math.floor(fracDeg)) * 60;
+      const sec = String(Math.floor(fracDeg)).padStart(2, "0");
+      return `${deg}º${min}'${sec}"`;
+    }
   },
   computed: {
     lst() {
