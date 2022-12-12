@@ -1,5 +1,5 @@
 <template>
-  <span class="fsm" :class="fsmState.toLowerCase()" :title="fsmState.toLowerCase()"><span v-if="verbose">{{ fsmState }}</span> <material-icon :name="fsmStateIcon"></material-icon></span>
+  <span class="fsm" :class="fsmState?.toLowerCase()" :title="fsmState?.toLowerCase()"><span v-if="verbose">{{ fsmState }}</span> <material-icon :name="fsmStateIcon"></material-icon></span>
 </template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";

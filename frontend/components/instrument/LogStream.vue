@@ -34,6 +34,7 @@
 
     label {
       padding: 0 1em;
+      font-family: monospace;
     }
   }
 }

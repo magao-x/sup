@@ -358,7 +358,7 @@ app = Starlette(
 
 
 logging.basicConfig(level='WARN')
-set_log_level(os.environ.get('SUP_LOG_LEVEL', 'ERROR'))
+log.setLevel(os.environ.get('SUP_LOG_LEVEL', 'DEBUG'))
 
 if __name__ == '__main__':
     console_entrypoint()
