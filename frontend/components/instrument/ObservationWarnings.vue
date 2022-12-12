@@ -42,6 +42,13 @@ export default {
                     condition: this.retrieveValueByIndiId('flipacq.position.in') == 'On'
                 },
                 {
+                    message: "fwscind is in the beam",
+                    condition: !labMode && !(
+                        this.retrieveValueByIndiId('fwscind.filterName.open') == 'On' ||
+                        this.retrieveValueByIndiId('fwscind.filterName.open2') == 'On'
+                    )
+                },
+                {
                     message: "flipwfsf is in the beam",
                     condition: !labMode && this.retrieveValueByIndiId('flipwfsf.position.in') == 'On'
                 },
