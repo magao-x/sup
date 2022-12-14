@@ -27,6 +27,7 @@ export default {
     property: Object,
     element: Object,
     indiId: String,
+    disabled: Boolean,
     labelOn: {
       type: String,
       default: () => 'On',
@@ -56,11 +57,11 @@ export default {
   },
   computed: {
     switchBusy: function () {
-      return !this.thisProperty || this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert" || this.pendingUpdate;
+      return this.switchDisabled || !this.thisProperty || this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert" || this.pendingUpdate;
     },
     switchDisabled: function () {
       if (!this.thisProperty) return true;
-      return this.thisProperty.perm == 'ro';
+      return this.disabled || this.thisProperty.perm == 'ro';
     },
     switchValue: function () {
       return this.thisElement && this.thisElement._value == 'On';

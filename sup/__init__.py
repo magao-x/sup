@@ -275,8 +275,9 @@ def orjson_to_utf8(obj):
 RUNNING_TASKS = set()
 
 async def trigger_get_properties(message):
-    log.debug(f"Trigger get properties: {message}")
-    app.indi.get_properties()
+    if message is constants.ConnectionStatus.CONNECTED:
+        log.debug(f"Trigger get properties: {message}")
+        app.indi.get_properties()
 
 async def spawn_tasks():
     loop = asyncio.get_event_loop()
@@ -287,7 +288,7 @@ async def spawn_tasks():
     app.indi_batcher = INDIUpdateBatcher(app.indi)
     loop.create_task(conn.add_async_callback(constants.TransportEvent.inbound, app.indi_batcher.process_update))
 
-    indi_coro = app.indi.connection.run()
+    indi_coro = app.indi.connection.run(reconnect_automatically=True)
     RUNNING_TASKS.add(loop.create_task(indi_coro))
 
     emit_updates_coro = emit_updates()

@@ -1,8 +1,8 @@
 <template>
-  <div class="telescope-status" v-if="indi.connected">
+  <div class="telescope-status" v-if="indiDefined">
       <div class="super-important view gap-bottom">
         <div class="status-item">
-          <div class="datum">Right Ascension:</div>
+          <div class="datum">RA:</div>
           <div class="value">
             <indi-value
               :indi-id="`${thisDeviceName}.catdata.ra`"
@@ -55,7 +55,7 @@
           </div>
         </div>
         <div class="status-item">
-          <div class="datum">Local Sidereal Time:</div>
+          <div class="datum">LST:</div>
           <div class="value">{{ lst }}</div>
         </div>
         <div class="status-item">
@@ -99,12 +99,6 @@
         </div>
         <div class="status-tile view">
           <div>
-            <span class="name">ambient temp.</span>
-          </div>
-          <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
-        </div>
-        <div class="status-tile view">
-          <div>
             <span class="name">wind</span>
           </div>
           <indi-value indi-id="tcsi.environment.wind"></indi-value> Mph @ <indi-value
@@ -126,6 +120,10 @@
 .plots img {
   display: block;
   width: 100%;
+}
+
+.status-tiles {
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
 .status-item {

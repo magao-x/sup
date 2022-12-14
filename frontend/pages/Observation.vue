@@ -16,7 +16,6 @@
     </div>
     <div class="col">
       <div class="status-tiles gap-bottom">
-
         <div class="status-tile view">
           <div>
             <span class="name">camsci1</span>
@@ -55,16 +54,23 @@
           <indi-value :indi-id="`temprack.temperature.lower`"></indi-value>ºC L
           / <indi-value :indi-id="`temprack.temperature.upper`"></indi-value>ºC U
         </div>
+        <div class="status-tile view">
+          <div>
+            <span class="name">ambient temp.</span>
+          </div>
+          <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
+        </div>
       </div>
       <table class="status-table view gap-bottom">
         <thead>
           <tr>
             <th>channel</th>
             <th>camera</th>
-            <th>exptime</th>
+            <th>ND</th>
             <th>filter</th>
-            <th>mode</th>
+            <th>exptime</th>
             <th>emgain</th>
+            <th>mode</th>
             <th>shutter</th>
           </tr>
         </thead>
@@ -75,6 +81,14 @@
               <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)"
                 :indi-id="`cam${camName}`"></finite-state-machine-status>
             </td>
+            <td>
+              <indi-switch-dropdown v-if="(camName == 'sci1' || camName == 'sci2') && retrieveByIndiId(`fwscind`)"
+                :indi-id="`fwscind.filterName`"></indi-switch-dropdown>
+            </td>
+            <td>
+              <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
+                :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
+            </td>
             <td v-if="!retrieveByIndiId(`cam${camName}.exptime`)">
               <indi-value :indi-id="`cam${camName}.fps.current`"
                 :formatFunction="(v) => String(Number(v).toFixed(0))"></indi-value> fps
@@ -83,20 +97,19 @@
               <indi-value v-if="retrieveByIndiId(`cam${camName}.exptime`)"
                 :indi-id="`cam${camName}.exptime.current`"></indi-value> s
             </td>
-            <td>
-              <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
-                :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
+            <td><indi-value v-if="retrieveByIndiId(`cam${camName}.emgain`)" :indi-id="`cam${camName}.emgain.current`"
+                :formatFunction="(v) => String(Number(v).toFixed(0))"></indi-value>
             </td>
             <td>
               <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)"
                 :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
             </td>
-            <td><indi-value v-if="retrieveByIndiId(`cam${camName}.emgain`)" :indi-id="`cam${camName}.emgain.current`"
-                :formatFunction="(v) => String(Number(v).toFixed(0))"></indi-value>
-            </td>
             <td>
               <indi-toggle-switch v-if="retrieveByIndiId(`cam${camName}.shutter`)"
-                :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut"
+                :indi-id="`cam${camName}.shutter.toggle`" 
+                label-off="open"
+                label-on="shut"
+                :disabled="!shutterAvailable(camName)"
                 :prompt="true"></indi-toggle-switch>
             </td>
           </tr>
@@ -162,12 +175,11 @@
   }
 }
 
-// .status-tiles {
-//   display: flex;
-//   flex-direction: row;
-// }
 .observation-controls {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 3fr;
+  .status-tiles {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  }
 }
 
 .telescope-controls {
@@ -210,7 +222,14 @@ export default {
       flipNames: ['flipacq', 'fliptip', 'flipwfsf'],
     };
   },
-
+  methods: {
+    shutterAvailable(camName) {
+      const retval = this.indi.indiIsConnected && this.retrieveByIndiId(`cam${camName}.shutter_status.status`) && (
+        this.retrieveByIndiId(`cam${camName}.shutter_status.status`)._value == "READY"
+      );
+      return retval;
+    }
+  },
   components: {
     ObserverControl,
     IndiValue,

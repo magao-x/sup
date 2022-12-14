@@ -4,7 +4,7 @@
       <div class="label off" :class="currentValue ? '' : 'current'" v-if="labelOff">{{ labelOff }}</div>
       <div>
       <div class="toggle" :class="classes" @click.prevent="toggleOrPrompt">
-        <div class="doodad">{{ currentValue ? "|" : "O" }}</div>
+        <div class="doodad">{{ symbol }}</div>
       </div>
       </div>
       <div class="label on" :class="currentValue ? 'current' : ''"  v-if="labelOn">{{ labelOn }}</div>
@@ -70,35 +70,35 @@
     line-height: 1.5;
     border-left: none;
   }
+  &.disabled {
+    color: var(--fg-inactive);
+    border: 1px solid var(--fg-inactive);
+    .doodad {
+      border: 1px solid var(--fg-inactive);
+    }
+  }
   &.inactive {
     .doodad {
       border: 1px solid $plasma-blue;
       background: transparent;
     }
-    &.disabled {
-      color: var(--fg-inactive);
-      border: 1px solid var(--fg-inactive);
-      .doodad {
-        border: 1px solid var(--fg-inactive);
-      }
-    }
   }
-  &.activating {
+  &.busy {
     .doodad {
       left: auto;
       right: auto;
       margin: 0 auto;
       position: relative;
+    }
+  }
+  &.activating {
+    .doodad {
       background: transparent;
       border: 1px solid $plasma-blue;
     }
   }
   &.deactivating {
     .doodad {
-      left: auto;
-      right: auto;
-      margin: 0 auto;
-      position: relative;
       background: darken($plasma-blue, 10);
       border: 1px solid transparent;
     }
@@ -150,8 +150,9 @@ export default {
       return {
         inactive: !this.value && !this.busyOrWaiting,
         active: this.value && !this.busyOrWaiting,
-        activating: this.value && this.busyOrWaiting,
-        deactivating: !this.value && this.busyOrWaiting,
+        activating: this.value && this.busyOrWaiting && !this.disabled,
+        busy: this.busy,
+        deactivating: !this.value && this.busyOrWaiting && !this.disabled,
         disabled: this.disabled,
         enabled: !this.disabled
       };
@@ -163,10 +164,12 @@ export default {
       return classes;
     },
     symbol: function () {
-      if (this.classes.inactive || this.classes.activating) {
+      if (this.classes.disabled) {
+        return "X"
+      } else if (this.classes.inactive || this.classes.activating) {
         return "O";
       } else if (this.classes.active || this.classes.deactivating) {
-        return "I";
+        return "|";
       }
     }
   },

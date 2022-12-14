@@ -258,10 +258,10 @@ export default Vue.extend({
       );
     },
     webSocketConnectionStatus() {
-      return this.indi.connected ? "ok" : "alert";
+      return this.indi.webSocketIsConnected ? "ok" : "alert";
     },
     indiConnectionStatus() {
-      if (this.indi.lastUpdate !== null) {
+      if (this.indi.indiIsConnected && this.indi.lastUpdate !== null) {
         const delay = this.time.currentTime.diff(this.indi.lastUpdate, 'seconds');
         if (delay.seconds < constants.MAX_LASTUPDATE_DELTA_SEC) {
           return 'ok'

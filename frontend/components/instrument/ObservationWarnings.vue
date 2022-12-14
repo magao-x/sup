@@ -87,7 +87,7 @@ export default {
                     )
                 },
             ];
-            return unfilteredWarnings.filter((elem) => elem.condition);
+            return unfilteredWarnings.filter((elem) => (elem.condition && this.indiIsConnected));
         }
     }
 }

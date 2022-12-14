@@ -144,6 +144,7 @@ new Vue({
           this.singlePropertyUpdate(deviceName, propertyName, updates[propSpec]);
         }
         this.lastUpdate = DateTime.utc();
+        this.indiIsConnected = payload.connected;
         this.systemLogs = this.systemLogs.concat(payload.logs);
         if (this.systemLogs.length > MAX_LOG_ENTRIES) {
           this.systemLogs.splice(0, this.systemLogs.length - MAX_LOG_ENTRIES);
@@ -166,6 +167,7 @@ new Vue({
         systemLogs: [],
         ws: null,
         webSocketIsConnected: false,
+        indiIsConnected: false,
         lastUpdate: null,
         reconnectionTimer: null,
       };
@@ -206,9 +208,13 @@ new Vue({
         enumerable: true,
         get: () => this.lastUpdate,
       })
-      Object.defineProperty(indi, 'connected', {
+      Object.defineProperty(indi, 'webSocketIsConnected', {
         enumerable: true,
         get: () => this.webSocketIsConnected,
+      })
+      Object.defineProperty(indi, 'indiIsConnected', {
+        enumerable: true,
+        get: () => this.indiIsConnected,
       })
       return { time, indi }
     }
