@@ -121,33 +121,34 @@ export default {
     IndiValue,
     PowerToggle,
   },
+  inject: ["indi"],
   computed: {
     camName() {
       return "cam" + this.baseName;
     },
     cam() {
-      return this.$store.state.devices[this.camName];
+      return this.indi.world[this.camName];
     },
     fwName() {
       return "fw" + this.baseName;
     },
     fw() {
-      return this.$store.state.devices[this.fwName];
+      return this.indi.world[this.fwName];
     },
     stageName() {
       return "stage" + this.baseName;
     },
     stage() {
-      return this.$store.state.devices[this.stageName];
+      return this.indi.world[this.stageName];
     },
     streamWriterName() {
       return this.camName + "-sw";
     },
     streamWriter() {
-      return this.$store.state.devices[this.streamWriterName];
+      return this.indi.world[this.streamWriterName];
     },
     isDefined() {
-      return typeof this.$store.state.devices[this.camName] !== "undefined";
+      return typeof this.indi.world[this.camName] !== "undefined";
     },
     hasEmgain() {
       return this.isDefined && this.cam.hasOwnProperty('emgain');

@@ -1,5 +1,7 @@
 <template>
-  <div class="observation-controls cols">
+  <div class="observation-controls">
+    <observer-saving-monitor class="padded gap-bottom"></observer-saving-monitor>
+    <div class="cols">
     <div class="col">
       <observer-control class="observer-control padded gap-bottom"></observer-control>
       <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi"></telescope-status>
@@ -154,6 +156,7 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -192,6 +195,7 @@
 <script>
 import utils from "~/mixins/utils.js";
 import ObserverControl from "~/components/instrument/ObserverControl.vue";
+import ObserverSavingMonitor from "~/components/instrument/ObserverSavingMonitor.vue";
 import DangerZone from "~/components/instrument/DangerZone.vue";
 import IndiValue from "../components/indi/IndiValue.vue";
 import IndiSwitchMultiElementValue from "../components/indi/IndiSwitchMultiElementValue.vue";
@@ -218,6 +222,7 @@ export default {
         "stagelosel", "stagelowfs",
         "stageturbsim",
         "stagepiaa1", "stagepiaa2",
+        "stagesci1", "stagesci2",
       ],
       flipNames: ['flipacq', 'fliptip', 'flipwfsf'],
     };
@@ -243,6 +248,7 @@ export default {
     IndiMomentarySwitch,
     IndiSwitchMultiElement,
     LogStream,
+    ObserverSavingMonitor,
   },
 };
 </script>

@@ -28,6 +28,7 @@ export default {
     components: {
         MaterialIcon
     },
+    inject: ["indi"],
     computed: {
         warnings() {
             const labMode = this.retrieveValueByIndiId('stagepickoff.presetName.out') == 'Off';
@@ -86,8 +87,22 @@ export default {
                         !(this.retrieveValueByIndiId('camsci2-sw.writing.toggle') == 'On')
                     )
                 },
+                {
+                    message: "camscis are not operating",
+                    condition: (
+                        (this.retrieveValueByIndiId("camsci1.fsm.state") !== "OPERATING") ||
+                        (this.retrieveValueByIndiId("camsci2.fsm.state") !== "OPERATING")
+                    )
+                },
+                {
+                    message: "stagescis are not focused",
+                    condition: (
+                        (this.retrieveValueByIndiId("stagesci1.presetName.fpm") !== "On") ||
+                        (this.retrieveValueByIndiId("stagesci2.presetName.fpm") !== "On")
+                    )
+                }
             ];
-            return unfilteredWarnings.filter((elem) => (elem.condition && this.indiIsConnected));
+            return unfilteredWarnings.filter((elem) => (elem.condition && this.indi.indiIsConnected));
         }
     }
 }

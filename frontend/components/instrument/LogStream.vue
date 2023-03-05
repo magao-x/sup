@@ -105,7 +105,7 @@ export default {
   },
   data() {
     return {
-      showLevels: ["EMER", "ALRT", "CRIT", "ERR", "WARN"],
+      showLevels: ["EMER", "ALRT", "CRIT", "ERR", "WARN", "NOTE", "INFO"],
     }
   },
   computed: {

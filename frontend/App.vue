@@ -226,7 +226,7 @@ export default Vue.extend({
     ToggleSwitch,
     LoopState,
     StatusIndicator,
-    ObservationWarnings,
+    ObservationWarnings
   },
   data: function () {
     return {
@@ -241,7 +241,7 @@ export default Vue.extend({
   },
   computed: {
     devices() {
-      return this.$store.state.devices;
+      return this.indi.world.devices;
     },
     loopClosed () {
       let elt = this.retrieveByIndiId('aoloop.loopState.state');

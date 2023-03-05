@@ -36,9 +36,10 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import FileResponse, StreamingResponse
-from starlette.routing import Route, WebSocketRoute
+from starlette.routing import Route, WebSocketRoute, Mount
 
 # from .indi import BogusINDIClient, SupINDIClient
+from . import video
 from .log import critical, debug, error, info, set_log_level, warn
 
 log = logging.getLogger(__name__)
@@ -325,7 +326,8 @@ class SupWebSocket(WebSocketEndpoint):
                 log.error("Received invalid message: {data_obj}")
                 return
             try:
-                app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = payload['value']
+                value = constants.parse_string_into_any_indi_value(payload['value'])
+                app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
             except Exception as e:
                 log.exception(f"Swallowed exception: Couldn't set INDI value from {payload}")
 
@@ -345,7 +347,8 @@ app = Starlette(
         Route('/light-path', endpoint=light_path),
         Route('/demo', endpoint=demo),
         Route('/airmass', endpoint=airmass),
-        # Mount('/video', routes=video.ROUTES),
+        Route('/video', endpoint=video.video, methods=["GET", "POST"]),
+        Route('/offer', endpoint=video.offer, methods=["GET", "POST"]),
         WebSocketRoute('/websocket', endpoint=SupWebSocket),
         Route('/{path:path}', endpoint=catch_all),
     ],

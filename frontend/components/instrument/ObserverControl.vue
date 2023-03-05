@@ -90,9 +90,13 @@
 .current-observer {
   line-height: 1.7em;
 }
+.save-path {
+  font-family: monospace;
+}
 </style>
 <script>
 import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
 import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import IndiSwitchDropdown from "../indi/IndiSwitchDropdown.vue";
@@ -112,7 +116,7 @@ export default {
       default: () => ["sci1", "sci2", "wfs", "lowfs", "tip", "acq"],
     },
   },
-  mixins: [indi],
+  mixins: [indi, utils],
   components: {
     IndiValue,
     IndiSwitchMultiElement,
@@ -121,7 +125,6 @@ export default {
     IndiElement,
     IndiProperty,
     AlternateIndiToggleSwitch
-},
-  computed: {},
+  },
 };
 </script>

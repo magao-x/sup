@@ -1,5 +1,6 @@
 import { sprintf } from '~/node_modules/printj/printj.mjs';
 import constants from "~/constants.js";
+import { DateTime, Duration } from "luxon";
 export default {
   inject: ['time', "indi"],
   methods: {
@@ -102,9 +103,46 @@ export default {
       let keys = Object.keys(ob).sort();
       return keys.map((val) => ob[val]);
     },
-    
     sendIndiNew: function (property, element, value) {
       this.indi.sendIndiNewByNames(property.device, property.name, element.name, value);
-    }
+    },
+    scheduleSemester(ts) {
+      let semester = ts.month > 6 ? 'B' : 'A';
+      return ts.toFormat("yyyy") + semester;
+    },
+    dateNightFromDateTime(ts) {
+      // (JS port of the datestamp_strings_from_ts function in lookyloo that does this)
+      // if the span begins before noon Chile time on the given D, the
+      // stringful timestamp is "YYYY-MM-(D-1)_D" because we observe over
+      // UTC night of one day into morning of the next.
+
+      // note that daylight saving doesn't change the day, so we just use
+      // UTC-4 for CLST
+      // modified = roughly local Chile time for the start of the span
+      const oneDay = Duration.fromObject({days: 1});
+      const modified = ts.minus(Duration.fromObject({hours: 4}));
+      let startDate;
+      if (modified.hour < 12) {
+        // if span started before noon, assume it was the previous night UTC
+        startDate = modified.minus(oneDay)
+      } else {
+        // otherwise chile date == utc date
+        startDate = modified;
+      }
+
+      let endDate = startDate.plus(oneDay);
+      let dayString = startDate.toISODate();
+      let endPart = "";
+      if (endDate.year !== startDate.year) {
+        endPart += endDate.toFormat("yyyy") + "-";
+      }
+      if (endDate.month !== startDate.month) {
+        endPart += endDate.toFormat("MM") + "-";
+      }
+      endPart += endDate.toFormat("dd");
+      dayString += "_" + endPart;
+      return dayString;
+    },
+
   }
 }
