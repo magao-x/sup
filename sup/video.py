@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import argparse
 import asyncio
 import json
@@ -21,8 +23,11 @@ ROOT = os.path.dirname(__file__)
 
 ACTIVE_PEERCONNECTIONS = set()
 
+static_folder_name = "static"
+static_path = (Path(__file__).parent / static_folder_name).resolve()
+
 async def video(request):
-    return FileResponse(os.path.join(ROOT, "video.html"))
+    return FileResponse((static_path / 'video.html').as_posix())
 
 
 async def send_frames_task(channel):
@@ -54,10 +59,10 @@ async def offer(request):
 
     @pc.on("datachannel")
     def on_datachannel(channel):
-        @channel.on("message")
-        def on_message(message):
-            print(message)
-            channel.send(bytes(example_im))
+        # @channel.on("message")
+        # def on_message(message):
+        #     print(message)
+        #     channel.send(bytes(example_im))
         background_tasks_per_pc.add(loop.create_task(send_frames_task(channel)))
 
 

@@ -8,6 +8,7 @@ init:
 
 justjs:
 	cd frontend/ && NODE_ENV=production yarn parcel build -d ../sup/static/ index.html
+	cd frontend/ && NODE_ENV=production yarn parcel build -d ../sup/static/ video.html
 
 buildjs: init justjs
 
