@@ -17,11 +17,10 @@
             <div v-else class="control">
                 Waiting for flipacq...
             </div>
-            <nudger v-if="indiIdExists('tcsi')"></nudger>
+            <indi-momentary-switch indi-id="tcsi.offlF_dump.request" style="width: 100%" label="focus offload" class="dump-focus"></indi-momentary-switch>
+            <scram-button></scram-button>
         </div>
         <div class="toggles">
-            <indi-momentary-switch indi-id="tcsi.offlF_dump.request" label="focus offload" class="dump-focus"></indi-momentary-switch>
-            <scram-button></scram-button>
             <div class="name">K-mirror tracking</div>
             <indi-toggle-switch class="tracking-toggle"
                 indi-id="ktrack.tracking.toggle"

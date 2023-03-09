@@ -2,6 +2,14 @@
   <div class="telescope-status" v-if="indiDefined">
       <div class="super-important view gap-bottom">
         <div class="status-item">
+          <div class="datum">Object:</div>
+          <div class="value">
+            <indi-value
+              :indi-id="`${thisDeviceName}.catalog.object`"
+            ></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
           <div class="datum">RA:</div>
           <div class="value">
             <indi-value
@@ -20,19 +28,11 @@
           </div>
         </div>
         <div class="status-item">
-          <div class="datum">Object:</div>
-          <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.catalog.object`"
-            ></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
           <div class="datum">Hour Angle:</div>
           <div class="value">
             <indi-value
               :indi-id="`${thisDeviceName}.telpos.ha`"
-              :formatFunction="decimalHoursToTime"
+              :formatFunction="decimalHoursToTimeEastWest"
             ></indi-value>
           </div>
         </div>
@@ -59,25 +59,21 @@
           <div class="value">{{ lst }}</div>
         </div>
         <div class="status-item">
+          <div class="datum">Airmass:</div>
+          <div class="value">
+            {{ airmass }}
+          </div>
+        </div>
+        <div class="status-item">
           <div class="datum">PA:</div>
           <div class="value">
             <indi-value
             :indi-id="`${thisDeviceName}.teldata.pa`"
-            :formatFunction="(v) => String(Number(v).toFixed(4))"
-            ></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Epoch:</div>
-          <div class="value">
-            <indi-value
-            :indi-id="`${thisDeviceName}.telpos.epoch`"
-            :formatFunction="(v) => String(Number(v).toFixed(1))"
+            :formatFunction="(v) => String(Number(v).toFixed(2)) + 'º'"
             ></indi-value>
           </div>
         </div>
       </div>
-      <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
       <div class="status-tiles gap-bottom">
         <div class="status-tile view">
           <div>
@@ -102,7 +98,7 @@
             <span class="name">wind</span>
           </div>
           <indi-value indi-id="tcsi.environment.wind"></indi-value> Mph @ <indi-value
-            indi-id="tcsi.environment.winddir"></indi-value>º
+          indi-id="tcsi.environment.winddir"></indi-value>º
         </div>
         <div class="status-tile view">
           <div>
@@ -111,6 +107,7 @@
           <indi-value indi-id="tcsi.environment.humidity"></indi-value>% / <indi-value indi-id="tcsi.environment.dewpoint"></indi-value>ºC
         </div>
       </div>
+      <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
     </div>
     <div v-else class="view">Waiting for tcsi...</div>
   </template>
@@ -159,13 +156,25 @@ export default {
     ObservabilityPlots,
   },
   methods: {
-    decimalHoursToTime(value) {
-      const hours = String(Math.floor(value)).padStart(2, "0");
-      let fracHour = value - hours;
+    decimalHoursToTime(value, useEastWest) {
+      let sign = value / Math.abs(value);
+      let hours = Math.floor(value / sign);
+      let fracHour = (value / sign) - hours;
       const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
       fracHour = fracHour - minutes / 60;
       const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
-      return `${hours}:${minutes}:${seconds}`;
+      let signMark = sign == -1 ? "-" : "";
+      return `${signMark}${hours}:${minutes}:${seconds}`;
+    },
+    decimalHoursToTimeEastWest(value) {
+      let sign = value / Math.abs(value);
+      let hours = Math.floor(value / sign);
+      let fracHour = (value / sign) - hours;
+      const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
+      fracHour = fracHour - minutes / 60;
+      const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
+      let signMark = sign == -1 ? "E " : "W ";
+      return `${signMark}${hours}:${minutes}:${seconds}`;
     },
     decimalDegreesToTime(value) {
       let origHours = (value / 360) * 24;
@@ -183,9 +192,18 @@ export default {
       fracDeg = (fracDeg - Math.floor(fracDeg)) * 60;
       const sec = String(Math.floor(fracDeg)).padStart(2, "0");
       return `${deg}º${min}'${sec}"`;
-    }
+    },
   },
   computed: {
+    airmass() {
+      if (this.indiDefined && this.thisDevice.telpos) {
+        const telpos = this.thisDevice.telpos;
+        const elevationDeg = telpos._elements.el._value;
+        const airmassValue = 1 / Math.cos((90 - elevationDeg) / 180 * Math.PI);
+        return airmassValue.toFixed(3);
+      }
+      return "";
+    },
     lst() {
       if (this.indiDefined && this.thisDevice.teltime) {
         const teltime = this.thisDevice.teltime;
