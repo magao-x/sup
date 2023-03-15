@@ -64,6 +64,7 @@ $alert: $icon-yellow;
 $warning: $beware-orange;
 $error: $danger-red;
 $restore: $icon-violet;
+$edit: $kumquat;
 $commit: $icon-green;
 $link: $hyper-blue;
 $linkActive: $plasma-blue;
@@ -76,6 +77,7 @@ body {
     --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
     --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{darken($icon-blue, 40)});
     --btn-commit-bg-gradient: linear-gradient(#{lighten($commit, 10)}, #{$commit});
+    --btn-edit-bg-gradient: linear-gradient(#{lighten($edit, 10)}, #{$edit});
     --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{darken($danger-red, 40)});
     --btn-fg: #{$cardboard-gray};
     --inset-bg: #{$shade-black};

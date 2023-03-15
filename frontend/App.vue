@@ -51,13 +51,13 @@
       </div>
     </nav>
     <observation-warnings></observation-warnings>
-    <div class="flex-row">
+    <!-- <div class="flex-row"> -->
       <div class="content">
         <keep-alive>
           <router-view></router-view>
         </keep-alive>
       </div>
-    </div>
+    <!-- </div> -->
   </div>
 </template>
 <style lang="scss" scoped>
@@ -83,7 +83,8 @@ position: relative;
 #app {
   margin: 0 auto;
   // max-width: 80rem;
-  padding-bottom: 25vh;
+  // padding-bottom: 25vh;
+  height: 100%;
 }
 .devices {
   display: flex;
@@ -167,10 +168,14 @@ nav.top .tab-bar {
     text-align: right;
   }
 }
+// .content {
+//   flex: 1;
+//   overflow: hidden;
+// }
 .content {
-  flex: 1;
   overflow: hidden;
 }
+
 .fade-enter-active,
 .fade-leave-active {
   transition-property: opacity;

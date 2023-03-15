@@ -8,10 +8,8 @@
       <indi-toggle-switch indi-id="maggieo_x.mute.toggle" label-on="muted" label-off="unmuted"></indi-toggle-switch>
     </div>
     <div>
-      <div>Speak: <indi-value indi-id="maggieo_x.speech_text.current"></indi-value></div>
-      <div>
-        <indi-element indi-id="maggieo_x.speech_text.target"></indi-element>
-      </div>
+      <div>Speak: <indi-property indi-id="maggieo_x.speech_text"></indi-property></div>
+      
       <indi-momentary-switch indi-id="maggieo_x.speak.request"
         label="speak"></indi-momentary-switch>
     </div>
@@ -21,6 +19,7 @@
 import utils from "~/mixins/utils.js";
 import IndiElement from "../indi/IndiElement.vue";
 import IndiValue from "../indi/IndiValue.vue";
+import IndiProperty from "~/components/indi/IndiProperty.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
 import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
 import IndiMomentarySwitch from "~/components/indi/IndiMomentarySwitch.vue";
@@ -31,6 +30,7 @@ export default {
   components: {
     IndiValue,
     IndiElement,
+    IndiProperty,
     IndiSwitchMultiElement,
     IndiToggleSwitch,
     IndiMomentarySwitch,

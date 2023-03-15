@@ -1,4 +1,5 @@
 from io import BytesIO
+import struct
 import traceback
 # from starlette.websockets import WebSocket
 from starlette.endpoints import WebSocketEndpoint
@@ -6,6 +7,7 @@ import numpy as np
 import matplotlib
 from astroplan.plots import dark_style_sheet
 from astropy.coordinates import SkyCoord
+from aiofile import async_open
 
 matplotlib.use('Agg')
 import asyncio
@@ -39,7 +41,6 @@ from starlette.responses import FileResponse, StreamingResponse
 from starlette.routing import Route, WebSocketRoute, Mount
 
 # from .indi import BogusINDIClient, SupINDIClient
-from . import video
 from .log import critical, debug, error, info, set_log_level, warn
 
 log = logging.getLogger(__name__)
@@ -280,6 +281,53 @@ async def trigger_get_properties(message):
         log.debug(f"Trigger get properties: {message}")
         app.indi.get_properties()
 
+class ShmimWatcher:
+    cameras : list[str]
+    camera_shmim_bytes : dict[str, bytes]
+    tmpfile_root : str = "/dev/shm"
+
+    def __init__(self):
+        self.camera_shmim_bytes = {}
+        shmimdir = pathlib.Path('/milk/shm')
+        if not shmimdir.is_dir():
+            raise RuntimeError("Cannot open /milk/shm")
+        self.cameras = [
+            'camsci1',
+            'camsci2',
+            'camwfs',
+            'camlowfs',
+            'camtip',
+            'camacq',
+        ]
+        # for shmimname in shmimdir.glob('*.im.shm'):
+        #     self.cameras.append(shmimname.name.replace('.im.shm', ''))
+        for cam in self.cameras:
+            self.camera_shmim_bytes[cam] = b''
+
+    async def launch_camera_watcher(self, camera):
+        cmd = f"{sys.executable} -m sup.shmim {self.tmpfile_root} {camera}"
+        args = cmd.split(' ')
+        while True:
+            log.debug("Making proc")
+            proc = await asyncio.create_subprocess_exec(
+                *args
+            )
+            log.debug(f"{proc=}")
+            await proc.wait()
+            log.debug(f'[{cmd!r} exited with {proc.returncode}]')
+            await asyncio.sleep(1)
+
+    async def watch_camera(self, camera):
+        while True:
+            try:
+                async with async_open(f"{self.tmpfile_root}/{camera}.dat", "rb") as fh:
+                    self.camera_shmim_bytes[camera] = await fh.read()
+                log.debug(f"Got {len(self.camera_shmim_bytes[camera])} for {camera}")
+            except Exception:
+                pass
+            await asyncio.sleep(1)
+
+
 async def spawn_tasks():
     loop = asyncio.get_event_loop()
     conn = purepyindi2.AsyncIndiTcpConnection(host=CONFIG['indi_host'], port=CONFIG['indi_port'])
@@ -295,12 +343,18 @@ async def spawn_tasks():
     emit_updates_coro = emit_updates()
     RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
 
+    app.cam_watcher = ShmimWatcher()
+    for cam in app.cam_watcher.cameras:
+        loop.create_task(app.cam_watcher.launch_camera_watcher(cam))
+        loop.create_task(app.cam_watcher.watch_camera(cam))
+
 async def cancel_tasks():
     await app.indi.connection.stop()
     for task in RUNNING_TASKS:
         task.cancel()
 
 connected_clients = []
+connected_video_clients = []
 
 class SupWebSocket(WebSocketEndpoint):
     encoding = "bytes"
@@ -312,30 +366,59 @@ class SupWebSocket(WebSocketEndpoint):
             'payload': app.indi.to_serializable()['devices'],
         }))
 
+    async def on_indi_new(self, websocket, payload):
+        if not (
+            'device' in payload and
+            'property' in payload and
+            'element' in payload and
+            'value' in payload
+        ):
+            log.error("Received invalid message: {data_obj}")
+            return
+        try:
+            value = constants.parse_string_into_any_indi_value(payload['value'])
+            app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
+        except Exception as e:
+            log.exception(f"Swallowed exception: Couldn't set INDI value from {payload}")
+
+
     async def on_receive(self, websocket, data):
         data_obj = orjson.loads(data)
         log.debug(f"Recv from {websocket.client.host}: {data_obj}")
-        if data_obj.get('action') == 'indi_new':
-            payload = data_obj['payload']
-            if not (
-                'device' in payload and
-                'property' in payload and
-                'element' in payload and
-                'value' in payload
-            ):
-                log.error("Received invalid message: {data_obj}")
-                return
-            try:
-                value = constants.parse_string_into_any_indi_value(payload['value'])
-                app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
-            except Exception as e:
-                log.exception(f"Swallowed exception: Couldn't set INDI value from {payload}")
-
+        payload = data_obj.get('payload')
+        action = data_obj.get('action')
+        if action == 'indi_new':
+            await self.on_indi_new(websocket, payload)
 
     async def on_disconnect(self, websocket, close_code):
         try:
             idx = connected_clients.index(websocket)
             connected_clients.pop(idx)
+        except ValueError:
+            pass
+
+class VideoWebSocket(WebSocketEndpoint):
+    encoding = "bytes"
+
+    async def on_connect(self, websocket):
+        connected_video_clients.append(websocket)
+        await websocket.accept()
+
+    async def on_update_camera(self, websocket, shmim_name):
+        if shmim_name in app.cam_watcher.camera_shmim_bytes:
+            await websocket.send_bytes(
+                app.cam_watcher.camera_shmim_bytes[shmim_name]
+            )
+
+    async def on_receive(self, websocket, data):
+        shmim_name = data.decode('utf8')
+        log.debug(shmim_name)
+        await self.on_update_camera(websocket, shmim_name)
+
+    async def on_disconnect(self, websocket, close_code):
+        try:
+            idx = connected_video_clients.index(websocket)
+            connected_video_clients.pop(idx)
         except ValueError:
             pass
 
@@ -347,9 +430,8 @@ app = Starlette(
         Route('/light-path', endpoint=light_path),
         Route('/demo', endpoint=demo),
         Route('/airmass', endpoint=airmass),
-        Route('/video', endpoint=video.video, methods=["GET", "POST"]),
-        Route('/offer', endpoint=video.offer, methods=["GET", "POST"]),
         WebSocketRoute('/websocket', endpoint=SupWebSocket),
+        WebSocketRoute('/videosocket', endpoint=VideoWebSocket),
         Route('/{path:path}', endpoint=catch_all),
     ],
     on_startup=[spawn_tasks],

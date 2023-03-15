@@ -5,18 +5,27 @@
     </div>
 </div>
 </template>
-<style lang="scss" scoped>
+<style lang="scss">
 @import '~/css/variables.scss';
 .warnings {
     display: flex;
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    width: 100vw;
+}
+body:has(.warning) {
+    padding-top: 6rem;
 }
 body.dark .view.warning {
   background: $beware-orange;
   border: none; //lighten($beware-orange, 20%);
-  font-size: 125%;
+  font-size: 1.75rem;
   padding: $unit;
   flex: 1;
   text-align: center;
+  height: 3.7rem;
 }
 </style>
 <script>
@@ -88,10 +97,19 @@ export default {
                     )
                 },
                 {
-                    message: "camscis are not operating",
+                    message: "camsci1 is not operating",
                     condition: (
-                        (this.retrieveValueByIndiId("camsci1.fsm.state") !== "OPERATING") ||
-                        (this.retrieveValueByIndiId("camsci2.fsm.state") !== "OPERATING")
+                        this.retrieveValueByIndiId("camsci1.fsm.state") !== "POWEROFF"
+                        && 
+                        this.retrieveValueByIndiId("camsci1.fsm.state") !== "OPERATING"
+                    )
+                },
+                {
+                    message: "camsci2 is not operating",
+                    condition: (
+                        this.retrieveValueByIndiId("camsci2.fsm.state") !== "POWEROFF"
+                        && 
+                        this.retrieveValueByIndiId("camsci2.fsm.state") !== "OPERATING"
                     )
                 },
                 {

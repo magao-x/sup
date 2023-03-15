@@ -88,6 +88,7 @@ setup(
     entry_points={
         'console_scripts': [
             f'{PROJECT}={PROJECT}:console_entrypoint',
+            f'shmim_watcher={PROJECT}.shmim:shmim_grabber'
         ],
     },
     project_urls={

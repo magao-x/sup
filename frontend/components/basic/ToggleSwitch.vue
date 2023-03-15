@@ -70,14 +70,14 @@
     line-height: 1.5;
     border-left: none;
   }
-  &.disabled {
+  &.disabled, &.readOnly {
     color: var(--fg-inactive);
     border: 1px solid var(--fg-inactive);
     .doodad {
       border: 1px solid var(--fg-inactive);
     }
   }
-  &.inactive {
+  &.inactive, &.readOnly {
     .doodad {
       border: 1px solid $plasma-blue;
       background: transparent;
@@ -91,26 +91,28 @@
       position: relative;
     }
   }
-  &.activating {
+  &.activating.readWrite {
     .doodad {
       background: transparent;
       border: 1px solid $plasma-blue;
     }
   }
-  &.deactivating {
+  &.deactivating.readWrite {
     .doodad {
       background: darken($plasma-blue, 10);
       border: 1px solid transparent;
     }
   }
   &.active {
-    box-shadow: 0 0 5px lighten($plasma-blue, 15);
+    &.readWrite {
+      box-shadow: 0 0 5px lighten($plasma-blue, 15);
+    }
     .doodad {
       left: auto;
       right: 0;
       border: 1px solid $plasma-blue;
     }
-    &.enabled {
+    &.enabled.readWrite {
       .doodad {
         background:  lighten($plasma-blue, 15);
       }
@@ -131,7 +133,7 @@ button.commit {
 <script>
 import CommitButton from "~/components/basic/CommitButton.vue";
 export default {
-  props: ["value", "busy", "disabled", "prompt", "labelOn", "labelOff"],
+  props: ["value", "busy", "disabled", "prompt", "labelOn", "labelOff", "readOnly"],
   components: {CommitButton},
   data: function () {
     return {
@@ -154,7 +156,9 @@ export default {
         busy: this.busy,
         deactivating: !this.value && this.busyOrWaiting && !this.disabled,
         disabled: this.disabled,
-        enabled: !this.disabled
+        enabled: !this.disabled,
+        readOnly: this.readOnly,
+        readWrite: !this.readOnly,
       };
     },
     switchClasses: function() {
@@ -175,7 +179,7 @@ export default {
   },
   methods: {
     toggleOrPrompt: function () {
-      if (this.disabled) return;
+      if (this.disabled || this.readOnly) return;
       if (!this.prompt) return this.toggle();
       this.targetState = !this.currentValue;
       if (this.targetState == this.value) {
@@ -185,7 +189,7 @@ export default {
       }
     },
     toggle: function() {
-      if (!this.disabled) {
+      if (!this.disabled && !this.readOnly) {
         this.$emit("input", !this.value);
       }
       this.waitingToCommit = false;

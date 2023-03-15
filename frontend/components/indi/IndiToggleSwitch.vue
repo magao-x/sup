@@ -3,6 +3,7 @@
     :value="switchValue"
     :busy="switchBusy"
     :disabled="switchDisabled"
+    :readOnly="switchReadOnly"
     :prompt="false"
     :labelOn="labelOn"
     :labelOff="labelOff"
@@ -36,6 +37,10 @@ export default {
       type: String,
       default: () => 'Off',
     },
+    readOnly: {
+      type: Boolean,
+      default: false,
+    }
   },
   data: function () {
       return {
@@ -59,9 +64,12 @@ export default {
     switchBusy: function () {
       return this.switchDisabled || !this.thisProperty || this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert" || this.pendingUpdate;
     },
+    switchReadOnly() {
+      return this.readOnly || (this.indiDefined && (this.thisProperty.perm == 'ro'));
+    },
     switchDisabled: function () {
       if (!this.thisProperty) return true;
-      return this.disabled || this.thisProperty.perm == 'ro';
+      return this.disabled;
     },
     switchValue: function () {
       return this.thisElement && this.thisElement._value == 'On';

@@ -8,18 +8,24 @@
       <div
         v-if="isPairedCurrentTarget"
         class="paired-current-target">
-        <indi-value
-          class="current"
-          :device="thisDevice"
-          :property="thisProperty"
-          :element="thisProperty._elements.current"
-        ></indi-value>
+        <cancel-button
+        :disabled="!isEditing"
+        @cancel="doneEditing"
+        ></cancel-button>
         <indi-element
+          :forceDisabled="!isEditing"
           class="target"
           :device="thisDevice"
           :property="thisProperty"
-          :element="thisProperty._elements.target"
+          :element="eitherCurrentOrTarget"
+          @commit="doneEditing"
+          @click="beginEditing"
         ></indi-element>
+        <edit-button
+          v-if="!isEditing"
+          :disabled="isDisabled"
+          @edit="beginEditing"
+        ></edit-button>
       </div>
       <indi-element
         v-else
@@ -37,7 +43,6 @@
 @import "./css/variables.scss";
 
 .paired-current-target {
-  max-width: 20em;
   display: flex;
   align-items: baseline;
   .current, .target {
@@ -50,6 +55,9 @@
 </style>
 <script>
 import IndiElement from "./IndiElement.vue";
+import EditButton from "~/components/basic/EditButton.vue";
+import CommitButton from "~/components/basic/CommitButton.vue";
+import CancelButton from "~/components/basic/CancelButton.vue";
 import IndiStateIndicator from "./IndiStateIndicator.vue";
 import IndiValue from "./IndiValue.vue";
 import IndiSwitchMultiElement from "./IndiSwitchMultiElement.vue";
@@ -62,10 +70,26 @@ export default {
     IndiElement,
     IndiSwitchMultiElement,
     IndiStateIndicator,
-    IndiValue
+    IndiValue,
+    EditButton,
+    CancelButton,
+    CommitButton,
   },
-  props: ["device", "property", "indiId"],
+  props: ["device", "property", "indiId", "disabled"],
   mixins: [indi, utils],
+  methods: {
+    beginEditing(){
+      this.isEditing = true;
+    },
+    doneEditing() {
+      this.isEditing = false;
+    }
+  },
+  data() {
+    return {
+      isEditing: false,
+    };
+  },
   computed: {
     isPairedCurrentTarget: function() {
       if (
@@ -76,6 +100,18 @@ export default {
         return true;
       }
       return false;
+    },
+    isDisabled() {
+      return !this.indiDefined || this.disabled || this.thisProperty.perm == 'ro';
+    },
+    eitherCurrentOrTarget() {
+      if (this.isPairedCurrentTarget) {
+        if (this.isEditing) {
+          return this.thisProperty._elements.target;
+        } else {
+          return this.thisProperty._elements.current;
+        }
+      }
     }
   }
 };

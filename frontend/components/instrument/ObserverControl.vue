@@ -1,5 +1,5 @@
 <template>
-  <div class="observer-control view">
+  <div class="observer-control">
     <div class="cols">
       <div class="col">
         <div class="recording">
@@ -10,12 +10,9 @@
             label-off="Off"
           ></indi-toggle-switch>
         </div>
-        <div>
+        <div class="purpose">
           <span class="label">Purpose:</span>
-          <indi-value indi-id="observers.obs_name.current"></indi-value>
-        </div>
-        <div>
-          <indi-element indi-id="observers.obs_name.target"></indi-element>
+          <indi-property indi-id="observers.obs_name" class="full-width"></indi-property>
         </div>
       </div>
       <div class="col current-observer">
@@ -43,14 +40,13 @@
       </div>
     </div>
     <div class="writing-toggles">
-      <!-- <indi-switch-multi-element  indi-id="observers.writers"></indi-switch-multi-element> -->
       <div v-for="camName in camNames" :key="camName">
         <div>write {{ camName }}</div>
         <indi-toggle-switch
           :indi-id="`observers.writers.cam${camName}`"
+          :readOnly="isObserving"
           label-off=""
           label-on=""
-          :prompt="true"
         ></indi-toggle-switch>
         <div><indi-value 
           :indi-id="`cam${camName}-sw.writing.toggle`"
@@ -69,6 +65,7 @@
   font-weight: bold;
 }
 
+
 .full-width {
   width: 100%;
 }
@@ -77,6 +74,9 @@
   font-size: 125%;
   text-align: center;
   padding: $medgap 0;
+}
+.purpose {
+  font-size: 125%;
 }
 
 .writing-toggles {
@@ -115,6 +115,11 @@ export default {
       type: Array,
       default: () => ["sci1", "sci2", "wfs", "lowfs", "tip", "acq"],
     },
+  },
+  computed: {
+    isObserving() {
+      return this.retrieveValueByIndiId("observers.obs_on.toggle") == "On";
+    }
   },
   mixins: [indi, utils],
   components: {

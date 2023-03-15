@@ -1,6 +1,5 @@
 <template>
   <div v-if="thisElement" class="element">
-    <sync-button v-if="propertyKind !== 'swt'" :disabled="isDisabled" @sync="onSync"></sync-button>
     <adjustable-number-stepper
       v-if="propertyKind == 'num' && optionalAttr('step')"
       :disabled="isDisabled"
@@ -30,7 +29,7 @@
       @input="updateUserInput"
       @keydown.enter="onCommit"
     ></vanilla-input>
-    <commit-button v-if="propertyKind !== 'swt'" :disabled="isDisabled" @commit="onCommit"></commit-button>
+    <commit-button v-if="propertyKind !== 'swt' && !forceDisabled" :disabled="isDisabled" @commit="onCommit"></commit-button>
   </div>
   <div v-else>Waiting for element {{ indiId }}  {{ thisElement }}</div>
 </template>
@@ -47,7 +46,6 @@ input {
 }
 </style>
 <script>
-import SyncButton from "~/components/basic/SyncButton.vue";
 import CommitButton from "~/components/basic/CommitButton.vue";
 import AdjustableNumberStepper from "~/components/basic/AdjustableNumberStepper.vue";
 // import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
@@ -58,9 +56,8 @@ import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 
 export default {
-  props: ["device", "property", "element", "indiId"],
+  props: ["device", "property", "element", "indiId", "forceDisabled"],
   components: {
-    SyncButton,
     CommitButton,
     AdjustableNumberStepper,
     IndiToggleSwitch,
@@ -89,10 +86,6 @@ export default {
         return null;
       }
     },
-    onSync: function() {
-      this.userInput = this.currentValue;
-      this.shouldUpdate = true;
-    },
     onCommit: function () {
       this.sendIndiNew(
         this.thisProperty,
@@ -100,6 +93,7 @@ export default {
         this.currentValueOrInput
       );
       this.shouldUpdate = true;
+      this.$emit('commit');
     }
   },
   data: function() {
@@ -159,6 +153,7 @@ export default {
     },
     isDisabled: function() {
       return (
+        this.forceDisabled === true ||
         this.element === null ||
         this.thisProperty.perm === "ro" ||
         this.isPairedCurrent

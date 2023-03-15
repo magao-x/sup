@@ -1,6 +1,6 @@
 <template>
   <div class="axes-container">
-    <svg class="axes" />
+    <svg class="axes"></svg>
   </div>
 </template>
 <style lang="scss">
@@ -126,6 +126,9 @@ export default {
 
       // loop over points in all lines
       for (let [name, lineData] of dataEntries) {
+        if(!lineData.points) {
+          continue;
+        }
         let [newValMin, newValMax] = d3.extent(lineData.points, accessor);
         if (newValMin < valMin) {
           valMin = newValMin;
@@ -283,6 +286,9 @@ export default {
       let idx = 0;
       for (let [name, dataset] of Object.entries(this.data)) {
         // 9. Append the path, bind the data, and call the line generator
+        if (!dataset.points){
+          continue;
+        }
         this.d3svg
           .append("path")
           .datum(dataset.points) // 10. Binds data to the line
@@ -319,9 +325,36 @@ export default {
             {x: this.time.currentTime.toISO(), y: 1}
           ])
           .style("stroke", "#f47750")
-          .style("stroke-dasharray", "5,5")
+          // .style("stroke-dasharray", "5,5")
           .attr("d", d3.line()
             .x(d=>this.xScale(xGetter(d)))
+            .y(d=>this.yFractionalScale(yGetter(d)))
+          );
+      }
+
+      for (let [name, dataset] of Object.entries(this.data)) {
+        // Draw vertical lines if requested
+        if (!dataset.vline){
+          continue;
+        }
+        console.log("vert line", dataset);
+        let line = this.d3svg
+        .append("path")
+        .datum([
+            {x: dataset.vline, y: 0},
+            {x: dataset.vline, y: 1}
+          ])
+          .style("stroke", "#f47750");
+          
+          if (dataset.dashed) {
+            line = line.style("stroke-dasharray", "5,5");
+          }
+          line.attr("d", d3.line()
+            .x(d=>{
+              console.log(xGetter(d));
+              console.log(this.xScale(xGetter(d)));
+              return this.xScale(xGetter(d));
+            })
             .y(d=>this.yFractionalScale(yGetter(d)))
           );
       }

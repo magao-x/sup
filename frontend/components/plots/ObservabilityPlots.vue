@@ -44,9 +44,13 @@
 </style>
 <script>
 import PlotComponent from "~/components/plots/PlotComponent.vue";
+import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
 
 export default {
-  props: ['equatorialCoords'],
+  props: ['equatorialCoords', 'beginObsTimestamp'],
+  mixins: [indi, utils],
+  inject: ["indi"],
   data: function () {
     return {
       parallactic_angles: null,
@@ -65,7 +69,14 @@ export default {
       return {"altitude": {points: this.altitudes}};
     },
     parallacticAnglePlotData() {
-      return {"parallactic angle": {points: this.parallactic_angles}}
+      let parangData = {
+        "parallactic angle": {points: this.parallactic_angles},
+      };
+      if (this.beginObsTimestamp) {
+        console.log(this.beginObsTimestamp);
+        parangData["start"] = {vline: this.beginObsTimestamp, dashed: true};
+      }
+      return parangData;
     },
   },
   methods: {
@@ -73,7 +84,7 @@ export default {
       try {
         let baseURL;
         if (process.env.NODE_ENV == 'development') {
-          baseURL = "https://exao1.magao-x.org:4434"
+          baseURL = "https://exao1.magao-x.org:4433"
         } else {
           baseURL =
             window.location.protocol +

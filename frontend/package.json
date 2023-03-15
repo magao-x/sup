@@ -15,6 +15,7 @@
     "cytoscape-dagre": "^2.4.0",
     "cytoscape-elk": "^2.0.2",
     "cytoscape-klay": "^3.1.4",
+    "cytoscape-node-html-label": "^1.2.2",
     "d3": "^7.4.4",
     "d3-celestial": "^0.7.35",
     "d3-collection": "^1.0.7",

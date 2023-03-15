@@ -30,10 +30,7 @@
         <div class="status-item">
           <div class="datum">Hour Angle:</div>
           <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.telpos.ha`"
-              :formatFunction="decimalHoursToTimeEastWest"
-            ></indi-value>
+            {{ hourAngle }}
           </div>
         </div>
         <div class="status-item">
@@ -85,7 +82,7 @@
           <span v-else>
             no Baade
           </span>
-          /
+          <br>
           <span v-if="retrieveValueByIndiId('tcsi.seeing.dimm_fwhm') > 0">
             DIMM: <indi-value indi-id="tcsi.seeing.dimm_fwhm"></indi-value>&Prime;
           </span>
@@ -97,17 +94,28 @@
           <div>
             <span class="name">wind</span>
           </div>
-          <indi-value indi-id="tcsi.environment.wind"></indi-value> Mph @ <indi-value
+          <indi-value indi-id="tcsi.environment.wind"></indi-value> Mph
+          <br>@ <indi-value
           indi-id="tcsi.environment.winddir"></indi-value>º
         </div>
         <div class="status-tile view">
           <div>
             <span class="name">humidity / dewpoint</span>
           </div>
-          <indi-value indi-id="tcsi.environment.humidity"></indi-value>% / <indi-value indi-id="tcsi.environment.dewpoint"></indi-value>ºC
+          <indi-value indi-id="tcsi.environment.humidity"></indi-value>%
+          <br>
+          <indi-value indi-id="tcsi.environment.dewpoint"></indi-value>ºC
         </div>
+        <div class="status-tile view">
+            <div>
+              <span class="name">ambient temp.</span>
+            </div>
+            <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
+          </div>
       </div>
-      <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
+      <observability-plots
+        :equatorialCoords="equatorialCoords"
+        :beginObsTimestamp="beginObsTimestamp"></observability-plots>
     </div>
     <div v-else class="view">Waiting for tcsi...</div>
   </template>
@@ -120,7 +128,7 @@
 }
 
 .status-tiles {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
 .status-item {
@@ -156,7 +164,7 @@ export default {
     ObservabilityPlots,
   },
   methods: {
-    decimalHoursToTime(value, useEastWest) {
+    decimalHoursToTime(value) {
       let sign = value / Math.abs(value);
       let hours = Math.floor(value / sign);
       let fracHour = (value / sign) - hours;
@@ -167,13 +175,18 @@ export default {
       return `${signMark}${hours}:${minutes}:${seconds}`;
     },
     decimalHoursToTimeEastWest(value) {
-      let sign = value / Math.abs(value);
+      let sign = Math.sign(value);
       let hours = Math.floor(value / sign);
       let fracHour = (value / sign) - hours;
       const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
       fracHour = fracHour - minutes / 60;
       const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
-      let signMark = sign == -1 ? "E " : "W ";
+      let signMark;
+      if (sign == 1) {
+        signMark = "W ";
+      } else {
+        signMark = "E ";
+      }
       return `${signMark}${hours}:${minutes}:${seconds}`;
     },
     decimalDegreesToTime(value) {
@@ -195,6 +208,26 @@ export default {
     },
   },
   computed: {
+    beginObsTimestamp() {
+      return null;
+      let positionProp = this.thisDevice?.catalog;
+      if (positionProp) {
+        console.log(positionProp.timestamp);
+        return positionProp.timestamp;
+      } else {
+        return null;
+      }
+    },
+    hourAngle() {
+      if (this.indiDefined && this.thisDevice.telpos) {
+        let ra = this.thisDevice.telpos._elements.ra._value;
+        ra = ra / 360 * 24;
+        let st = this.thisDevice.teltime._elements.sidereal_time._value;
+        // ha = st - ra
+        let ha = st - ra;
+        return this.decimalHoursToTimeEastWest(ha);
+      }
+    },
     airmass() {
       if (this.indiDefined && this.thisDevice.telpos) {
         const telpos = this.thisDevice.telpos;
