@@ -40,7 +40,7 @@ export default {
     inject: ["indi"],
     computed: {
         warnings() {
-            const labMode = this.retrieveValueByIndiId('stagepickoff.presetName.out') == 'Off';
+            const labMode = this.retrieveValueByIndiId('stagepickoff.presetName.tel') == 'Off';
             const loopClosed = this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'On';
             const unfilteredWarnings = [
                 {
@@ -49,7 +49,7 @@ export default {
                 },
                 {
                     message: "flipacq is in the beam",
-                    condition: this.retrieveValueByIndiId('flipacq.position.in') == 'On'
+                    condition: this.retrieveValueByIndiId('flipacq.presetName.in') == 'On'
                 },
                 {
                     message: "fwscind is in the beam",

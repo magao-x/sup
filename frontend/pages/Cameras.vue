@@ -5,9 +5,9 @@
         <camera-controls-group base-name="sci2"></camera-controls-group>
       </div>
       <div class="col">
-        <div style="display: flex" v-if="indiIdExists('flipacq.position')">
+        <div style="display: flex" v-if="indiIdExists('flipacq.presetName')">
           <div>Acquisition camera flip mirror:</div>
-          <indi-switch-multi-element indi-id="flipacq.position"></indi-switch-multi-element>
+          <indi-switch-multi-element indi-id="flipacq.presetName"></indi-switch-multi-element>
         </div>
         <div v-else>
           Waiting for acquisition camera

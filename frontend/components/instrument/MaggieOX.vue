@@ -13,6 +13,7 @@
       <indi-momentary-switch indi-id="maggieo_x.speak.request"
         label="speak"></indi-momentary-switch>
     </div>
+    <indi-switch-multi-element indi-id="maggieo_x.soundboard" columns="5"></indi-switch-multi-element>
   </div>
 </template>
 <script>
