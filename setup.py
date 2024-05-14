@@ -72,9 +72,9 @@ setup(
     python_requires='>=3.6, <4',
     install_requires=[
         'starlette>=0.19.0',
-        'uvicorn>=0.17.5,<0.18',
-        'aiohttp>=3.8.1,<4',
-        'aiodns>=3.0.0,<4',
+        'uvicorn',
+        'aiohttp',
+        'aiodns',
         'aiortc>=1.3.1',
         'orjson>=3.6.7',
         'astroplan>=0.8',
@@ -83,12 +83,14 @@ setup(
         'purepyindi2>=0.0.0',
         'toml>=0.10.2',
         'websockets>=10.2',
+        'blosc>=1.11.1'
     ],
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            f'{PROJECT}={PROJECT}:console_entrypoint',
-            f'shmim_watcher={PROJECT}.shmim:shmim_grabber'
+            f'{PROJECT}={PROJECT}:core.console_entrypoint',
+            f'shmim_watcher={PROJECT}.shmim:shmim_grabber',
+            f'shmim_coordinator={PROJECT}.shmim:shmim_coordinator',
         ],
     },
     project_urls={

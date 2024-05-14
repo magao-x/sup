@@ -17,7 +17,8 @@ export default {
         MaterialIcon,
     },
     methods: {
-        onClick() {
+        onClick(ev) {
+            console.log(ev);
             if (!this.disabled) {
                 this.sendIndiNew(this.thisProperty, this.thisElement, "On");
             }

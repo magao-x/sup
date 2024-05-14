@@ -1,6 +1,6 @@
 <template>
 <div class="warnings">
-    <div class="view warning" v-for="warning in warnings" :key="warning.message">
+    <div class="view state-warning" v-for="warning in warnings" :key="warning.message">
         <material-icon name="warning"></material-icon> {{ warning.message }}
     </div>
 </div>
@@ -15,10 +15,10 @@
     z-index: 1000;
     width: 100vw;
 }
-body:has(.warning) {
+body:has(.state-warning) {
     padding-top: 6rem;
 }
-body.dark .view.warning {
+body.dark .view.state-warning {
   background: $beware-orange;
   border: none; //lighten($beware-orange, 20%);
   font-size: 1.75rem;
@@ -40,7 +40,7 @@ export default {
     inject: ["indi"],
     computed: {
         warnings() {
-            const labMode = this.retrieveValueByIndiId('stagepickoff.presetName.out') == 'Off';
+            const labMode = this.retrieveValueByIndiId('stagepickoff.presetName.tel') == 'Off';
             const loopClosed = this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'On';
             const unfilteredWarnings = [
                 {
@@ -49,7 +49,7 @@ export default {
                 },
                 {
                     message: "flipacq is in the beam",
-                    condition: this.retrieveValueByIndiId('flipacq.position.in') == 'On'
+                    condition: this.retrieveValueByIndiId('flipacq.presetName.in') == 'On'
                 },
                 {
                     message: "fwscind is in the beam",

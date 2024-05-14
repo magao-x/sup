@@ -4,6 +4,7 @@
     :busy="switchBusy"
     :disabled="switchDisabled"
     :readOnly="switchReadOnly"
+    :glowyReadOnly="glowyReadOnly"
     :prompt="false"
     :labelOn="labelOn"
     :labelOff="labelOff"
@@ -40,6 +41,10 @@ export default {
     readOnly: {
       type: Boolean,
       default: false,
+    },
+    glowyReadOnly: {
+      type: Boolean,
+      default: false,
     }
   },
   data: function () {
@@ -65,7 +70,7 @@ export default {
       return this.switchDisabled || !this.thisProperty || this.switchValue === null || this.thisProperty.state == "Busy" || this.thisProperty.state == "Alert" || this.pendingUpdate;
     },
     switchReadOnly() {
-      return this.readOnly || (this.indiDefined && (this.thisProperty.perm == 'ro'));
+      return this.readOnly || (this.indiDefined && (this.thisProperty?.perm == 'ro'));
     },
     switchDisabled: function () {
       if (!this.thisProperty) return true;

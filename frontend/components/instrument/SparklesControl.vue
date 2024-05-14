@@ -8,12 +8,8 @@
         <div class="col">
             <div>Frequency (Hz):</div>
             <indi-property
-                v-if="!isTriggered"
                 :disabled="isSparkling"
-                indi-id="tweeterSpeck.frequency"></indi-property>
-            <input v-else
-                :value="currentFPS"
-                disabled>
+                indi-id="fxngensync.C1freq"></indi-property>
         </div>
         <div class="col">
             <div>Angle (º):</div>
@@ -92,7 +88,7 @@ export default {
             return this.thisDevice["modulating"]._elements["toggle"]._value == "On";
         },
         currentFPS() {
-            return this.retrieveValueByIndiId("camwfs.fps.current");
+            return this.retrieveValueByIndiId("fxngensync.C1freq.current");
         }
     }
 }

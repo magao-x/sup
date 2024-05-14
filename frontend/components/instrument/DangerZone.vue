@@ -10,9 +10,9 @@
             ></indi-momentary-switch>
         </div>
         <div>
-            <div v-if="indiIdExists('flipacq.position')" class="control">
+            <div v-if="indiIdExists('flipacq.presetName')" class="control">
             <div class="name">Acquisition mirror:</div>
-            <indi-switch-multi-element class="flipacq" indi-id="flipacq.position" :columns="2"></indi-switch-multi-element>
+            <indi-switch-multi-element class="flipacq" indi-id="flipacq.presetName" :columns="2"></indi-switch-multi-element>
             </div>
             <div v-else class="control">
                 Waiting for flipacq...
@@ -33,13 +33,10 @@
             <div class="name">telescope T/T offload</div>
             <indi-toggle-switch class="tracking-toggle"
                 indi-id="tcsi.offlTT_enable.toggle"
-                :disabled="loopIsOpen"
                 :ignoreBusyState="true"></indi-toggle-switch>
             <div class="name">camwfs-align loop</div>
             <indi-toggle-switch class="tracking-toggle"
-                indi-id="camwfs-align.loop_state.toggle"
-                :disabled="loopIsOpen"></indi-toggle-switch>
-                
+                indi-id="camwfs-align.loop_state.toggle"></indi-toggle-switch>
         </div>
     </div>
 </template>
@@ -123,7 +120,7 @@ export default {
             return this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'Off';
         },
         goodToAcquire() {
-            return this.retrieveValueByIndiId('flipacq.position.in') == 'On' && this.acquireCooldown == 0;
+            return this.retrieveValueByIndiId('flipacq.presetName.in') == 'On' && this.acquireCooldown == 0;
         }
     },
     components: {

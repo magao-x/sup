@@ -94,6 +94,7 @@ const advanceMillis = 1000;
 
 const refreshMillis = 2000;
 let textEncoder = new TextEncoder();
+let textDecoder = new TextDecoder('utf-8');
 
 import { Blosc, GZip, Zlib, LZ4, Zstd } from 'numcodecs';
 // const codec = new Blosc();
@@ -137,15 +138,22 @@ export default Vue.extend({
       console.log(evt);
       const bytesPerInt = 4;
       let shape = await evt.data.slice(0, 2 * bytesPerInt).arrayBuffer().then((buf) => new Uint32Array(buf));
-      console.log("shape", shape);
-      let buf = await evt.data.slice(2 * bytesPerInt).arrayBuffer();
+      // console.log("shape", shape);
+      let typecode = await evt.data.slice(2 * bytesPerInt, 2 * bytesPerInt + 1).arrayBuffer().then((buf) => textDecoder.decode(buf));
+      // console.log("typecode", typecode);
+      let buf = await evt.data.slice(2 * bytesPerInt + 1).arrayBuffer();
       let arr = new Uint8Array(buf);
-      console.log("arr", arr);
+      // console.log("arr", arr);
       const decoded = await codec.decode(arr);
-      console.log("decoded", decoded);
+      // console.log("decoded", decoded);
       this.height = shape[0];
       this.width = shape[1];
-      this.array = new Uint16Array(decoded.buffer);
+      if (typecode == "i") {
+        this.array = new Int32Array(decoded.buffer);
+      } else {
+        this.array = new Float32Array(decoded.buffer);
+      }
+      console.log("final array", shape, typecode, this.array);
     },
     onVideoSocketClose(evt) {
       console.log(evt);

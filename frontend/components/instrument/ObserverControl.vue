@@ -43,11 +43,17 @@
       <div v-for="camName in camNames" :key="camName">
         <div>write {{ camName }}</div>
         <indi-toggle-switch
+          v-if="!isObserving"
           :indi-id="`observers.writers.cam${camName}`"
-          :readOnly="isObserving"
           label-off=""
           label-on=""
         ></indi-toggle-switch>
+        <div v-else-if="retrieveValueByIndiId(`cam${camName}-sw.writing.toggle`) == 'On'" class="glowy">
+          <material-icon name="power_settings_new"></material-icon>
+        </div>
+        <div v-else class="notGlowy">
+          <material-icon name="highlight_off"></material-icon>
+        </div>
         <div><indi-value 
           :indi-id="`cam${camName}-sw.writing.toggle`"
           :placeholder="`looking for cam${camName}-sw...`"
@@ -93,6 +99,24 @@
 .save-path {
   font-family: monospace;
 }
+
+.glowy {
+  text-shadow: 0 0 5 $plasma-blue; /* Initial shadow */
+  animation: pulse 1s infinite alternate; /* Animation */
+  color: $plasma-blue;
+}
+.notGlowy {
+  color: $icon-gray;
+}
+
+@keyframes pulse {
+  0% {
+    text-shadow: 0 0 5px $plasma-blue; /* Initial shadow */
+  }
+  100% {
+    text-shadow: 0 0 20px $plasma-blue; /* Pulsing shadow */
+  }
+}
 </style>
 <script>
 import indi from "~/mixins/indi.js";
@@ -104,6 +128,7 @@ import IndiToggleSwitch from "../indi/IndiToggleSwitch.vue";
 import AlternateIndiToggleSwitch from "../indi/AlternateIndiToggleSwitch.vue";
 import IndiElement from "../indi/IndiElement.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
+import MaterialIcon from "~/components/basic/MaterialIcon.vue";
 
 export default {
   props: {
@@ -129,7 +154,8 @@ export default {
     IndiToggleSwitch,
     IndiElement,
     IndiProperty,
-    AlternateIndiToggleSwitch
+    AlternateIndiToggleSwitch,
+    MaterialIcon
   },
 };
 </script>

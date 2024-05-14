@@ -1,7 +1,7 @@
 <template>
   <div class="observer-saving-monitor" :class="{'active': isSaving}">
     <span class="save-path">
-      /data/obs/{{ currentObserverEmail }}/{{ semester }}/{{ dateNight }}/<indi-value indi-id="tcsi.catalog.object"></indi-value>/<indi-value indi-id="observers.obs_name.current"></indi-value>_{{ maybeDateStamp }}/{{ enabledCamerasShellSnippet }}
+      /data/obs/{{ semester }}/{{ currentObserverEmail }}/{{ folderTimeStamp }}_*_<indi-value indi-id="observers.obs_name.current"></indi-value>/{{ enabledCamerasShellSnippet }}
     </span>
   </div>
 </template>
@@ -63,7 +63,7 @@ export default {
       }
     },
     isSaving() {
-      return (this.enabledCameras.length > 0) && (this.retrieveByIndiId("observers.obs_on.toggle")?._value == 'On');
+      return this.retrieveByIndiId("observers.obs_on.toggle")?._value == 'On';
     },
     enabledCameras() {
       let currentCameras = [];
@@ -93,20 +93,14 @@ export default {
     semester() {
       return this.scheduleSemester(this.time.currentTime);
     },
-    dateNight() {
-      return this.dateNightFromDateTime(this.time.currentTime);
+    folderTimeStamp() {
+      return this.time.currentTime.toFormat('yyyy-MM-dd');
     },
     catalogObject() {
       let elem = this.retrieveByIndiId("tcsi.catalog.object");
       if (!elem) return null;
       return elem._value;
     },
-    dateStamp() {
-      return this.time.currentTime.toFormat("yyyyMMdd'T'HHmmss");
-    },
-    maybeDateStamp() {
-        return this.isSaving ? '*' : this.dateStamp;
-    }
   },
 };
 </script>

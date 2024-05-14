@@ -11,6 +11,7 @@
         <table class="status-table view gap-bottom">
           <thead>
             <tr>
+              <th></th>
               <th>channel</th>
               <th>camera</th>
               <th>ND</th>
@@ -19,11 +20,15 @@
               <th>gain</th>
               <th>mode</th>
               <th>shutter</th>
-              <th>view</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="camName in camNames" :key="camName">
+              <td>
+                <a 
+                  v-if="camName != 'visx'"
+                  :href="`/video#cam${camName}`" target="_blank"><MaterialIcon name="open_in_new"></MaterialIcon></a>
+              </td>
               <td>{{ camName }}</td>
               <td>
                 <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)"
@@ -85,7 +90,7 @@
               :indi-id="`${deviceName}.filterName`"></indi-switch-dropdown>
             <indi-switch-multi-element
               v-if="deviceName.match(/^flip/)"
-              :indi-id="`${deviceName}.position`"
+              :indi-id="`${deviceName}.presetName`"
               :columns="2"></indi-switch-multi-element>
             <template v-if="deviceName.match(/^stage/)">
               <indi-momentary-switch v-if="retrieveValueByIndiId(`${deviceName}.fsm.state`) == 'NOTHOMED'"
