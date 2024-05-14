@@ -33,13 +33,10 @@
             <div class="name">telescope T/T offload</div>
             <indi-toggle-switch class="tracking-toggle"
                 indi-id="tcsi.offlTT_enable.toggle"
-                :disabled="loopIsOpen"
                 :ignoreBusyState="true"></indi-toggle-switch>
             <div class="name">camwfs-align loop</div>
             <indi-toggle-switch class="tracking-toggle"
-                indi-id="camwfs-align.loop_state.toggle"
-                :disabled="loopIsOpen"></indi-toggle-switch>
-                
+                indi-id="camwfs-align.loop_state.toggle"></indi-toggle-switch>
         </div>
     </div>
 </template>

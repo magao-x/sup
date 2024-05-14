@@ -63,7 +63,7 @@ button,
 @mixin hover-border {
   &:hover,
   &:focus {
-    border: 1px solid var(--plasma-blue);
+    border: 1px solid var(--deco-focus);
   }
   &:disabled {
     border: 1px solid var(--border-gray); /* override hover */

@@ -23,9 +23,11 @@ FLOAT_TYPES = (DataType.HALF, DataType.FLOAT, DataType.DOUBLE)
 
 def parse_rtimv_config(config_path : pathlib.Path):
     cp = configparser.ConfigParser()
-    cp.read(config_path)
-    shmim_name = cp.get('image', 'shmim_name')
-    dark_name = cp.get('dark', 'shmim_name', fallback=None)
+    # handle leading section-less values
+    with open(config_path, 'r') as fh:
+        cp.read_string('[default]\n' + fh.read())
+    shmim_name = cp.get('image', 'key')
+    dark_name = cp.get('dark', 'key', fallback=None)
     return shmim_name, dark_name
 
 def shmim_grabber():

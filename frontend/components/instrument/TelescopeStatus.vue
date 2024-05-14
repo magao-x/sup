@@ -1,11 +1,25 @@
 <template>
   <div class="telescope-status" v-if="indiDefined">
-      <div class="super-important view gap-bottom">
-        <div class="status-item">
-          <div class="datum">Object:</div>
-          <div class="value">
+    <div class="super-important view gap-bottom">
+      <div class="status-item">
+        <div class="datum"></div>
+        <div class="value">{{ readableTimestamp }}</div>
+      </div>
+      <div class="status-item">
+        <div class="datum">LST:</div>
+        <div class="value">{{ lst }}</div>
+      </div>
+      <div class="status-item">
+        <div class="datum">Hour Angle:</div>
+        <div class="value">
+          {{ hourAngle }}
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="datum">Object:</div>
+        <div class="value">
             <indi-value
-              :indi-id="`${thisDeviceName}.catalog.object`"
+            :indi-id="`${thisDeviceName}.catalog.object`"
             ></indi-value>
           </div>
         </div>
@@ -28,12 +42,6 @@
           </div>
         </div>
         <div class="status-item">
-          <div class="datum">Hour Angle:</div>
-          <div class="value">
-            {{ hourAngle }}
-          </div>
-        </div>
-        <div class="status-item">
           <div class="datum">Altitude:</div>
           <div class="value">
             <indi-value
@@ -50,10 +58,6 @@
             :formatFunction="(v) => String(Number(v).toFixed(4))"
             ></indi-value>º
           </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">LST:</div>
-          <div class="value">{{ lst }}</div>
         </div>
         <div class="status-item">
           <div class="datum">Airmass:</div>
@@ -155,6 +159,7 @@ import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 import IndiValue from "../indi/IndiValue.vue";
 import ObservabilityPlots from '../plots/ObservabilityPlots.vue';
+import { DateTime } from "luxon";
 
 export default {
   props: ["device", "indiId"],
@@ -208,6 +213,13 @@ export default {
     },
   },
   computed: {
+    readableTimestamp() {
+      return (
+        this.time.currentTime.toLocaleString(DateTime.DATE_MED) +
+        " " +
+        this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+      );
+    },
     beginObsTimestamp() {
       return null;
       let positionProp = this.thisDevice?.catalog;

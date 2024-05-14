@@ -4,6 +4,7 @@
     :busy="switchBusy"
     :disabled="switchDisabled"
     :readOnly="switchReadOnly"
+    :glowyReadOnly="glowyReadOnly"
     :prompt="false"
     :labelOn="labelOn"
     :labelOff="labelOff"
@@ -38,6 +39,10 @@ export default {
       default: () => 'Off',
     },
     readOnly: {
+      type: Boolean,
+      default: false,
+    },
+    glowyReadOnly: {
       type: Boolean,
       default: false,
     }

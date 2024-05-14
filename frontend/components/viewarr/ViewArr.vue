@@ -333,7 +333,7 @@ function norm(value, vmin, vmax) {
 function cmapAssign(normedValue, lookupTable, destinationArray, destinationBaseIndex) {
   const scaledValue = normedValue * 255;
   const lowIndex = Math.floor(scaledValue);
-  console.log(lowIndex);
+  // console.log(lowIndex);
   let fractionalPart = scaledValue - lowIndex;
   if (lowIndex == 255) {
     destinationArray.set(lookupTable[255].map((val) => Math.round(val * 255)), destinationBaseIndex);
@@ -368,6 +368,14 @@ export default Vue.extend({
       const pixels = theImageData.data;
       console.log("imagedata");
       let fired = false;
+      this.vmin
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          const srcIdx = y * this.width + x;
+          this.vmin = (this.array[srcIdx] < this.vmin) ? this.array[srcIdx] : this.vmin;
+          this.vmax = (this.array[srcIdx] > this.vmax) ? this.array[srcIdx] : this.vmax;
+        }
+      }
       for (let y = 0; y < this.height; y++) {
         for (let x = 0; x < this.width; x++) {
           const srcIdx = y * this.width + x;
