@@ -11,8 +11,8 @@
           ></indi-toggle-switch>
         </div>
         <div class="purpose">
-          <span class="label">Purpose:</span>
-          <indi-property indi-id="observers.obs_name" class="full-width"></indi-property>
+          <!-- <span class="label">Purpose:</span> -->
+          <indi-current-target indi-id="observers.obs_name" style="flex: 1" prefix="Purpose:"></indi-current-target>
         </div>
       </div>
       <div class="col current-observer">
@@ -83,6 +83,7 @@
 }
 .purpose {
   font-size: 125%;
+  display: flex;
 }
 
 .writing-toggles {
@@ -128,6 +129,7 @@ import IndiToggleSwitch from "../indi/IndiToggleSwitch.vue";
 import AlternateIndiToggleSwitch from "../indi/AlternateIndiToggleSwitch.vue";
 import IndiElement from "../indi/IndiElement.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
+import IndiCurrentTarget from "~/components/indi/IndiCurrentTarget.vue";
 import MaterialIcon from "~/components/basic/MaterialIcon.vue";
 
 export default {
@@ -154,6 +156,7 @@ export default {
     IndiToggleSwitch,
     IndiElement,
     IndiProperty,
+    IndiCurrentTarget,
     AlternateIndiToggleSwitch,
     MaterialIcon
   },

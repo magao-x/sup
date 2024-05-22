@@ -1,34 +1,22 @@
 <template>
   <div v-if="thisElement" class="element">
-    <adjustable-number-stepper
-      v-if="propertyKind == 'num' && optionalAttr('step')"
-      :disabled="isDisabled"
-      :min="optionalAttr('min')"
-      :max="optionalAttr('max')"
-      :step="optionalAttr('step')"
-      :format="optionalAttr('format')"
-      :value="currentValueOrInput"
-      @focus="stopUpdating"
-      @blur="maybeResumeUpdating"
-      @input="updateUserInput"
-    ></adjustable-number-stepper>
     <indi-toggle-switch
-      v-else-if="propertyKind == 'swt'"
+      v-if="propertyKind == 'swt'"
       :disabled="isDisabled"
       :value="currentValueOrInput"
       :device="thisDevice"
       :property="thisProperty"
       :element="thisElement"
     ></indi-toggle-switch>
-    <vanilla-input
+    <input
       v-else
       :disabled="isDisabled"
       :value="currentValueOrInput"
       @focus="stopUpdating"
-      @blur="maybeResumeUpdating"
       @input="updateUserInput"
       @keydown.enter="onCommit"
-    ></vanilla-input>
+      @keydown.escape="cancel"
+    ></input>
     <commit-button v-if="propertyKind !== 'swt' && !forceDisabled" :disabled="isDisabled" @commit="onCommit"></commit-button>
   </div>
   <div v-else>Waiting for element {{ indiId }}  {{ thisElement }}</div>
@@ -69,13 +57,12 @@ export default {
     stopUpdating: function() {
       this.shouldUpdate = false;
     },
-    maybeResumeUpdating: function() {
-      if (!this.isModified) {
-        this.shouldUpdate = true;
-      }
+    cancel: function() {
+      this.shouldUpdate = true;
+      this.userInput = null;
     },
     updateUserInput: function (payload) {
-      this.userInput = payload;
+      this.userInput = payload.target.value;
       this.isModified = true;
       this.shouldUpdate = false;
     },

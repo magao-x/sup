@@ -83,7 +83,7 @@ setup(
         'purepyindi2>=0.0.0',
         'toml>=0.10.2',
         'websockets>=10.2',
-        'blosc>=1.11.1'
+        'blosc>=1.11.1',
     ],
     include_package_data=True,
     entry_points={

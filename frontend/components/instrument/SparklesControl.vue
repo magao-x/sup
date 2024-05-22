@@ -1,73 +1,71 @@
 <template>
-    <div v-if="indiDefined" class="cols view padded gap-bottom">
-        <div>
-            <div style="font-size: 150%; text-align: center;">✨ <finite-state-machine-status
-                  :device="thisDevice"></finite-state-machine-status></div>
-            <indi-toggle-switch indi-id="tweeterSpeck.modulating.toggle" class="full-width" label-on="sparkle"></indi-toggle-switch>
+    <div v-if="indiDefined" class=" view padded gap-bottom">
+        <div class="col" style="text-align: center">
+            <div style="margin-bottom: 5px;">
+                <finite-state-machine-status
+                  :device="thisDevice"></finite-state-machine-status>
+                ✨
+            </div>
+            <div>
+                <indi-momentary-switch
+                    indi-id="tweeterSpeck.zero.request" label="Ø" class="zero-sparkles"></indi-momentary-switch>
+                <indi-toggle-switch indi-id="tweeterSpeck.modulating.toggle" label-on="sparkle"></indi-toggle-switch>
+            </div>
         </div>
-        <div class="col">
-            <div>Frequency (Hz):</div>
-            <indi-property
-                :disabled="isSparkling"
-                indi-id="fxngensync.C1freq"></indi-property>
+        <div class="row">
+            <div class="label">Angle (º):</div>
+            <indi-current-target 
+                indi-id="tweeterSpeck.angle"></indi-current-target>
         </div>
-        <div class="col">
-            <div>Angle (º):</div>
-            <indi-property 
-                v-if="!isSparkling"
-                indi-id="tweeterSpeck.angle"></indi-property>
-            <input v-else
-                :value="retrieveValueByIndiId('tweeterSpeck.angle.current')"
-                disabled>
-        </div>
-        <div>
-            <div>Amplitude:</div>
-            <indi-property
-                v-if="!isSparkling"
-                indi-id="tweeterSpeck.amp"></indi-property>
-            <input v-else
-                :value="retrieveValueByIndiId('tweeterSpeck.amp.current')"
-                disabled>
+        <div class="row">
+            <div class="label">Amplitude:</div>
+            <indi-current-target
+                indi-id="tweeterSpeck.amp"></indi-current-target>
         </div>
         
-        <div>
-            <div>Separation (&lambda;/D):</div>
-            <indi-property 
-                v-if="!isSparkling"
-                indi-id="tweeterSpeck.separation"></indi-property>
-            <input v-else
-                :value="retrieveValueByIndiId('tweeterSpeck.separation.current')"
-                disabled>
+        <div class="row">
+            <div class="label">Separation (&lambda;/D):</div>
+            <indi-current-target 
+                indi-id="tweeterSpeck.separation"></indi-current-target>
         </div>
-        <div>
-            <indi-toggle-switch
-                :read-only="isSparkling"
-                indi-id="tweeterSpeck.trigger.toggle" class="full-width" label-on="trigger"></indi-toggle-switch>
-            <indi-momentary-switch
-                :disabled="isSparkling"
-                indi-id="tweeterSpeck.zero.request" class="full-width" label="zero"></indi-momentary-switch>
-        </div>
+        
     </div>
-    <div v-else>
+    <div v-else class="view padded gap-bottom">
         Waiting for sparkles...
     </div>
 </template>
 <style lang="scss" scoped>
+@import "./css/variables.scss";
+
 .full-width {
     width: 100%;
 }
 .cols {
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+}
+
+.row {
+    display: grid;
+    align-items: stretch;
+    grid-template-columns: 1fr 2fr;
+}
+
+.zero-sparkles {
+    border-radius: 100%;
+    width: 2 * $unit;
+    height: 2 * $unit;
+    text-align: center;
 }
 </style>
 <script>
-import indi from "~/mixins/indi.js";
-import utils from "~/mixins/utils.js";
 import IndiMomentarySwitch from '~/components/indi/IndiMomentarySwitch.vue';
+import IndiProperty from '~/components/indi/IndiProperty.vue';
+import IndiCurrentTarget from '~/components/indi/IndiCurrentTarget.vue';
 import IndiToggleSwitch from '~/components/indi/IndiToggleSwitch.vue';
 import IndiValue from '~/components/indi/IndiValue.vue';
-import IndiProperty from '~/components/indi/IndiProperty.vue';
 import FiniteStateMachineStatus from "~/components/instrument/FiniteStateMachineStatus.vue";
+import indi from "~/mixins/indi.js";
+import utils from "~/mixins/utils.js";
 
 export default {
     props: ["device", "indiId"],
@@ -79,6 +77,7 @@ export default {
         IndiProperty,
         FiniteStateMachineStatus,
         IndiValue,
+        IndiCurrentTarget,
     },
     computed: {
         isTriggered() {

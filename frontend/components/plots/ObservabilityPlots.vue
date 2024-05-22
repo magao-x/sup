@@ -1,6 +1,6 @@
 <template>
   <div class="observability-plot-container gap-bottom">
-    <div class="view">
+    <div class="">
       <div class="plot-title">altitude</div>
       <plot-component
         v-if="altitudes !== null"
@@ -13,7 +13,7 @@
         class="observability-plot"
       ></plot-component>
     </div>
-    <div class="view">
+    <div class="">
       <div class="plot-title">parallactic angle</div>
       <plot-component
         v-if="parallactic_angles !== null"
@@ -35,6 +35,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: $unit;
+  min-height: 150px;
 }
 .plot-title {
   color: $plasma-blue;

@@ -18,10 +18,10 @@ export default {
     },
     methods: {
         onClick(ev) {
-            console.log(ev);
             if (!this.disabled) {
                 this.sendIndiNew(this.thisProperty, this.thisElement, "On");
             }
+            return false;
         }
     }
 }

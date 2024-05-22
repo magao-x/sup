@@ -1,118 +1,135 @@
 <template>
   <div class="observation-controls">
     <observer-saving-monitor class="padded gap-bottom"></observer-saving-monitor>
-    
     <div class="cols top-level">
       <div class="col">
         <div class="obs-and-sparkles">
           <observer-control class="observer-controls view padded"></observer-control>
-          <sparkles-control indi-id="tweeterSpeck"></sparkles-control>
+          <danger-zone class="padded"></danger-zone>
         </div>
-        <table class="status-table view gap-bottom">
-          <thead>
-            <tr>
-              <th></th>
-              <th>channel</th>
-              <th>camera</th>
-              <th>ND</th>
-              <th>filter</th>
-              <th>exptime</th>
-              <th>gain</th>
-              <th>mode</th>
-              <th>shutter</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="camName in camNames" :key="camName">
-              <td>
-                <a 
-                  v-if="camName != 'visx'"
-                  :href="`/video#cam${camName}`" target="_blank"><MaterialIcon name="open_in_new"></MaterialIcon></a>
-              </td>
-              <td>{{ camName }}</td>
-              <td>
-                <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)"
-                  :indi-id="`cam${camName}`"></finite-state-machine-status>
-              </td>
-              <td>
-                <indi-switch-dropdown v-if="(camName == 'sci1' || camName == 'sci2') && retrieveByIndiId(`fwscind`)"
-                  :indi-id="`fwscind.filterName`"></indi-switch-dropdown>
-                </td>
-                <td>
-                  <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
-                  :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
-                  <progress 
-                    v-if="retrieveByIndiId(`cam${camName}.current_exposure`)"
-                    :value="100 - retrieveValueByIndiId(`cam${camName}.current_exposure.remaining_pct`)" max="100"></progress>
-              </td>
-              <td v-if="!retrieveByIndiId(`cam${camName}.exptime`)">
-                <indi-value :indi-id="`cam${camName}.fps.current`"
-                  ></indi-value> fps
-              </td>
-              <td v-else>
-                <indi-value v-if="retrieveByIndiId(`cam${camName}.exptime`)"
-                  :indi-id="`cam${camName}.exptime.current`"></indi-value> s
-              </td>
-              <td><indi-value v-if="retrieveByIndiId(`cam${camName}.emgain`)" :indi-id="`cam${camName}.emgain.current`"
-                ></indi-value>
-                  <indi-value v-if="retrieveByIndiId(`cam${camName}.gain`)" :indi-id="`cam${camName}.gain.current`"
-                  ></indi-value>
-              </td>
-              <td>
-                <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)"
-                  :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
-              </td>
-              <td>
-                <indi-toggle-switch v-if="retrieveByIndiId(`cam${camName}.shutter`)"
-                  :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut"
-                  :disabled="!shutterAvailable(camName)" :prompt="true"></indi-toggle-switch>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        
+      </div>
+      <div class="col">
+        <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi"></telescope-status>
+        <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
+      </div>
+    </div>
+    <div class="cols cams-and-corons">
+      <div class="col">
+        <div class="status-tile view padded" v-for="deviceName in essentialDevices">
+          <div>
+            <span class="name">{{ deviceName }}</span>
+            <finite-state-machine-status v-if="retrieveByIndiId(deviceName)"
+              :indi-id="deviceName"></finite-state-machine-status>
+            <div v-else>waiting for app</div>
+          </div>
+          <!-- <compact-filter-stage-control v-for="deviceName in essentialDevices"
+              :device-name="deviceName"
+              class="padded view gap-bottom"></compact-filter-stage-control> -->
+          <indi-switch-multi-element v-if="deviceName.match(/^fw/)"
+            :indi-id="`${deviceName}.filterName`"></indi-switch-multi-element>
+          <indi-switch-multi-element v-if="deviceName.match(/^flip/) || deviceName.match(/^stage/)"
+            :indi-id="`${deviceName}.presetName`"></indi-switch-multi-element>
+        </div>
+      </div>
+      <table class="status-table view gap-bottom">
+        <thead>
+          <tr>
+            <th></th>
+            <th>channel</th>
+            <th>camera</th>
+            <th>ND</th>
+            <th>filter</th>
+            <th>fps</th>
+            <th>gain</th>
+            <th>mode</th>
+            <th>shutter</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="camName in camNames" :key="camName">
+            <td>
+              <a v-if="camName != 'visx'" :href="`/video#cam${camName}`" target="_blank">
+                <MaterialIcon name="open_in_new"></MaterialIcon>
+              </a>
+            </td>
+            <td>{{ camName }}</td>
+            <td>
+              <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)"
+                :indi-id="`cam${camName}`"></finite-state-machine-status>
+            </td>
+            <td>
+              <indi-switch-dropdown v-if="(camName == 'sci1' || camName == 'sci2') && retrieveByIndiId(`fwscind`)"
+                :indi-id="`fwscind.filterName`"></indi-switch-dropdown>
+            </td>
+            <td>
+              <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
+                :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
+              <progress v-if="retrieveByIndiId(`cam${camName}.current_exposure`)"
+                :value="100 - retrieveValueByIndiId(`cam${camName}.current_exposure.remaining_pct`)"
+                max="100"></progress>
+            </td>
+            <td>
+              <indi-current-target :indi-id="`cam${camName}.exptime`" style="display: inline-block" width="8rem"
+                suffix="sec"></indi-current-target>
+            </td>
+            <td><indi-current-target v-if="retrieveByIndiId(`cam${camName}.emgain`)"
+                :indi-id="`cam${camName}.emgain`"></indi-current-target>
+            </td>
+            <td>
+              <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)"
+                :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
+            </td>
+            <td>
+              <indi-toggle-switch v-if="retrieveByIndiId(`cam${camName}.shutter`)"
+                :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut"
+                :disabled="!shutterAvailable(camName)" :prompt="true"></indi-toggle-switch>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="col">
+        <div class="view">
+          <indi-toggle-switch indi-id="holoop.loop_state.toggle" :read-only="true" :glowy-read-only="true" label-on="high-order" label-off="open"></indi-toggle-switch>
+          <indi-toggle-switch indi-id="loloop.loop_state.toggle" :read-only="true" :glowy-read-only="true" label-on="low-order" label-off="open"></indi-toggle-switch>
+        </div>
+        <sparkles-control class="view" indi-id="tweeterSpeck"></sparkles-control>
+      </div>
+    </div>
+    <div class="cols top-level">
+      <div class="col">
+
         <div v-for="lightPathGrouping in Object.keys(lightPathDevices)" class="gap-bottom light-path">
           <h2>{{ lightPathGrouping }}</h2>
           <div class="status-tiles">
-          <div
-            v-for="deviceName in lightPathDevices[lightPathGrouping]"
-            class="status-tile view"
-          >
-            <div>
-              <span class="name">{{ deviceName }}</span>
-              <finite-state-machine-status
-                v-if="retrieveByIndiId(deviceName)"
-                :indi-id="deviceName"></finite-state-machine-status>
-              <div v-else>waiting for app</div>
-            </div>
-            <template v-if="retrieveByIndiId(`${deviceName}`)">
-            <indi-switch-dropdown v-if="deviceName.match(/^fw/)"
-              :indi-id="`${deviceName}.filterName`"></indi-switch-dropdown>
-            <indi-switch-multi-element
-              v-if="deviceName.match(/^flip/)"
-              :indi-id="`${deviceName}.presetName`"
-              :columns="2"></indi-switch-multi-element>
-            <template v-if="deviceName.match(/^stage/)">
-              <indi-momentary-switch v-if="retrieveValueByIndiId(`${deviceName}.fsm.state`) == 'NOTHOMED'"
-              :indi-id="`${deviceName}.home.request`" label="😾"
-              style="line-height: 100%; padding:0; vertical-align: middle"></indi-momentary-switch>
-              <indi-switch-dropdown v-if="retrieveByIndiId(`${deviceName}`)"
-                :indi-id="`${deviceName}.presetName`"></indi-switch-dropdown>
-              (<indi-value :indi-id="`${deviceName}.position.current`"></indi-value>)
-            </template>
-
-            </template>
-            
+            <compact-filter-stage-control v-for="deviceName in lightPathDevices[lightPathGrouping]"
+              :device-name="deviceName" class="view"></compact-filter-stage-control>
+            <!-- <div v-for="deviceName in lightPathDevices[lightPathGrouping]" class="status-tile view">
+              <div>
+                <span class="name">{{ deviceName }}</span>
+                <finite-state-machine-status v-if="retrieveByIndiId(deviceName)"
+                  :indi-id="deviceName"></finite-state-machine-status>
+                <div v-else>waiting for app</div>
+              </div>
+              <template v-if="retrieveByIndiId(`${deviceName}`)">
+                <indi-switch-dropdown v-if="deviceName.match(/^fw/)"
+                  :indi-id="`${deviceName}.filterName`"></indi-switch-dropdown>
+                <indi-switch-multi-element v-if="deviceName.match(/^flip/)" :indi-id="`${deviceName}.presetName`"
+                  :columns="2"></indi-switch-multi-element>
+                <template v-if="deviceName.match(/^stage/)">
+                  <indi-momentary-switch v-if="retrieveValueByIndiId(`${deviceName}.fsm.state`) == 'NOTHOMED'"
+                    :indi-id="`${deviceName}.home.request`" label="😾"
+                    style="line-height: 100%; padding:0; vertical-align: middle"></indi-momentary-switch>
+                  <indi-switch-dropdown v-if="retrieveByIndiId(`${deviceName}`)"
+                    :indi-id="`${deviceName}.presetName`"></indi-switch-dropdown>
+                  (<indi-value :indi-id="`${deviceName}.position.current`"></indi-value>)
+                </template>
+</template>
+</div> -->
           </div>
         </div>
-        </div>
-
       </div>
-    <div class="col">
-
-      <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi"></telescope-status>
-      <danger-zone class="padded"></danger-zone>
-      <div class="status-tiles gap-bottom">
+      <div class="col">
+        <div class="status-tiles gap-bottom">
           <div class="status-tile view">
             <div>
               <span class="name">camsci1</span>
@@ -152,28 +169,31 @@
             / <indi-value :indi-id="`temprack.temperature.upper`"></indi-value>ºC U
           </div>
         </div>
-      <div class="padded view gap-bottom">
-        <maggie-o-x></maggie-o-x>
-        <!-- <div>
+        <div class="padded view gap-bottom">
+          <maggie-o-x></maggie-o-x>
+          <!-- <div>
           purepyindi_example.uptime.uptime_sec: <indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value>
         </div>
         <div>
           Toggle example: <IndiToggleSwitch indi-id="purepyindi_example.obs_on.toggle"></IndiToggleSwitch>
         </div>
         <MaterialIcon name="help"></MaterialIcon> -->
-      </div>
-      <div class="padded view">
-        <log-stream>
-        </log-stream>
+        </div>
+        <observer-logs></observer-logs>
+        <div class="padded view">
+          <log-stream>
+          </log-stream>
+        </div>
       </div>
     </div>
   </div>
-</div></template>
+</template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
-.cols.top-level {
-  grid-template-columns: 1fr 1fr;
+.cams-and-corons {
+  padding: 0.5rem;
+  grid-template-columns: 1fr 5fr 1fr;
 }
 
 .status-table {
@@ -195,7 +215,7 @@
 .light-path {
   h2 {
     font-size: 0.8rem;
-    font-variant:small-caps;
+    font-variant: small-caps;
   }
 }
 
@@ -215,15 +235,17 @@
   grid-template-columns: 5fr 12fr;
   grid-gap: $unit;
 }
-
 </style>
 <script>
 import utils from "~/mixins/utils.js";
 import ObserverControl from "~/components/instrument/ObserverControl.vue";
+import CompactFilterStageControl from "~/components/instrument/CompactFilterStageControl.vue";
+import ObserverLogs from "~/components/instrument/ObserverLogs.vue";
 import ObserverSavingMonitor from "~/components/instrument/ObserverSavingMonitor.vue";
 import DangerZone from "~/components/instrument/DangerZone.vue";
 import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
+import IndiCurrentTarget from "~/components/indi/IndiCurrentTarget.vue";
 import IndiSwitchMultiElementValue from "../components/indi/IndiSwitchMultiElementValue.vue";
 import IndiSwitchMultiElement from "../components/indi/IndiSwitchMultiElement.vue";
 import IndiSwitchDropdown from '~/components/indi/IndiSwitchDropdown.vue';
@@ -235,7 +257,7 @@ import FiniteStateMachineStatus from '../components/instrument/FiniteStateMachin
 import IndiMomentarySwitch from '../components/indi/IndiMomentarySwitch.vue';
 import MaggieOX from "../components/instrument/MaggieOX.vue";
 import SparklesControl from "~/components/instrument/SparklesControl.vue";
-
+import ObservabilityPlots from '~/components/plots/ObservabilityPlots.vue';
 export default {
   mixins: [utils],
   inject: ["indi"],
@@ -253,6 +275,7 @@ export default {
         "stagesci1", "stagesci2",
       ],
       flipNames: ['fliptip', 'flipwfsf'],
+      essentialDevices: ['fwfpm', 'stagescibs', 'fwlyot'],
       lightPathDevices: {
         "entrance": [
           "fwtelsim",
@@ -298,11 +321,34 @@ export default {
         this.retrieveByIndiId(`cam${camName}.shutter_status.status`)._value == "READY"
       );
       return retval;
+    },
+    showCamFpsOrExptime(camName) {
+      const exptime = this.retrieveByIndiId(`cam${camName}.exptime.current`);
+      const fps = this.retrieveByIndiId(`cam${camName}.fps.current`);
+      if (fps && fps._value > 0) {
+        return "fps";
+      } else if (exptime) {
+        return "s";
+      } else {
+        return "";
+      }
+    },
+    equatorialCoords() {
+      let catData = this.retrieveIndiById('tcsi.catdata');
+      if (catData) {
+        return {
+          ra: catData._elements.ra._value,
+          dec: catData._elements.dec._value,
+        };
+      }
     }
   },
   components: {
     ObserverControl,
+    ObserverLogs,
     IndiValue,
+    IndiCurrentTarget,
+    CompactFilterStageControl,
     IndiSwitchMultiElementValue,
     IndiToggleSwitch,
     TelescopeStatus,
@@ -317,6 +363,7 @@ export default {
     MaggieOX,
     SparklesControl,
     IndiProperty,
+    ObservabilityPlots,
   },
 };
 </script>

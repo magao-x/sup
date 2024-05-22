@@ -39,6 +39,9 @@ export default {
           setTimeout(() => { this.updateCurrentTime(); }, 1000);
         },
         sendIndiNewByNames: function (deviceName, propertyName, elementName, value) {
+          if (value === null) {
+            return;
+          }
           const payload = {
             'device': deviceName,
             'property': propertyName,

@@ -1,37 +1,31 @@
 <template>
   <div class="telescope-status" v-if="indiDefined">
+    <div class="date-utc gap-bottom">
+      <div style="text-align: right">
+        {{ readableTimestamp }}
+      </div>
+      <div style="text-align: left">
+        {{ readableDatestamp }}
+      </div>
+    </div>
     <div class="super-important view gap-bottom">
-      <div class="status-item">
-        <div class="datum"></div>
-        <div class="value">{{ readableTimestamp }}</div>
-      </div>
-      <div class="status-item">
-        <div class="datum">LST:</div>
-        <div class="value">{{ lst }}</div>
-      </div>
-      <div class="status-item">
-        <div class="datum">Hour Angle:</div>
-        <div class="value">
-          {{ hourAngle }}
-        </div>
-      </div>
       <div class="status-item">
         <div class="datum">Object:</div>
         <div class="value">
-            <indi-value
-            :indi-id="`${thisDeviceName}.catalog.object`"
-            ></indi-value>
-          </div>
+          <indi-value
+          :indi-id="`${thisDeviceName}.catalog.object`"
+          ></indi-value>
         </div>
-        <div class="status-item">
-          <div class="datum">RA:</div>
-          <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.catdata.ra`"
-              :formatFunction="decimalDegreesToTime"
-            ></indi-value>
-          </div>
+      </div>
+      <div class="status-item">
+        <div class="datum">RA:</div>
+        <div class="value">
+          <indi-value
+          :indi-id="`${thisDeviceName}.catdata.ra`"
+          :formatFunction="decimalDegreesToTime"
+          ></indi-value>
         </div>
+      </div>
         <div class="status-item">
           <div class="datum">Declination:</div>
           <div class="value">
@@ -41,6 +35,28 @@
             ></indi-value>
           </div>
         </div>
+      <div class="status-item">
+        <div class="datum">LST:</div>
+        <div class="value">{{ lst }}</div>
+      </div>
+      <div class="status-item">
+        <div class="datum">Hour Angle:</div>
+        <div class="value">
+          <indi-value
+              :indi-id="`${thisDeviceName}.telpos.ha`"
+              :format-function="decimalHoursToTimeEastWest"
+          ></indi-value>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="datum">PA:</div>
+        <div class="value">
+          <indi-value
+          :indi-id="`${thisDeviceName}.teldata.pa`"
+          :formatFunction="(v) => String(Number(v).toFixed(2)) + 'º'"
+          ></indi-value>
+        </div>
+      </div>
         <div class="status-item">
           <div class="datum">Altitude:</div>
           <div class="value">
@@ -65,17 +81,8 @@
             {{ airmass }}
           </div>
         </div>
-        <div class="status-item">
-          <div class="datum">PA:</div>
-          <div class="value">
-            <indi-value
-            :indi-id="`${thisDeviceName}.teldata.pa`"
-            :formatFunction="(v) => String(Number(v).toFixed(2)) + 'º'"
-            ></indi-value>
-          </div>
-        </div>
       </div>
-      <div class="status-tiles gap-bottom">
+      <!-- <div class="status-tiles gap-bottom">
         <div class="status-tile view">
           <div>
             <span class="name">seeing</span>
@@ -116,10 +123,10 @@
             </div>
             <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
           </div>
-      </div>
-      <observability-plots
+      </div> -->
+      <!-- <observability-plots
         :equatorialCoords="equatorialCoords"
-        :beginObsTimestamp="beginObsTimestamp"></observability-plots>
+        :beginObsTimestamp="beginObsTimestamp"></observability-plots> -->
     </div>
     <div v-else class="view">Waiting for tcsi...</div>
   </template>
@@ -152,6 +159,14 @@
   grid-gap: 0 2 * $unit;
   font-size: 125%;
   padding: $unit;
+}
+.date-utc {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 0 2 * $unit;
+  font-size: 200%;
+  padding: $unit;
+  font-weight: bold;
 }
 </style>
 <script>
@@ -204,19 +219,29 @@ export default {
       return `${hours}:${minutes}:${seconds}`;
     },
     decimalDegreesToDMS(value) {
-      const deg = Math.floor(value);
-      let fracDeg = (value - deg) * 60;
+      const sign = Math.sign(value);
+      const deg = Math.floor(value / sign);
+      let fracDeg = (value/sign - deg) * 60;
       const min = String(Math.floor(fracDeg)).padStart(2, "0");
       fracDeg = (fracDeg - Math.floor(fracDeg)) * 60;
       const sec = String(Math.floor(fracDeg)).padStart(2, "0");
-      return `${deg}º${min}'${sec}"`;
+      const signString = (sign == 1) ? '+' : '-';
+      return `${signString}${deg}º${min}'${sec}"`;
     },
   },
   computed: {
+    readableDatestamp() {
+      return (
+        this.time.currentTime.toLocaleString(DateTime.DATE_MED) 
+        // +
+        // " " +
+        // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+      );
+    },
     readableTimestamp() {
       return (
-        this.time.currentTime.toLocaleString(DateTime.DATE_MED) +
-        " " +
+        // this.time.currentTime.toLocaleString(DateTime.DATE_MED) +
+        // " " +
         this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
       );
     },
@@ -228,16 +253,6 @@ export default {
         return positionProp.timestamp;
       } else {
         return null;
-      }
-    },
-    hourAngle() {
-      if (this.indiDefined && this.thisDevice.telpos) {
-        let ra = this.thisDevice.telpos._elements.ra._value;
-        ra = ra / 360 * 24;
-        let st = this.thisDevice.teltime._elements.sidereal_time._value;
-        // ha = st - ra
-        let ha = st - ra;
-        return this.decimalHoursToTimeEastWest(ha);
       }
     },
     airmass() {
@@ -263,15 +278,6 @@ export default {
       const catdata = this.thisDevice.catdata;
       return `/airmass?ra=${catdata._elements.ra._value}&dec=${catdata._elements.dec._value}`;
     },
-    equatorialCoords() {
-      if (this.indiDefined && this.thisDevice.catdata) {
-        const catdata = this.thisDevice.catdata;
-        return {
-          ra: catdata._elements.ra._value,
-          dec: catdata._elements.dec._value,
-        };
-      }
-    }
   },
 };
 </script>

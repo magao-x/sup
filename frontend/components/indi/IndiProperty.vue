@@ -20,6 +20,7 @@
           :element="eitherCurrentOrTarget"
           @commit="doneEditing"
           @click="beginEditing"
+          ref="indiElement"
         ></indi-element>
         <edit-button
           v-if="!isEditing"
@@ -78,8 +79,11 @@ export default {
   props: ["device", "property", "indiId", "disabled"],
   mixins: [indi, utils],
   methods: {
-    beginEditing(){
+    beginEditing() {
       this.isEditing = true;
+      this.$nextTick(() => {
+        this.$refs.indiElement.$el.querySelector('input').focus();
+      })
     },
     doneEditing() {
       this.isEditing = false;
