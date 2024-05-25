@@ -1,5 +1,5 @@
 <template>
-  <div class="observability-plot-container gap-bottom">
+  <div class="observability-plot-container">
     <div class="">
       <div class="plot-title">altitude</div>
       <plot-component
@@ -61,10 +61,10 @@ export default {
   components: { PlotComponent },
   computed: {
     ra() {
-      if (this.equatorialCoords) return this.equatorialCoords.ra;
+      return this.equatorialCoords?.ra;
     },
     dec() {
-      if (this.equatorialCoords) return this.equatorialCoords.dec;
+      return this.equatorialCoords?.dec;
     },
     altitudePlotData() {
       return {"altitude": {points: this.altitudes}};
@@ -81,11 +81,11 @@ export default {
     },
   },
   methods: {
-    async loadPlotData() {
+    async loadPlotData(ra, dec) {
       try {
         let baseURL;
         if (process.env.NODE_ENV == 'development') {
-          baseURL = "https://exao1.magao-x.org:4433"
+          baseURL = "http://exao1.lco.cl:8000"
         } else {
           baseURL =
             window.location.protocol +
@@ -94,29 +94,32 @@ export default {
             ":" +
             String(window.location.port);
         }
-        const res = await fetch(`${baseURL}/airmass?ra=${this.ra}&dec=${this.dec}`);
+        const destURL = `${baseURL}/airmass?ra=${ra}&dec=${dec}`;
+        const res = await fetch(destURL);
         if (!res.ok) {
+          console.log("not ok");
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
-          throw new Error(message);
+          console.error(message);
+          return {parallactic_angles: null, altitudes: null};
         }
         const data = await res.json();
-        this.parallactic_angles = data.parallactic_angles;
-        this.altitudes = data.altitudes;
+        return data;
       } catch (err) {
-        this.parallactic_angles = null;
-        this.altitudes = null;
+        console.error("Error in retrieving altitude/parang:", err);
       }
     },
   },
   async mounted() {
     if (this.ra == null || this.dec == null) return;
-    await this.loadPlotData();
+    console.log("loading plot data from mounted");
+    await this.loadPlotData(this.ra, this.dec);
   },
   watch: {
-    async equatorialCoords(oldCoords, newCoords) {
-      if (newCoords && (oldCoords.ra !== newCoords.ra || oldCoords.dec !== newCoords.dec)) {
-        console.log("loading plot data from watcher");
-        await this.loadPlotData();
+    async equatorialCoords(newCoords, oldCoords) {
+      if (newCoords && newCoords.ra && newCoords.dec) {
+        let data = await this.loadPlotData(newCoords.ra, newCoords.dec);
+        this.parallactic_angles = data.parallactic_angles;
+        this.altitudes = data.altitudes;
       }
     }
   }

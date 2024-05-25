@@ -14,7 +14,7 @@ export default {
   computed: {
     value: function() {
       if (!this.thisProperty) return "";
-      if (this.thisProperty.kind == 'swt') {
+      if (this.thisProperty._kind == 'swt') {
         if (!(this.thisProperty.rule == 'OneOfMany')) {
             console.error("Wrong switch rule for IndiSwitchMultiElementValue");
         }

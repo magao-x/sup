@@ -10,7 +10,7 @@
     <td class="kind">{{ record.property.kind }}</td>
     <td>{{ record.element.name }}</td>
     <td
-      v-if="record.property.kind == 'num'"
+      v-if="record.property._kind == 'num'"
       class="value"
     >{{ applyFormatString(record.element.format, record.element._value) }}</td>
     <td v-else-if="record.property.name == 'fsm'" class="value">

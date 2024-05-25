@@ -155,7 +155,6 @@ export default {
             this.connectWebSocket();
           }
         }, 1000);
-        console.log("Set reconnectionTimer id:", this.reconnectionTimer);
       },
       beforeUnmount() {
         if (this.reconnectionTimer) {

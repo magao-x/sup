@@ -9,8 +9,8 @@
         </div>
       </div>
       <div class="col">
-        <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi"></telescope-status>
-        <observability-plots :equatorialCoords="equatorialCoords"></observability-plots>
+        <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi" class="gap-bottom"></telescope-status>
+        <observability-plots :equatorialCoords="equatorialCoords" class="view"></observability-plots>
       </div>
     </div>
     <div class="cols cams-and-corons">
@@ -39,7 +39,7 @@
             <th>camera</th>
             <th>ND</th>
             <th>filter</th>
-            <th>fps</th>
+            <th>exptime</th>
             <th>gain</th>
             <th>mode</th>
             <th>shutter</th>
@@ -69,7 +69,8 @@
                 max="100"></progress>
             </td>
             <td>
-              <indi-current-target :indi-id="`cam${camName}.exptime`" style="display: inline-block" width="8rem"
+              <indi-current-target :indi-id="`cam${camName}.exptime`" format="%1.3f"
+                style="display: inline-block" width="8rem"
                 suffix="sec"></indi-current-target>
             </td>
             <td><indi-current-target v-if="retrieveByIndiId(`cam${camName}.emgain`)"
@@ -332,9 +333,11 @@ export default {
       } else {
         return "";
       }
-    },
+    }
+  },
+  computed: {
     equatorialCoords() {
-      let catData = this.retrieveIndiById('tcsi.catdata');
+      let catData = this.retrieveByIndiId('tcsi.catdata');
       if (catData) {
         return {
           ra: catData._elements.ra._value,

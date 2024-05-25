@@ -93,7 +93,7 @@ export default {
   computed: {
     propertyKind: function () {
       if(this.thisProperty) {
-        return this.thisProperty.kind;
+        return this.thisProperty._kind;
       } else {
         return null;
       }

@@ -55,11 +55,10 @@ export default {
     currentObserverEmail() {
       let prop = this.retrieveByIndiId("observers.observers");
       if (!prop) return;
-      console.log(prop._elements);
-        for (let elementKey of Object.keys(prop._elements)) {
-          if (prop._elements[elementKey]._value == 'On') {
-            return prop._elements[elementKey].label;
-          }
+      for (let elementKey of Object.keys(prop._elements)) {
+        if (prop._elements[elementKey]._value == 'On') {
+          return prop._elements[elementKey].label;
+        }
       }
     },
     isSaving() {

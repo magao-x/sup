@@ -178,9 +178,12 @@ a:active {
   padding: $unit;
 }
 
-.view {
-  margin-bottom: $unit;
-}
+// .view {
+//   margin-bottom: $unit;
+// }
+// .view:last-child {
+//   margin-bottom: 0;
+// }
 .cols {
   display: grid;
   grid-template-columns: 1fr 1fr;

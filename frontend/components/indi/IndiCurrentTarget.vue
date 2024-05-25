@@ -57,6 +57,10 @@
       note: {
         type: String,
         default: "",
+      },
+      format: {
+        type: String,
+        default: null,
       }
     },
     // ["indiId", "disabled", "hideCommitButton", "width"],
@@ -120,8 +124,14 @@
       currentValue: function () {
         if (!this.thisProperty) { return null; }
         let current = this.thisProperty._elements.current;
-        if (this.propertyKind == 'num' && current.format) {
-          return this.applyFormatString(current.format, current._value);
+        if (this.thisProperty._kind == 'num') {
+          if (this.format) {
+            return this.applyFormatString(this.format, current._value);
+          } else if (current.format) {
+            return this.applyFormatString(current.format, current._value);
+          } else {
+            return String(current._value);
+          }
         } else {
           return current._value;
         }

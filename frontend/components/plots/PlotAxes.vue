@@ -152,7 +152,6 @@ export default {
       return hash;
     },
     updatePlot() {
-      console.log("Update plot");
       // Calculate plot dimensions in screen coords from margins
       // and element dimensions in screen coords
       var margin = { top: 10, right: 30, bottom: 50, left: 50 };

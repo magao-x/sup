@@ -164,8 +164,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 0 2 * $unit;
-  font-size: 200%;
-  padding: $unit;
+  font-size: 150%;
+  padding: 0.125rem;
   font-weight: bold;
 }
 </style>
