@@ -1,7 +1,7 @@
 <template>
   <div v-if="thisDevice && thisProperty" class="property">
     <p v-if="thisProperty.message !== null">{{ thisProperty.message }}</p>
-    <template v-if="thisProperty.kind == 'swt'">
+    <template v-if="thisProperty._kind == 'swt'">
       <indi-switch-multi-element :device="thisDevice" :property="thisProperty"></indi-switch-multi-element>
     </template>
     <template v-else>
