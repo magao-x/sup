@@ -93,7 +93,8 @@ export default {
                     message: "recording, but camsci2 is not writing",
                     condition: !labMode && (
                         this.retrieveValueByIndiId('observers.obs_on.toggle') == 'On' &&
-                        !(this.retrieveValueByIndiId('camsci2-sw.writing.toggle') == 'On')
+                        !(this.retrieveValueByIndiId('camsci2-sw.writing.toggle') == 'On') &&
+                        !(this.retrieveValueByIndiId('stagescibs.presetName.out') == 'On')
                     )
                 },
                 {
