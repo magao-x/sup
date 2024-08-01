@@ -120,9 +120,9 @@ body.dark .danger-zone.view {
 </style>
 <script>
 import utils from "~/mixins/utils.js";
-import IndiMomentarySwitch from '../indi/IndiMomentarySwitch.vue';
+import IndiMomentarySwitch from '~/components/indi/IndiMomentarySwitch.vue';
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
-import IndiToggleSwitch from '../indi/IndiToggleSwitch.vue';
+import IndiToggleSwitch from '~/components/indi/IndiToggleSwitch.vue';
 import Nudger from './Nudger.vue';
 import ScramButton from './ScramButton.vue';
 

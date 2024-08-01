@@ -18,8 +18,8 @@
 </template>
 <script>
 import utils from "~/mixins/utils.js";
-import IndiElement from "../indi/IndiElement.vue";
-import IndiValue from "../indi/IndiValue.vue";
+import IndiElement from "~/components/indi/IndiElement.vue";
+import IndiValue from "~/components/indi/IndiValue.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
 import IndiCurrentTarget from "~/components/indi/IndiCurrentTarget.vue";
 import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
