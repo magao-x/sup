@@ -38,7 +38,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import FileResponse, StreamingResponse
+from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.routing import Route, WebSocketRoute, Mount
 
 # from .indi import BogusINDIClient, SupINDIClient
@@ -47,7 +47,7 @@ from .constants import REPLICATED_CAMERAS, CONFIG_PATH, TMPFILE_ROOT
 
 log = logging.getLogger(__name__)
 
-from .utils import OrjsonResponse
+from .utils import OrjsonResponse, GUIConfig
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
     __version__ = f.read().strip()
@@ -58,6 +58,7 @@ LCO_COORDINATES = EarthLocation.of_site('Las Campanas Observatory')
 BATCH_UPDATE_INTERVAL = 0.2 # second
 PING_INTERVAL = 10
 MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
+CONFIG_FILE = "gui.conf"
 import pathlib
 
 
@@ -117,6 +118,15 @@ async def video(request):
 async def demo(request):
     return FileResponse((static_path / 'demo.html').as_posix())
 
+async def config(request):
+    log.debug(f"Parsing config file {CONFIG['config_path']}")
+    config = {}
+    try:
+        config_parser = GUIConfig.from_config(config_path_or_paths=[CONFIG['config_path']])
+        config = config_parser.config_to_dict()
+    except FileNotFoundError:
+        log.warning(f"Config file {CONFIG['config_path']} not found.")
+    return JSONResponse(config)
 
 
 LCO_SITE = Observer.at_site('Las Campanas Observatory')
@@ -216,15 +226,18 @@ async def emit_updates():
 CONFIG = {
     'indi_host': '127.0.0.1',
     'indi_port': 7624,
-    'potemkin': False
+    'potemkin': False,
+    'config_path': os.path.join(CONFIG_PATH, CONFIG_FILE),
 }
 
-def main(indi_host, indi_port, potemkin, bind_host, bind_port):
+def main(indi_host, indi_port, potemkin, bind_host, bind_port, config_path=None):
     global CONFIG
     logging.basicConfig(level='WARN')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
+    if config_path:
+        CONFIG['config_path'] = config_path
     log.setLevel('DEBUG')
     uvicorn.run(app, host=bind_host, port=bind_port)
 
@@ -267,11 +280,18 @@ def console_entrypoint():
         type=int,
         default=8000,
     )
+    parser.add_argument(
+        "-c", "--config",
+        help="Specify full path of config file",
+        nargs="?",
+        type=str,
+        default=os.path.join(CONFIG_PATH, CONFIG_FILE),
+    )
     args = parser.parse_args()
     if args.help:
         parser.print_help()
         sys.exit(1)
-    sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
+    sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port, args.config))
 
 
 def orjson_to_utf8(obj):
@@ -427,6 +447,7 @@ app = Starlette(
         Route('/light-path', endpoint=light_path),
         Route('/demo', endpoint=demo),
         Route('/airmass', endpoint=airmass),
+        Route('/config', endpoint=config),
         WebSocketRoute('/websocket', endpoint=SupWebSocket),
         WebSocketRoute('/videosocket', endpoint=VideoWebSocket),
         Route('/{path:path}', endpoint=catch_all),

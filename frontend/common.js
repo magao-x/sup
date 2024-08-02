@@ -2,7 +2,14 @@ import Vue from 'vue';
 import { DateTime } from "luxon";
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import .constants from "./constants.js";
+
 Vue.use(VueVirtualScroller)
+
+import VueAxios from './mixins/axios.js'
+import { MagAOX_routes, SCOOB_routes } from './routes.js'
+import constants from './constants.js';
+Vue.use(VueAxios)
 
 let buildConnectionString;
 if (process.env.NODE_ENV == 'development') {
@@ -134,6 +141,32 @@ export default {
           }
           Vue.set(this.indiWorld[deviceName], propertyName, state);
         },
+        fetchRoutes() {
+          this.$axios.get(constants.CONFIG_URL)
+            .then(response => {
+              this.updateConfig(response.data);
+              console.log("Axios responded with config data.");
+              if (response.data.layout === 'SCOOB'){
+                SCOOB_routes.forEach((route) => {
+                  this.$router.addRoute({path: route.path, component: route.component})
+                });   
+              } else {        
+                MagAOX_routes.forEach((route) => {
+                  this.$router.addRoute({path: route.path, component: route.component})
+                });                  
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching routes:', error);
+            });
+        },
+        updateConfig(new_config) {
+          for (const [key, value] of Object.entries(new_config)) {
+            if (key in this.config) {
+              this.config[key] = value;
+            }
+          }
+        },   
       },
       data() {
         return {
@@ -145,9 +178,11 @@ export default {
           indiIsConnected: false,
           lastUpdate: null,
           reconnectionTimer: null,
+          config: {"layout": constants.DEFAULT_LAYOUT},
         };
       },
       mounted() {
+        this.fetchRoutes();        
         this.updateCurrentTime();
         this.initializeIndiWorld();
         this.reconnectionTimer = setInterval(() => {
@@ -190,6 +225,11 @@ export default {
           enumerable: true,
           get: () => this.indiIsConnected,
         })
-        return { time, indi }
+        const config = this.config
+        Object.defineProperty(config, 'config', {
+           enumerable: true,
+           get: () => this.config,
+        })        
+        return { time, indi, config }
       }
   }
