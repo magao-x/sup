@@ -44,6 +44,9 @@ from starlette.routing import Route, WebSocketRoute, Mount
 # from .indi import BogusINDIClient, SupINDIClient
 from .shmim import parse_rtimv_config
 from .constants import REPLICATED_CAMERAS, CONFIG_PATH, TMPFILE_ROOT
+from .constants import DEFAULT_LAYOUT, SITE_LOCATION, BATCH_UPDATE_INTERVAL
+from .constants import PING_INTERVAL, MAGAOX_DEFAULT_ROLE, CONFIG_FILE
+from .constants import INDI_HOST, INDI_PORT, POTEMKIN
 
 log = logging.getLogger(__name__)
 
@@ -54,13 +57,17 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 from collections.abc import MutableMapping, MutableSequence
 
-LCO_COORDINATES = EarthLocation.of_site('Las Campanas Observatory')
-BATCH_UPDATE_INTERVAL = 0.2 # second
-PING_INTERVAL = 10
-MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
-CONFIG_FILE = "gui.conf"
-import pathlib
+LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
+MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', MAGAOX_DEFAULT_ROLE)
 
+CONFIG = {
+    'indi_host': INDI_HOST,
+    'indi_port': INDI_PORT,
+    'potemkin': POTEMKIN,
+    'config_path': os.path.join(CONFIG_PATH, CONFIG_FILE),
+    'replicated_cameras': REPLICATED_CAMERAS,
+    'layout': DEFAULT_LAYOUT,
+}
 
 async def light_path(request):
     light_path_config = CONFIG_PATH / 'light_path.toml'
@@ -88,6 +95,18 @@ static_path = (Path(__file__).parent / static_folder_name).resolve()
 
 sup_tasks = []
 
+def parse_config_file():
+    log.debug(f"Parsing config file {CONFIG['config_path']}")
+    config = {}
+    try:
+        config_parser = GUIConfig.from_config(config_path_or_paths=[CONFIG['config_path']])
+        config = config_parser.config_to_dict()
+    except FileNotFoundError:
+        log.warning(f"Config file {CONFIG['config_path']} not found.")
+    for key, val in config.items():
+        if key in CONFIG.keys():
+            CONFIG[key] = val
+    return config    
 
 async def indi(request):
     return OrjsonResponse(request.app.indi.to_serializable()['devices'])
@@ -119,13 +138,7 @@ async def demo(request):
     return FileResponse((static_path / 'demo.html').as_posix())
 
 async def config(request):
-    log.debug(f"Parsing config file {CONFIG['config_path']}")
-    config = {}
-    try:
-        config_parser = GUIConfig.from_config(config_path_or_paths=[CONFIG['config_path']])
-        config = config_parser.config_to_dict()
-    except FileNotFoundError:
-        log.warning(f"Config file {CONFIG['config_path']} not found.")
+    config = parse_config_file()
     return JSONResponse(config)
 
 
@@ -223,13 +236,6 @@ async def emit_updates():
             traceback.print_exc(file=sys.stdout)
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
-CONFIG = {
-    'indi_host': '127.0.0.1',
-    'indi_port': 7624,
-    'potemkin': False,
-    'config_path': os.path.join(CONFIG_PATH, CONFIG_FILE),
-}
-
 def main(indi_host, indi_port, potemkin, bind_host, bind_port, config_path=None):
     global CONFIG
     logging.basicConfig(level='WARN')
@@ -239,6 +245,7 @@ def main(indi_host, indi_port, potemkin, bind_host, bind_port, config_path=None)
     if config_path:
         CONFIG['config_path'] = config_path
     log.setLevel('DEBUG')
+    parse_config_file()
     uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():

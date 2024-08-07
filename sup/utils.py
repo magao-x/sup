@@ -5,6 +5,7 @@ from typing import Any
 import orjson
 from starlette.responses import JSONResponse
 
+from .constants import REPLICATED_CAMERAS, DEFAULT_LAYOUT
 
 class OrjsonResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
@@ -13,7 +14,8 @@ class OrjsonResponse(JSONResponse):
 @xconf.config
 class GUIConfig(xconf.Command):
     """Demo command"""
-    layout : str = xconf.field(default='MAGAOX')
+    layout : str = xconf.field(default=DEFAULT_LAYOUT)
+    replicated_cameras : list[str] = xconf.field(help="List of cameras", default_factory=lambda: REPLICATED_CAMERAS)
 
     def main(self):
         breakpoint()

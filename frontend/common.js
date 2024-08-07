@@ -2,13 +2,13 @@ import Vue from 'vue';
 import { DateTime } from "luxon";
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
-import .constants from "./constants.js";
+import constants from "./constants.js";
 
 Vue.use(VueVirtualScroller)
 
 import VueAxios from './mixins/axios.js'
 import { MagAOX_routes, SCOOB_routes } from './routes.js'
-import constants from './constants.js';
+
 Vue.use(VueAxios)
 
 let buildConnectionString;
@@ -178,7 +178,7 @@ export default {
           indiIsConnected: false,
           lastUpdate: null,
           reconnectionTimer: null,
-          config: {"layout": constants.DEFAULT_LAYOUT},
+          config: {"layout": constants.DEFAULT_LAYOUT, "replicated_cameras": constants.REPLICATED_CAMERAS},
         };
       },
       mounted() {
