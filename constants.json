@@ -1,7 +1,10 @@
 {
 "CONFIG_PATH": "/opt/MagAOX/config",
-"REPLICATED_CAMERAS": [ "camsci1", "camsci2", "camwfs", "camtip" ],
-"DEFAULT_LAYOUT": "MAGAOX",
+"DEFAULT_CONFIG":
+    {
+        "layout": "MAGAOX",
+        "replicated_cameras": [ "camsci1", "camsci2", "camwfs", "camtip" ]
+    },
 "TMPFILE_ROOT": "/dev/shm",
 "INDI_HOST": "127.0.0.1",
 "INDI_PORT": 7624,
@@ -10,7 +13,7 @@
 "BATCH_UPDATE_INTERVAL": 0.2,
 "PING_INTERVAL": 10,
 "MAGAOX_DEFAULT_ROLE": "workstation",
-"CONFIG_FILE": "gui.conf",
+"CONFIG_FILE": "gui_sup.conf",
 
 "LAYOUT_OPTIONS": ["MAGAOX", "SCOOB"],
 "MAGAOX": "MAGAOX",

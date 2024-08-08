@@ -1,5 +1,6 @@
 <template>
-  <TabBarScoob v-if="showScoob"></TabBarScoob>
+  <TabBarScoob v-if="$store.state.config.layout === 'SCOOB'"></TabBarScoob>
+  <TabBarMagAOX v-else-if="$store.state.config.layout === 'MAGAOX'"></TabBarMagAOX>
   <TabBarMagAOX v-else></TabBarMagAOX>
 </template>
 <script>
@@ -12,13 +13,7 @@ export default {
     TabBarMagAOX,
     TabBarScoob,
   },
-  computed: {
-    showScoob: function () {
-      console.log("Should I show Scoob?")
-      return this.config.layout === constants.SCOOB;
-    },    
-  },
-  inject: ['toggleFlames', 'config'],
+  inject: ['toggleFlames'],
   provide() {
     return {
       toggleFlames: this.toggleFlames

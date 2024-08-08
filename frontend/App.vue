@@ -140,11 +140,10 @@ export default Vue.extend({
       flamesEnabled: false,
     };
   },
-  inject: ["time", "indi", "config"],
+  inject: ["time", "indi" ],
   provide() {
     return {
       toggleFlames: this.toggleFlames,
-      config: this.config,
     };
   },  
   methods: {

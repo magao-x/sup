@@ -43,14 +43,14 @@ from starlette.routing import Route, WebSocketRoute, Mount
 
 # from .indi import BogusINDIClient, SupINDIClient
 from .shmim import parse_rtimv_config
-from .constants import REPLICATED_CAMERAS, CONFIG_PATH, TMPFILE_ROOT
-from .constants import DEFAULT_LAYOUT, SITE_LOCATION, BATCH_UPDATE_INTERVAL
+from .constants import CONFIG_PATH, TMPFILE_ROOT, DEFAULT_CONFIG
+from .constants import SITE_LOCATION, BATCH_UPDATE_INTERVAL
 from .constants import PING_INTERVAL, MAGAOX_DEFAULT_ROLE, CONFIG_FILE
 from .constants import INDI_HOST, INDI_PORT, POTEMKIN
 
 log = logging.getLogger(__name__)
 
-from .utils import OrjsonResponse, GUIConfig
+from .utils import OrjsonResponse, parse_config_file
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
     __version__ = f.read().strip()
@@ -65,8 +65,7 @@ CONFIG = {
     'indi_port': INDI_PORT,
     'potemkin': POTEMKIN,
     'config_path': os.path.join(CONFIG_PATH, CONFIG_FILE),
-    'replicated_cameras': REPLICATED_CAMERAS,
-    'layout': DEFAULT_LAYOUT,
+    'config': DEFAULT_CONFIG,
 }
 
 async def light_path(request):
@@ -95,18 +94,6 @@ static_path = (Path(__file__).parent / static_folder_name).resolve()
 
 sup_tasks = []
 
-def parse_config_file():
-    log.debug(f"Parsing config file {CONFIG['config_path']}")
-    config = {}
-    try:
-        config_parser = GUIConfig.from_config(config_path_or_paths=[CONFIG['config_path']])
-        config = config_parser.config_to_dict()
-    except FileNotFoundError:
-        log.warning(f"Config file {CONFIG['config_path']} not found.")
-    for key, val in config.items():
-        if key in CONFIG.keys():
-            CONFIG[key] = val
-    return config    
 
 async def indi(request):
     return OrjsonResponse(request.app.indi.to_serializable()['devices'])
@@ -138,7 +125,7 @@ async def demo(request):
     return FileResponse((static_path / 'demo.html').as_posix())
 
 async def config(request):
-    config = parse_config_file()
+    config = CONFIG["config"]
     return JSONResponse(config)
 
 
@@ -245,7 +232,7 @@ def main(indi_host, indi_port, potemkin, bind_host, bind_port, config_path=None)
     if config_path:
         CONFIG['config_path'] = config_path
     log.setLevel('DEBUG')
-    parse_config_file()
+    CONFIG["config"] = parse_config_file(CONFIG["config"], CONFIG["config_path"])
     uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
@@ -321,7 +308,7 @@ class ShmimWatcher:
         self.camera_shmim_bytes = {}
         if not CONFIG_PATH.is_dir():
             raise RuntimeError(f"Cannot open {CONFIG_PATH}")
-        self.cameras = REPLICATED_CAMERAS.copy()
+        self.cameras = CONFIG["config"]["replicated_cameras"].copy()
         for cam in self.cameras:
             self.camera_shmim_bytes[cam] = b''
 

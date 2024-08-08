@@ -9,8 +9,7 @@ INDI_HOST = constants["INDI_HOST"]
 INDI_PORT = constants["INDI_PORT"]
 POTEMKIN = constants["POTEMKIN"]
 CONFIG_PATH = pathlib.Path(constants["CONFIG_PATH"])
-REPLICATED_CAMERAS = constants["REPLICATED_CAMERAS"]
-DEFAULT_LAYOUT = constants["DEFAULT_LAYOUT"]
+DEFAULT_CONFIG = constants["DEFAULT_CONFIG"]
 TMPFILE_ROOT = pathlib.Path(constants["TMPFILE_ROOT"])
 
 SITE_LOCATION = constants["SITE_LOCATION"]
