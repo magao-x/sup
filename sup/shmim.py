@@ -13,7 +13,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-from .constants import CONFIG_PATH, REPLICATED_CAMERAS, TMPFILE_ROOT
+from .constants import CONFIG_PATH, TMPFILE_ROOT
 
 DataType = ImageStreamIOWrap.ImageStreamIODataType
 
@@ -89,10 +89,12 @@ async def launch_camera_watcher(camera):
         await asyncio.sleep(1)
 
 def shmim_coordinator():
+    from .core import CONFIG
+
     logging.basicConfig(level='DEBUG')
     loop = asyncio.get_event_loop()
     tasks = set()
-    for cam in REPLICATED_CAMERAS:
+    for cam in CONFIG["config"]["replicated_cameras"]:
         tasks.add(loop.create_task(launch_camera_watcher(cam)))
     loop.run_until_complete(asyncio.wait(tasks))
 

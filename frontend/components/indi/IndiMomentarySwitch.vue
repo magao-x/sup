@@ -8,7 +8,7 @@
 <script>
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
-import MaterialIcon from '../basic/MaterialIcon.vue';
+import MaterialIcon from '~/components/basic/MaterialIcon.vue';
 
 export default {
     mixins: [indi, utils],

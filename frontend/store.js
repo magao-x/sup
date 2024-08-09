@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import { DateTime } from "luxon";
+import constants from "./constants.js";
 
 Vue.use(Vuex)
 
@@ -18,6 +19,7 @@ export default new Vuex.Store({
       localSiderealTime: null,
       UTC: null,
       lightPath: null,
+      config: constants.DEFAULT_CONFIG,
     },
     mutations: {
       heartbeat (state) {
@@ -66,7 +68,10 @@ export default new Vuex.Store({
         } else {
           Vue.delete(state.devices[deviceName], propertyName);
         }
-      }
+      },
+      setConfig(state, new_config) {
+        state.config = new_config;
+      },
     },
     actions: {
       srv_heartbeat({ commit }, payload) {
@@ -108,6 +113,9 @@ export default new Vuex.Store({
         } else {
           commit('indi_disconnect');
         }
+      },
+      fetchConfig({ commit }, config) {
+        commit('setConfig', config);
       }
     }
   });

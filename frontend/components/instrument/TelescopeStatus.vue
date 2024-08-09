@@ -172,8 +172,8 @@
 <script>
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
-import IndiValue from "../indi/IndiValue.vue";
-import ObservabilityPlots from '../plots/ObservabilityPlots.vue';
+import IndiValue from "~/components/indi/IndiValue.vue";
+import ObservabilityPlots from '~/components/plots/ObservabilityPlots.vue';
 import { DateTime } from "luxon";
 
 export default {

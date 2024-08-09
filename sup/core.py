@@ -38,28 +38,35 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import FileResponse, StreamingResponse
+from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.routing import Route, WebSocketRoute, Mount
 
 # from .indi import BogusINDIClient, SupINDIClient
 from .shmim import parse_rtimv_config
-from .constants import REPLICATED_CAMERAS, CONFIG_PATH, TMPFILE_ROOT
+from .constants import CONFIG_PATH, TMPFILE_ROOT, DEFAULT_CONFIG
+from .constants import SITE_LOCATION, BATCH_UPDATE_INTERVAL
+from .constants import PING_INTERVAL, MAGAOX_DEFAULT_ROLE, CONFIG_FILE
+from .constants import INDI_HOST, INDI_PORT, POTEMKIN
 
 log = logging.getLogger(__name__)
 
-from .utils import OrjsonResponse
+from .utils import OrjsonResponse, parse_config_file
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
     __version__ = f.read().strip()
 
 from collections.abc import MutableMapping, MutableSequence
 
-LCO_COORDINATES = EarthLocation.of_site('Las Campanas Observatory')
-BATCH_UPDATE_INTERVAL = 0.2 # second
-PING_INTERVAL = 10
-MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
-import pathlib
+LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
+MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', MAGAOX_DEFAULT_ROLE)
 
+CONFIG = {
+    'indi_host': INDI_HOST,
+    'indi_port': INDI_PORT,
+    'potemkin': POTEMKIN,
+    'config_path': os.path.join(CONFIG_PATH, CONFIG_FILE),
+    'config': DEFAULT_CONFIG,
+}
 
 async def light_path(request):
     light_path_config = CONFIG_PATH / 'light_path.toml'
@@ -117,6 +124,9 @@ async def video(request):
 async def demo(request):
     return FileResponse((static_path / 'demo.html').as_posix())
 
+async def config(request):
+    config = CONFIG["config"]
+    return JSONResponse(config)
 
 
 LCO_SITE = Observer.at_site('Las Campanas Observatory')
@@ -213,19 +223,16 @@ async def emit_updates():
             traceback.print_exc(file=sys.stdout)
         await asyncio.sleep(BATCH_UPDATE_INTERVAL)
 
-CONFIG = {
-    'indi_host': '127.0.0.1',
-    'indi_port': 7624,
-    'potemkin': False
-}
-
-def main(indi_host, indi_port, potemkin, bind_host, bind_port):
+def main(indi_host, indi_port, potemkin, bind_host, bind_port, config_path=None):
     global CONFIG
     logging.basicConfig(level='WARN')
     CONFIG['indi_host'] = indi_host
     CONFIG['indi_port'] = indi_port
     CONFIG['potemkin'] = potemkin
+    if config_path:
+        CONFIG['config_path'] = config_path
     log.setLevel('DEBUG')
+    CONFIG["config"] = parse_config_file(CONFIG["config"], CONFIG["config_path"])
     uvicorn.run(app, host=bind_host, port=bind_port)
 
 def console_entrypoint():
@@ -267,11 +274,18 @@ def console_entrypoint():
         type=int,
         default=8000,
     )
+    parser.add_argument(
+        "-c", "--config",
+        help="Specify full path of config file",
+        nargs="?",
+        type=str,
+        default=os.path.join(CONFIG_PATH, CONFIG_FILE),
+    )
     args = parser.parse_args()
     if args.help:
         parser.print_help()
         sys.exit(1)
-    sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
+    sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port, args.config))
 
 
 def orjson_to_utf8(obj):
@@ -294,7 +308,7 @@ class ShmimWatcher:
         self.camera_shmim_bytes = {}
         if not CONFIG_PATH.is_dir():
             raise RuntimeError(f"Cannot open {CONFIG_PATH}")
-        self.cameras = REPLICATED_CAMERAS.copy()
+        self.cameras = CONFIG["config"]["replicated_cameras"].copy()
         for cam in self.cameras:
             self.camera_shmim_bytes[cam] = b''
 
@@ -427,6 +441,7 @@ app = Starlette(
         Route('/light-path', endpoint=light_path),
         Route('/demo', endpoint=demo),
         Route('/airmass', endpoint=airmass),
+        Route('/config', endpoint=config),
         WebSocketRoute('/websocket', endpoint=SupWebSocket),
         WebSocketRoute('/videosocket', endpoint=VideoWebSocket),
         Route('/{path:path}', endpoint=catch_all),

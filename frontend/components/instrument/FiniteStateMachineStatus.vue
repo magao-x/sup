@@ -20,7 +20,7 @@
 <script>
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
-import MaterialIcon from '../basic/MaterialIcon.vue';
+import MaterialIcon from '~/components/basic/MaterialIcon.vue';
 
 const stateToIcon = {
   waiting: "link_off",

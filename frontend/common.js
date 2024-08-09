@@ -2,6 +2,7 @@ import Vue from 'vue';
 import { DateTime } from "luxon";
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+
 Vue.use(VueVirtualScroller)
 
 let buildConnectionString;
