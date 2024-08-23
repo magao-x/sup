@@ -1,7 +1,6 @@
 <template>
-  <TabBarScoob v-if="$store.state.config.layout === 'SCOOB'"></TabBarScoob>
-  <TabBarMagAOX v-else-if="$store.state.config.layout === 'MAGAOX'"></TabBarMagAOX>
-  <div v-else class="error"><span>Configuration 'layout' value '{{ $store.state.config.layout }}'' is invalid. Please update the config file.</span></div>
+   <component :is="TabBar" v-if="TabBar"></component>
+   <div v-else class="error"><span>Configuration 'layout' value '{{ $store.state.config.layout }}'' is invalid. Please update the config file.</span></div>
 </template>
 <style lang="scss" scoped>
 @import "~/css/variables.scss";
@@ -12,14 +11,20 @@
 </style>
 <script>
 import constants from "~/constants.js";
-import TabBarMagAOX from "~/pages/MagAOX/TabBar.vue";
-import TabBarScoob from "~/pages/Scoob/TabBar.vue";
+import { map } from '~/map.js'
+import { defineAsyncComponent } from "vue";
 
 export default {
-  components: {
-    TabBarMagAOX,
-    TabBarScoob,
-  },
+  computed: {
+    TabBar() {
+      const layout = this.$store.state.config.layout;
+      if (map[layout] && map[layout]['tabBar']) {
+        return defineAsyncComponent(map[layout]['tabBar']);
+      } else {
+        return null;
+      }
+    }
+  },  
   inject: ['toggleFlames'],
   provide() {
     return {

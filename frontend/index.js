@@ -5,7 +5,7 @@ import App from './App.vue';
 import common from "./common.js";
 import constants from "./constants.js";
 import store from './store';
-import { MagAOX_routes, SCOOB_routes } from './routes.js'
+import { map } from './map.js'
 
 import VueRouter from 'vue-router'
 
@@ -31,15 +31,12 @@ async function fetchConfigData() {
 
 async function initApp() {
   const configData = await fetchConfigData();
-  var routes = MagAOX_routes;
+  store.dispatch('fetchConfig', configData);
 
-  if (configData) {
-    if (configData.layout === constants.SCOOB){
-      routes = SCOOB_routes;
-    } else if (configData.layout === constants.MAGAOX) {
-      routes = MagAOX_routes;
-    }
-    store.dispatch('fetchConfig', configData);
+  var routes = [];
+
+  if (map[configData.layout] && map[configData.layout]['routes']) {
+    var routes = map[configData.layout]['routes'];
   }
 
   const router = new VueRouter({

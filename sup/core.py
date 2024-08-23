@@ -45,7 +45,7 @@ from starlette.routing import Route, WebSocketRoute, Mount
 from .shmim import parse_rtimv_config
 from .constants import CONFIG_PATH, TMPFILE_ROOT, DEFAULT_CONFIG
 from .constants import SITE_LOCATION, BATCH_UPDATE_INTERVAL
-from .constants import PING_INTERVAL, MAGAOX_DEFAULT_ROLE, CONFIG_FILE
+from .constants import MAGAOX_DEFAULT_ROLE, CONFIG_FILE
 from .constants import INDI_HOST, INDI_PORT, POTEMKIN
 
 log = logging.getLogger(__name__)

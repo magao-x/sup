@@ -1,23 +1,21 @@
-import constants from '../constants.json';
-
-const MAX_LASTUPDATE_DELTA_SEC = constants.MAX_LASTUPDATE_DELTA_SEC;
-const MAGAOX = constants.MAGAOX;
-const SCOOB = constants.SCOOB;
-const DEFAULT_LAYOUT = MAGAOX;
-const config_url = constants.CONFIG_URL;
-const LAYOUT_OPTIONS = constants.LAYOUT_OPTIONS;
-const REPLICATED_CAMERAS = constants.REPLICATED_CAMERAS;
+const MAX_LASTUPDATE_DELTA_SEC = 10;
+const CONFIG_URL = "http://127.0.0.1:8000/config";
+// const MAGAOX = "";
+// const SCOOB = "";
+// const DEFAULT_LAYOUT = MAGAOX;
+// const LAYOUT_OPTIONS = constants.LAYOUT_OPTIONS;
+// const REPLICATED_CAMERAS = constants.REPLICATED_CAMERAS;
 
 export default {
     MAX_LASTUPDATE_DELTA_SEC,
+    CONFIG_URL,
     plots: {
         numMinutes: 30,
     },
-    MAGAOX,
-    SCOOB,
-    DEFAULT_LAYOUT: MAGAOX,
-    LAYOUT_OPTIONS: LAYOUT_OPTIONS,
-    CONFIG_URL: config_url,
-    REPLICATED_CAMERAS: REPLICATED_CAMERAS,
-    DEFAULT_CONFIG: {"layout": DEFAULT_LAYOUT, "replicated_cameras": REPLICATED_CAMERAS}
+    // MAGAOX,
+    // SCOOB,
+    // DEFAULT_LAYOUT: MAGAOX,
+    // LAYOUT_OPTIONS: LAYOUT_OPTIONS,
+    // REPLICATED_CAMERAS: REPLICATED_CAMERAS,
+    // DEFAULT_CONFIG: {"layout": DEFAULT_LAYOUT, "replicated_cameras": REPLICATED_CAMERAS}
 }
