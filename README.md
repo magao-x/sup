@@ -12,7 +12,7 @@ There is a Makefile that provides `init`, `justjs`, and `servejs` targets (among
 
 ### Python
 
-The Python code is a Starlette ASGI app. In MagAO-X, it's launched by a SystemD unit via `uvicorn`:
+The Python code is a Starlette ASGI app. In MagAO-X, it's launched by a SystemD unit:
 
 ```
 [Unit]
@@ -23,7 +23,7 @@ After=network.target
 [Service]
 User=xsup
 WorkingDirectory=/home/xsup
-ExecStart=/opt/conda/envs/sup/bin/uvicorn sup:app
+ExecStart=/opt/conda/envs/sup/bin/sup
 
 [Install]
 WantedBy=default.target
@@ -31,9 +31,71 @@ WantedBy=default.target
 
 (Note that for MagAO-X there's a `sup` env created in `/opt/conda` used by this app.)
 
-The entry-point is thus the Starlette class instance called `app` in `sup/core.py`.
+The entry-point is a console command `sup` installed by `pip install`. It invokes the `WebInterface.run` class method in `core.py`, which invokes `WebInterface.main`, which calls `uvicorn.run`.
 
-There is also a console command `sup` installed by `pip install`. It invokes `console_entrypoint` in `core.py`, which invokes `main`, which calls `uvicorn.run`. So, basically the same, but allows you to specify connection details.
+The config is read from `/opt/MagAOX/config/gui_sup.conf`, a TOML file. The effective config is shown with `sup --dump-config`:
+
+```toml
+layout = "magaox"
+bind_host = "127.0.0.1"
+bind_port = 8000
+potemkin = false
+debug_mode = true
+batch_update_interval_sec = 0.2
+
+[indi]
+hostname = "localhost"
+port = 7624
+```
+
+This is also the configuration used in the absence of a `gui_sup.conf` file. Configurable properties are mostly documented in the help:
+
+```
+% sup -h
+usage: sup [-c CONFIG_FILE] [-h] [-v] [--dump-config] [vars ...]
+
+positional arguments:
+  vars                  Config variables set with 'key.key.key=value' notation
+
+options:
+  -c CONFIG_FILE, --config-file CONFIG_FILE
+                        Path to config file, repeat to merge multiple, last one
+                        wins for repeated top-level keys
+  -h, --help            Print usage information
+  -v, --verbose         Enable debug logging
+  --dump-config         Dump final configuration state as TOML and exit
+
+configuration keys:
+  layout
+      str
+     (default: 'magaox')
+  bind_host
+      str
+    Listening address (0.0.0.0 for all) (default: '127.0.0.1')
+  bind_port
+      int
+    Listening TCP port (default: 8000)
+  indi
+      IndiConfig
+     (default: IndiConfig(hostname='localhost', port=7624))
+  indi.hostname
+      str
+    Hostname of INDI server (default: 'localhost')
+  indi.port
+      int
+    Port number of INDI server (default: 7624)
+  potemkin
+      bool
+    Whether to load a system snapshot for testing (disables connection
+    to INDI server) (default: False)
+  debug_mode
+      bool
+    Initialize Starlette framework in debug mode (default: True)
+  batch_update_interval_sec
+      float
+    How often to emit a batch of updates over the websocket to
+    connected clients (default: 0.2)
+```
 
 ### JavaScript
 

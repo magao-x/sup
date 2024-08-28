@@ -232,10 +232,6 @@ class WebInterface(xconf.Command):
 
     """Instrument web interface"""
     layout : str = xconf.field(default=InstrumentLayouts.MAGAOX)
-    replicated_cameras : list[str] = xconf.field(
-        help="List of cameras",
-        default_factory=lambda: ["camsci1", "camsci2", "camwfs", "camtip"]
-    )
     bind_host : str = xconf.field(default="127.0.0.1", help="Listening address (0.0.0.0 for all)")
     bind_port : int = xconf.field(default=8000, help="Listening TCP port")
     indi : IndiConfig = xconf.field(default=IndiConfig())
