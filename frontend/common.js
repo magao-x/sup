@@ -2,31 +2,9 @@ import Vue from 'vue';
 import { DateTime } from "luxon";
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import utils from '~/utils';
 
 Vue.use(VueVirtualScroller)
-
-let buildConnectionString;
-if (process.env.NODE_ENV == 'development') {
-  buildConnectionString = function() {
-    const apiPort = 8000;
-    const wsProto = window.location.protocol == "https:" ? "wss:" : "ws:";
-    let connectionString = wsProto + '//' + window.location.hostname;
-    if (window.location.port) {
-      connectionString += ':' + String(apiPort);
-    }
-    return connectionString;
-  }
-} else {
-  buildConnectionString = function() {
-    const wsProto = window.location.protocol == "https:" ? "wss:" : "ws:";
-    let connectionString = wsProto + '//' + window.location.hostname;
-    if (window.location.port) {
-      connectionString += ':' + String(window.location.port);
-    }
-    return connectionString;
-  }
-}
-
 
 let textEncoder = new TextEncoder();
 let textDecoder = new TextDecoder();
@@ -81,7 +59,7 @@ export default {
           if (this.ws !== null && (this.ws.readyState == WebSocket.CONNECTING || this.ws.readyState == WebSocket.OPEN)) {
             return this.ws;
           }
-          const connectionURL = buildConnectionString() + "/websocket";
+          const connectionURL = utils.buildWebSocketUrl('websocket');
           console.log("Connecting to", connectionURL)
           let ws = new WebSocket(connectionURL);
           ws.addEventListener('open', this.onWebSocketOpen);
