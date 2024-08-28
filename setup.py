@@ -73,19 +73,11 @@ setup(
     install_requires=[
         'starlette>=0.19.0',
         'uvicorn',
-        'aiohttp',
-        'aiodns',
-        'aiofile',
-        'psutil',
-        'aiortc>=1.3.1',
         'orjson>=3.6.7',
         'astroplan>=0.8',
         'matplotlib>=3.5.1',
         'uvloop>=0.16',
         'purepyindi2>=0.0.0',
-        'magpyx>=0.0.0',
-        'purepyindi>=0.0.0',
-        'imagestreamiowrap>=0.0.0',
         'xconf>=0.0.0',
         'toml>=0.10.2',
         'websockets>=10.2',
@@ -94,9 +86,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            f'{PROJECT}={PROJECT}:core.console_entrypoint',
-            f'shmim_watcher={PROJECT}.shmim:shmim_grabber',
-            f'shmim_coordinator={PROJECT}.shmim:shmim_coordinator',
+            f'{PROJECT}={PROJECT}.core:WebInterface.run',
         ],
     },
     project_urls={
