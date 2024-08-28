@@ -1,11 +1,13 @@
+from enum import Enum
 import pathlib
-CONFIG_PATH = pathlib.Path("/opt/MagAOX/config")
-REPLICATED_CAMERAS = [
-    'camsci1',
-    'camsci2',
-    'camwfs',
-    # 'camlowfs',
-    'camtip',
-    # 'camacq',
-]
+
 TMPFILE_ROOT = pathlib.Path("/dev/shm")
+INSTRUMENT_CONFIG_ROOT = pathlib.Path("/opt/MagAOX/config")
+CONFIG_FILENAME = "gui_sup.conf"
+
+SITE_LOCATION = "Las Campanas Observatory"
+BATCH_UPDATE_INTERVAL = 0.2 # seconds
+
+class InstrumentLayouts(Enum):
+    MAGAOX = "magaox"
+    SCOOB = "scoob"

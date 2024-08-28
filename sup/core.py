@@ -1,29 +1,20 @@
-import configparser
-from io import BytesIO
-import struct
+from functools import partial
+import pathlib
 import traceback
-# from starlette.websockets import WebSocket
-from starlette.endpoints import WebSocketEndpoint
-import numpy as np
-import matplotlib
-from astroplan.plots import dark_style_sheet
-from astropy.coordinates import SkyCoord
-from aiofile import async_open
-
-matplotlib.use('Agg')
 import asyncio
 import datetime
 import logging
-import math
 import os
 import os.path
 import sys
-from copy import deepcopy
 from pathlib import Path
-from pprint import pformat
-import websockets
 
-import aiohttp
+import xconf
+from starlette.endpoints import WebSocketEndpoint
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+from astropy.coordinates import SkyCoord
 import astropy.units as u
 import orjson
 import toml
@@ -38,111 +29,92 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import FileResponse, StreamingResponse
-from starlette.routing import Route, WebSocketRoute, Mount
+from starlette.responses import FileResponse, JSONResponse
+from starlette.routing import Route, WebSocketRoute
 
-# from .indi import BogusINDIClient, SupINDIClient
-from .shmim import parse_rtimv_config
-from .constants import REPLICATED_CAMERAS, CONFIG_PATH, TMPFILE_ROOT
+from .constants import (
+    INSTRUMENT_CONFIG_ROOT, InstrumentLayouts, SITE_LOCATION,
+    CONFIG_FILENAME,
+)
+from .utils import OrjsonResponse
 
 log = logging.getLogger(__name__)
-
-from .utils import OrjsonResponse
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
     __version__ = f.read().strip()
 
-from collections.abc import MutableMapping, MutableSequence
-
-LCO_COORDINATES = EarthLocation.of_site('Las Campanas Observatory')
-BATCH_UPDATE_INTERVAL = 0.2 # second
-PING_INTERVAL = 10
-MAGAOX_ROLE = os.environ.get('MAGAOX_ROLE', 'workstation')
-import pathlib
-
-
-async def light_path(request):
-    light_path_config = CONFIG_PATH / 'light_path.toml'
-    if not light_path_config.exists():
-        light_path_config = Path(__file__).parent / 'light_path_ex.toml'
-    
-    with open(light_path_config) as fh:
-        light_path_dict = toml.loads(fh.read())
-    return OrjsonResponse(light_path_dict)
+LCO_SITE = Observer.at_site('Las Campanas Observatory')
+LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
 
 def utc_now():
-    dt = datetime.datetime.utcnow()
-    dt.replace(tzinfo=datetime.timezone.utc)
-    return dt
-
-def log_updates(update, did_anything_change):
-    if 'property' in update:
-        for elemname in update['property']['elements']:
-            elem = update['property']['elements'][elemname]
-            if did_anything_change:
-                print(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
+    return datetime.datetime.now(datetime.timezone.utc)
 
 static_folder_name = "static"
 static_path = (Path(__file__).parent / static_folder_name).resolve()
-
-sup_tasks = []
-
-
-async def indi(request):
-    return OrjsonResponse(request.app.indi.to_serializable()['devices'])
 
 class NotFound(HTTPException):
     def __init__(self, *args, **kwargs):
         super().__init__(404, *args, **kwargs)
 
-async def catch_all(request):
-    path = request.path_params['path']
-    real_path = (static_path / path).resolve()
-    print(f'catch_all caught path {real_path}, looking for {static_path=} in {list(real_path.parents)=}')
-    
-    if static_path in real_path.parents:  # prevent traversal vulnerability
-        if real_path.exists():
-            return FileResponse(real_path.as_posix())
-    else:
-        log.warning(f'Attempted directory traversal with path {path}')
-    raise NotFound("No route or file at this URL")
+class SupViews:
+    def __init__(self, app):
+        self.app : 'WebInterface' = app
 
+    async def light_path(self, request):
+        light_path_config = INSTRUMENT_CONFIG_ROOT / 'light_path.toml'
+        if not light_path_config.exists():
+            light_path_config = Path(__file__).parent / 'light_path_ex.toml'
+        
+        with open(light_path_config) as fh:
+            light_path_dict = toml.loads(fh.read())
+        return OrjsonResponse(light_path_dict)
 
-async def index(request):
-    return FileResponse((static_path / 'index.html').as_posix())
+    async def indi(self, request):
+        return OrjsonResponse(request.app.indi.to_serializable()['devices'])
 
-async def video(request):
-    return FileResponse((static_path / 'video.html').as_posix())
+    async def catch_all(self, request):
+        path = request.path_params['path']
+        real_path = (static_path / path).resolve()
 
-async def demo(request):
-    return FileResponse((static_path / 'demo.html').as_posix())
+        if static_path in real_path.parents:  # prevent traversal vulnerability
+            if real_path.exists():
+                return FileResponse(real_path.as_posix())
+        else:
+            log.warning(f'Attempted directory traversal with path {path}')
+        raise NotFound("No route or file at this URL")
 
+    async def index(self, request):
+        return FileResponse((static_path / 'index.html').as_posix())
 
+    async def demo(self, request):
+        return FileResponse((static_path / 'demo.html').as_posix())
 
-LCO_SITE = Observer.at_site('Las Campanas Observatory')
+    async def config(self, request):
+        config = xconf.config_to_dict(self.app)
+        return JSONResponse(config)
 
-async def airmass(request):
-    ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
-    if ra_str is None or dec_str is None:
-        raise HTTPException(400)
-    coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
-    target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
-    current_time = Time(utc_now())
-    sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
-    altitude = LCO_SITE.altaz(sample_times, target).alt
-    p_angle = LCO_SITE.parallactic_angle(sample_times, target)
-    
-    payload = {
-        'parallactic_angles': [
-            {'x': ts.to_value('iso'), 'y': angle}
-            for (ts, angle) in zip(sample_times, p_angle.to(u.degree).value)
-        ],
-        'altitudes': [
-            {'x': ts.to_value('iso'), 'y': angle}
-            for (ts, angle) in zip(sample_times, altitude.to(u.degree).value)
-        ],
-    }
-    return OrjsonResponse(payload)
+    async def airmass(self, request):
+        ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
+        if ra_str is None or dec_str is None:
+            raise HTTPException(400)
+        coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
+        target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
+        current_time = Time(utc_now())
+        sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
+        altitude = LCO_SITE.altaz(sample_times, target).alt
+        p_angle = LCO_SITE.parallactic_angle(sample_times, target)
+        
+        payload = {
+            'parallactic_angles': [
+                {'x': ts.to_value('iso'), 'y': angle}
+                for (ts, angle) in zip(sample_times, p_angle.to(u.degree).value)
+            ],
+            'altitudes': [
+                {'x': ts.to_value('iso'), 'y': angle}
+                for (ts, angle) in zip(sample_times, altitude.to(u.degree).value)
+            ],
+        }
+        return OrjsonResponse(payload)
 
 class INDIUpdateBatcher:
     def __init__(self, client_instance):
@@ -199,168 +171,21 @@ class INDIUpdateBatcher:
         self.logs = []
         return batch
 
-async def emit_updates():
-    while True:
-        try:
-            batch = await app.indi_batcher.generate_batch()
-            for websocket in connected_clients:
-                try:
-                    await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
-                except Exception as e:
-                    log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
-        except Exception as e:
-            log.warning(f"Exception in emit_updates(): {type(e)=} {e}")
-            traceback.print_exc(file=sys.stdout)
-        await asyncio.sleep(BATCH_UPDATE_INTERVAL)
+class AppWebSocketEndpoint(WebSocketEndpoint):
+    """Add a leading 'app' argument to let methods reference a containing app
+    """
+    def __init__(self, app : 'WebInterface', *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.app = app
 
-CONFIG = {
-    'indi_host': '127.0.0.1',
-    'indi_port': 7624,
-    'potemkin': False
-}
-
-def main(indi_host, indi_port, potemkin, bind_host, bind_port):
-    global CONFIG
-    logging.basicConfig(level='WARN')
-    CONFIG['indi_host'] = indi_host
-    CONFIG['indi_port'] = indi_port
-    CONFIG['potemkin'] = potemkin
-    log.setLevel('DEBUG')
-    uvicorn.run(app, host=bind_host, port=bind_port)
-
-def console_entrypoint():
-    import argparse
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        "--help",
-        help="show this help message and exit",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--potemkin",
-        help="A potemkin instrument (no real instrument connection)",
-        action="store_true",
-    )
-    parser.add_argument(
-        "-h", "--host",
-        help=f"Specify hostname to connect to for INDI messages (default: {constants.DEFAULT_HOST})",
-        nargs="?",
-        default=constants.DEFAULT_HOST,
-    )
-    parser.add_argument(
-        "-p", "--port",
-        help=f"Specify port to connect to for INDI messages (default: {constants.DEFAULT_PORT})",
-        nargs="?",
-        type=int,
-        default=constants.DEFAULT_PORT,
-    )
-    parser.add_argument(
-        "-b", "--bind-host",
-        help="Specify hostname or IP to bind web server to (default: 127.0.0.1)",
-        nargs="?",
-        default="127.0.0.1",
-    )
-    parser.add_argument(
-        "-n", "--bind-port",
-        help="Specify port to bind web server to (default: 8000)",
-        nargs="?",
-        type=int,
-        default=8000,
-    )
-    args = parser.parse_args()
-    if args.help:
-        parser.print_help()
-        sys.exit(1)
-    sys.exit(main(args.host, args.port, args.potemkin, args.bind_host, args.bind_port))
-
-
-def orjson_to_utf8(obj):
-    buf = orjson.dumps(obj)
-    return buf.decode('utf8')
-
-RUNNING_TASKS = set()
-
-async def trigger_get_properties(message):
-    if message is constants.ConnectionStatus.CONNECTED:
-        log.debug(f"Trigger get properties: {message}")
-        app.indi.get_properties()
-
-class ShmimWatcher:
-    cameras : list[str]
-    camera_shmim_bytes : dict[str, bytes]
-
-
-    def __init__(self):
-        self.camera_shmim_bytes = {}
-        if not CONFIG_PATH.is_dir():
-            raise RuntimeError(f"Cannot open {CONFIG_PATH}")
-        self.cameras = REPLICATED_CAMERAS.copy()
-        for cam in self.cameras:
-            self.camera_shmim_bytes[cam] = b''
-
-    def spawn_tasks(self, loop):
-        tasks = set()
-        for cam in self.cameras:
-            log.debug(f"Creating {cam=} watcher")
-            tasks.add(loop.create_task(self.watch_camera(cam)))
-            log.debug(f"Created {cam=} watcher")
-        return tasks
-
-    async def watch_camera(self, camera):
-        data_path = TMPFILE_ROOT / (camera + ".blosc.lz4")
-        # log.debug(f"{camera=}")
-        # log.debug(f"{data_path=}")
-        while True:
-            # print('aaaa')
-            try:
-                # print('bbb')
-                async with async_open(data_path.as_posix(), "rb") as fh:
-                    # print('ccc')
-                    self.camera_shmim_bytes[camera] = await fh.read()
-                    # print(repr(self.camera_shmim_bytes[camera]))
-                # print(f"Succeeded {camera}")
-            except FileNotFoundError:
-                pass
-            except Exception as e:
-                log.exception(f"Failed {camera}")
-            await asyncio.sleep(1)
-        #     print(f"Slept 1 {camera}")
-
-
-async def spawn_tasks():
-    loop = asyncio.get_event_loop()
-    conn = purepyindi2.AsyncIndiTcpConnection(host=CONFIG['indi_host'], port=CONFIG['indi_port'])
-    app.indi = purepyindi2.IndiClient(conn)
-    loop.create_task(conn.add_async_callback(constants.TransportEvent.connection, trigger_get_properties))
-
-    app.indi_batcher = INDIUpdateBatcher(app.indi)
-    loop.create_task(conn.add_async_callback(constants.TransportEvent.inbound, app.indi_batcher.process_update))
-
-    indi_coro = app.indi.connection.run(reconnect_automatically=True)
-    RUNNING_TASKS.add(loop.create_task(indi_coro))
-
-    emit_updates_coro = emit_updates()
-    RUNNING_TASKS.add(loop.create_task(emit_updates_coro))
-
-    app.cam_watcher = ShmimWatcher()
-    RUNNING_TASKS.update(app.cam_watcher.spawn_tasks(loop))
-
-async def cancel_tasks():
-    await app.indi.connection.stop()
-    for task in RUNNING_TASKS:
-        task.cancel()
-
-connected_clients = []
-connected_video_clients = []
-
-class SupWebSocket(WebSocketEndpoint):
+class SupWebSocket(AppWebSocketEndpoint):
     encoding = "bytes"
     async def on_connect(self, websocket):
-        connected_clients.append(websocket)
+        self.app._connected_clients.append(websocket)
         await websocket.accept()
         await websocket.send_bytes(orjson.dumps({
             'action': 'init',
-            'payload': app.indi.to_serializable()['devices'],
+            'payload': self.app.indi_client.to_serializable()['devices'],
         }))
 
     async def on_indi_new(self, websocket, payload):
@@ -374,7 +199,7 @@ class SupWebSocket(WebSocketEndpoint):
             return
         try:
             value = constants.parse_string_into_any_indi_value(payload['value'])
-            app.indi[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
+            self.app.indi_client[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
         except Exception as e:
             log.exception(f"Swallowed exception: Couldn't set INDI value from {payload}")
 
@@ -389,59 +214,103 @@ class SupWebSocket(WebSocketEndpoint):
 
     async def on_disconnect(self, websocket, close_code):
         try:
-            idx = connected_clients.index(websocket)
-            connected_clients.pop(idx)
+            idx = self.app._connected_clients.index(websocket)
+            self.app._connected_clients.pop(idx)
         except ValueError:
             pass
 
-class VideoWebSocket(WebSocketEndpoint):
-    encoding = "bytes"
+@xconf.config
+class IndiConfig:
+    hostname : str = xconf.field(default="localhost", help="Hostname of INDI server")
+    port : int = xconf.field(default=7624, help="Port number of INDI server")
 
-    async def on_connect(self, websocket):
-        connected_video_clients.append(websocket)
-        await websocket.accept()
+@xconf.config
+class WebInterface(xconf.Command):
+    @classmethod
+    def get_default_config_path(cls) -> pathlib.Path:
+        return INSTRUMENT_CONFIG_ROOT / CONFIG_FILENAME
 
-    async def on_update_camera(self, websocket, shmim_name):
-        if shmim_name in app.cam_watcher.camera_shmim_bytes:
-            await websocket.send_bytes(
-                app.cam_watcher.camera_shmim_bytes[shmim_name]
-            )
+    """Instrument web interface"""
+    layout : str = xconf.field(default=InstrumentLayouts.MAGAOX)
+    replicated_cameras : list[str] = xconf.field(
+        help="List of cameras",
+        default_factory=lambda: ["camsci1", "camsci2", "camwfs", "camtip"]
+    )
+    bind_host : str = xconf.field(default="127.0.0.1", help="Listening address (0.0.0.0 for all)")
+    bind_port : int = xconf.field(default=8000, help="Listening TCP port")
+    indi : IndiConfig = xconf.field(default=IndiConfig())
+    potemkin : bool = xconf.field(
+        default=False,
+        help="Whether to load a system snapshot for testing (disables connection to INDI server)"
+    )
+    debug_mode : bool = xconf.field(default=True, help="Initialize Starlette framework in debug mode")
+    batch_update_interval_sec : float = xconf.field(
+        default=0.2,
+        help="How often to emit a batch of updates over the websocket to connected clients"
+    )
 
-    async def on_receive(self, websocket, data):
-        shmim_name = data.decode('utf8')
-        await self.on_update_camera(websocket, shmim_name)
+    def __post_init__(self):
+        self._running_tasks = set()
+        self._connected_clients = []
 
-    async def on_disconnect(self, websocket, close_code):
-        try:
-            idx = connected_video_clients.index(websocket)
-            connected_video_clients.pop(idx)
-        except ValueError:
-            pass
+    async def emit_updates(self):
+        while True:
+            try:
+                batch = await self.indi_batcher.generate_batch()
+                for websocket in self._connected_clients:
+                    try:
+                        await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
+                    except Exception as e:
+                        log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
+            except Exception as e:
+                log.warning(f"Exception in emit_updates(): {type(e)=} {e}")
+                traceback.print_exc(file=sys.stdout)
+            await asyncio.sleep(self.batch_update_interval_sec)
 
-app = Starlette(
-    debug=True,
-    routes=[
-        Route('/', endpoint=index),
-        Route('/video', endpoint=video),
-        Route('/indi', endpoint=indi),
-        Route('/light-path', endpoint=light_path),
-        Route('/demo', endpoint=demo),
-        Route('/airmass', endpoint=airmass),
-        WebSocketRoute('/websocket', endpoint=SupWebSocket),
-        WebSocketRoute('/videosocket', endpoint=VideoWebSocket),
-        Route('/{path:path}', endpoint=catch_all),
-    ],
-    on_startup=[spawn_tasks],
-    on_shutdown=[cancel_tasks],
-    middleware=[
-        Middleware(GZipMiddleware),
-        Middleware(CORSMiddleware, allow_origins=['*'])
-    ]
-)
+    async def trigger_get_properties(self, message):
+        if message is constants.ConnectionStatus.CONNECTED:
+            log.debug(f"Trigger get properties: {message}")
+            self.indi_client.get_properties()
 
+    async def spawn_tasks(self):
+        loop = asyncio.get_event_loop()
+        conn = purepyindi2.AsyncIndiTcpConnection(host=self.indi.hostname, port=self.indi.port)
+        self.indi_client = purepyindi2.IndiClient(conn)
+        loop.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.connection, self.trigger_get_properties))
 
-logging.basicConfig(level='WARN')
-log.setLevel(os.environ.get('SUP_LOG_LEVEL', 'DEBUG'))
+        self.indi_batcher = INDIUpdateBatcher(self.indi_client)
+        loop.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.inbound, self.indi_batcher.process_update))
 
-if __name__ == '__main__':
-    console_entrypoint()
+        indi_coro = self.indi_client.connection.run(reconnect_automatically=True)
+        self._running_tasks.add(loop.create_task(indi_coro))
+
+        emit_updates_coro = self.emit_updates()
+        self._running_tasks.add(loop.create_task(emit_updates_coro))
+
+    async def cancel_tasks(self):
+        await self.indi_client.connection.stop()
+        for task in self._running_tasks:
+            task.cancel()
+
+    def main(self):
+        self.views = SupViews(self)
+        self.app = Starlette(
+            debug=self.debug_mode,
+            routes=[
+                Route('/', endpoint=self.views.index),
+                Route('/indi', endpoint=self.views.indi),
+                Route('/light-path', endpoint=self.views.light_path),
+                Route('/demo', endpoint=self.views.demo),
+                Route('/airmass', endpoint=self.views.airmass),
+                Route('/config', endpoint=self.views.config),
+                WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
+                Route('/{path:path}', endpoint=self.views.catch_all),
+            ],
+            on_startup=[self.spawn_tasks],
+            on_shutdown=[self.cancel_tasks],
+            middleware=[
+                Middleware(GZipMiddleware),
+                Middleware(CORSMiddleware, allow_origins=['*'])
+            ]
+        )
+        uvicorn.run(self.app, host=self.bind_host, port=self.bind_port)
