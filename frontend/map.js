@@ -10,6 +10,7 @@ import Power from "~/pages/magaox/Power.vue";
 import PlantStatus from "~/pages/magaox/PlantStatus.vue";
 
 // SCOOB
+import ScoobObservation from "~/pages/scoob/Observation.vue";
 
 export const map =
 {   "magaox": {
@@ -25,15 +26,25 @@ export const map =
                 { path: '/dashboard', component: Dashboard },
                 { path: '/plant-status', component: PlantStatus},
             ],
-        "tabBar": () => import('~/pages/magaox/TabBar.vue')
+        "tabs": {
+            "observation": {"icon": "visibility", "path": "/", "label": "observation"},
+            "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
+            "ao": {"icon": "blur_on", "path": "/ao", "label": "AO"},
+            "dashboard": {"icon": "speed", "path": "/dashboard", "label": "dashboard"},
+            "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
+        }
     },
     'scoob': {
         "routes":
             [
-                { path: '/', component: Observation},
+                { path: '/', component: ScoobObservation},
                 { path: '/cameras', component: Cameras},
                 { path: '/power', component: Power},
             ],
-        "tabBar": () => import('~/pages/scoob/TabBar.vue')
+        "tabs": {
+            "observation": {"icon": "visibility", "path": "/", "label": "observation"},
+            "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
+            "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
+        }
     }
 }

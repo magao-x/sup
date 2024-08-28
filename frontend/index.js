@@ -21,7 +21,6 @@ async function fetchConfigData() {
       console.error(message);
     }
     const data = res.json();
-    console.log("Server responded with config data.");
     return data;
   } catch (err) {
     console.error("Error fetching config data:", err);
@@ -31,6 +30,7 @@ async function fetchConfigData() {
 
 async function initApp() {
   const configData = await fetchConfigData();
+  console.log("Server responded with config:", configData);
   store.dispatch('fetchConfig', configData);
 
   var routes = [];

@@ -49,13 +49,6 @@ LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc)
 
-def log_updates(update, did_anything_change):
-    if 'property' in update:
-        for elemname in update['property']['elements']:
-            elem = update['property']['elements'][elemname]
-            if did_anything_change:
-                print(f"{update['device']}.{update['property']['name']}.{elemname}={elem['value']} ({update['property']['state'].value})")
-
 static_folder_name = "static"
 static_path = (Path(__file__).parent / static_folder_name).resolve()
 
@@ -305,7 +298,6 @@ class WebInterface(xconf.Command):
             debug=self.debug_mode,
             routes=[
                 Route('/', endpoint=self.views.index),
-                Route('/video', endpoint=self.views.video),
                 Route('/indi', endpoint=self.views.indi),
                 Route('/light-path', endpoint=self.views.light_path),
                 Route('/demo', endpoint=self.views.demo),
