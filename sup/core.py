@@ -91,7 +91,7 @@ class SupViews:
 
     async def config(self, request):
         config = xconf.config_to_dict(self.app)
-        return JSONResponse(config)
+        return OrjsonResponse(config)
 
     async def airmass(self, request):
         ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
@@ -231,9 +231,9 @@ class WebInterface(xconf.Command):
         return INSTRUMENT_CONFIG_ROOT / CONFIG_FILENAME
 
     """Instrument web interface"""
-    layout : str = xconf.field(default=InstrumentLayouts.MAGAOX)
+    layout : InstrumentLayouts = xconf.field(default=InstrumentLayouts.MAGAOX)
     bind_host : str = xconf.field(default="127.0.0.1", help="Listening address (0.0.0.0 for all)")
-    bind_port : int = xconf.field(default=8000, help="Listening TCP port")
+    bind_port : int = xconf.field(default=9191, help="Listening TCP port")
     indi : IndiConfig = xconf.field(default=IndiConfig())
     potemkin : bool = xconf.field(
         default=False,
