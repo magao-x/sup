@@ -24,16 +24,16 @@
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 .adjustableNumberStepper {
+  width: 100%;
+  display: flex;
+  flex: 1;
+  flex-direction: row;
   input,
   button {
     // border: none;
     margin: 0;
     padding: 0;
   }
-  width: 100%;
-  display: flex;
-  flex: 1;
-  flex-direction: row;
   input.value {
     font: inherit;
     width: 100%;

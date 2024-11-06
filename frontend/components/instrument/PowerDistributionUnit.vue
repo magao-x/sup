@@ -41,13 +41,13 @@
       display: flex;
       flex-direction: column;
       color: var(--fg-normal);
+      border-bottom: 1px solid $plasma-blue;
+      padding-left: $medgap;
+      padding-bottom: $medgap;
       .channel-name, .channel-controls {
         flex: 1;
         margin-bottom: $medgap;
       }
-      border-bottom: 1px solid $plasma-blue;
-      padding-left: $medgap;
-      padding-bottom: $medgap;
     }
     &.disabled {
       .pdu-channel {
