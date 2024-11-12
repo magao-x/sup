@@ -1,65 +1,27 @@
 <template>
-  <div class="observer-control">
-    <div class="cols">
-      <div class="col">
-        <div class="recording">
-          <indi-toggle-switch
-            class="full-width"
-            indi-id="observers.obs_on.toggle"
-            label-on="Recording"
-            label-off="Off"
-          ></indi-toggle-switch>
-        </div>
-        <div class="purpose">
-          <!-- <span class="label">Purpose:</span> -->
-          <indi-current-target indi-id="observers.obs_name" style="flex: 1" prefix="Purpose:"></indi-current-target>
-        </div>
+  <div class="observer-control" :class="{ 'active': isObserving }" v-if="indiDefined">
+    <div style="display: flex">
+      <indi-toggle-switch indi-id="observers.obs_on.toggle" label-on="Recording" label-off="Off" class="recording margin-right"></indi-toggle-switch>
+      <div style="flex: 1" class="margin-right">
+        Purpose:
+        <indi-current-target indi-id="observers.obs_name"></indi-current-target>
       </div>
-      <div class="col current-observer">
-        <div>
-          <span class="label">Current observer:</span>
-          <indi-value indi-id="observers.current_observer.pfoa"></indi-value>
-        </div>
-        <div>
-          Full name:
-          <indi-value
-            indi-id="observers.current_observer.full_name"
-          ></indi-value>
-        </div>
-        <div>
-          Institution:
-          <indi-value
-            indi-id="observers.current_observer.institution"
-          ></indi-value>
-        </div>
-        <div>
-          Email:<indi-switch-dropdown
-            indi-id="observers.observers"
-          ></indi-switch-dropdown>
-        </div>
+      <div style="flex: 1" class="margin-right">
+        Current observer:
+        <indi-switch-dropdown indi-id="observers.observers"></indi-switch-dropdown>
       </div>
-    </div>
-    <div class="writing-toggles">
-      <div v-for="camName in camNames" :key="camName">
-        <div>write {{ camName }}</div>
-        <indi-toggle-switch
-          v-if="!isObserving"
-          :indi-id="`observers.writers.cam${camName}`"
-          label-off=""
-          label-on=""
-        ></indi-toggle-switch>
-        <div v-else-if="retrieveValueByIndiId(`cam${camName}-sw.writing.toggle`) == 'On'" class="glowy">
+      <div v-for="(names, group) in streamNames" class="toggles" style="display: flex; text-align: center">
+        <span class="group-label">{{ group }}</span>
+        <alternate-indi-toggle-switch v-for="name in names" :indi-id="`observers.writers.${name}`" :label="name"
+          :disabled="isObserving" class="stream"></alternate-indi-toggle-switch>
+        <!-- <span v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On'" class="glowy stream">
+          {{ name }}
           <material-icon name="power_settings_new"></material-icon>
-        </div>
-        <div v-else class="notGlowy">
-          <material-icon name="highlight_off"></material-icon>
-        </div>
-        <div><indi-value 
-          :indi-id="`cam${camName}-sw.writing.toggle`"
-          :placeholder="`looking for cam${camName}-sw...`"
-          on-text="writing"
-          off-text="ready"
-        ></indi-value></div>
+        </span>
+        <span v-else class="notGlowy stream">
+          {{ name }}
+          <material-icon name="link_off"></material-icon>
+        </span> -->
       </div>
     </div>
   </div>
@@ -67,10 +29,62 @@
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
+.observer-control {
+  background: var(--bg-alternate);
+}
+
+.toggles {
+  position: relative;
+  padding-top: 1rem;
+  padding-left: 2rem;
+  border-top: 1px solid gray;
+  border-left: 1px solid gray;
+
+  .group-label {
+    position: absolute;
+    left: 0;
+    transform: rotate(-90deg);
+    font-variant: small-caps;
+  }
+
+  label {
+    span {
+      display: block
+    }
+
+    input {
+      display: block;
+      margin: 0 auto;
+    }
+  }
+}
+
+.margin-right {
+  margin-right: 1rem;
+}
+
+span.stream {
+  margin-right: 0.2rem;
+}
+
+
+// .glowy {
+//   text-shadow: 0 0 5 $plasma-blue; /* Initial shadow */
+//   animation: pulse 1s infinite alternate; /* Animation */
+//   color: $plasma-blue;
+// }
+// .notGlowy {
+//   color: $icon-gray;
+// }
+
+
+.cols {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .label {
   font-weight: bold;
 }
-
 
 .full-width {
   width: 100%;
@@ -80,43 +94,30 @@
   font-size: 125%;
   text-align: center;
   padding: $medgap 0;
+  margin-right: $medgap;
 }
+
 .purpose {
   font-size: 125%;
   display: flex;
 }
 
 .writing-toggles {
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-  display: grid;
-  gap: $unit;
+  display: flex;
   text-align: center;
   width: 100%;
+
+  .cam-toggle {
+    flex: 1;
+  }
 }
 
 .current-observer {
   line-height: 1.7em;
 }
+
 .save-path {
   font-family: monospace;
-}
-
-.glowy {
-  text-shadow: 0 0 5 $plasma-blue; /* Initial shadow */
-  animation: pulse 1s infinite alternate; /* Animation */
-  color: $plasma-blue;
-}
-.notGlowy {
-  color: $icon-gray;
-}
-
-@keyframes pulse {
-  0% {
-    text-shadow: 0 0 5px $plasma-blue; /* Initial shadow */
-  }
-  100% {
-    text-shadow: 0 0 20px $plasma-blue; /* Pulsing shadow */
-  }
 }
 </style>
 <script>
@@ -138,15 +139,36 @@ export default {
       type: String,
       default: "observers",
     },
-    camNames: {
+    scienceCamNames: {
       type: Array,
-      default: () => ["sci1", "sci2", "wfs", "lowfs", "tip", "acq"],
+      default: () => [
+        "camsci1", "camsci2"
+      ],
     },
   },
   computed: {
     isObserving() {
-      return this.retrieveValueByIndiId("observers.obs_on.toggle") == "On";
-    }
+      return this.retrieveValueByIndiId(`${this.device}.obs_on.toggle`) == "On";
+    },
+    streamNames() {
+      const writers = this.retrievePropertyByIndiId(`${this.device}.writers`);
+      if (writers) {
+        let names = Object.keys(writers._elements);
+        const isSci = (val) => this.scienceCamNames.indexOf(val) > -1;
+        const isDm = (val) => val.startsWith('dm');
+        let sci = names.filter((val) => isSci(val));
+        names = names.filter((val) => !isSci(val));
+        let dm = names.filter((val) => isDm(val));
+        let aux = names.filter((val) => !isDm(val));
+        return {
+          sci,
+          aux,
+          dm,
+        }
+      } else {
+        return {};
+      }
+    },
   },
   mixins: [indi, utils],
   components: {

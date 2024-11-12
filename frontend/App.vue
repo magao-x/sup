@@ -6,6 +6,8 @@
       <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
       <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
       <loop-state indi-id="holoop"></loop-state>
+      <loop-state indi-id="loloop"></loop-state>
+      <indi-toggle-switch indi-id="tcsi.labMode.toggle" label-on="lab" label-off="tcs"></indi-toggle-switch>
     </div>
     <TabBar></TabBar>
     <observation-warnings></observation-warnings>
@@ -104,6 +106,7 @@
 import Vue from "vue";
 import io from "socket.io-client";
 import IndiStateIndicator from "~/components/indi/IndiStateIndicator.vue";
+import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";
 import TabBar from "~/components/basic/TabBar.vue";
 import LoopState from "~/components/instrument/LoopState.vue";
@@ -133,7 +136,8 @@ export default Vue.extend({
     TabBar,
     LoopState,
     StatusIndicator,
-    ObservationWarnings
+    ObservationWarnings,
+    IndiToggleSwitch
   },
   data: function () {
     return {

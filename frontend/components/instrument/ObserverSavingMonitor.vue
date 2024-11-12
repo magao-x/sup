@@ -23,12 +23,6 @@
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 import IndiValue from "~/components/indi/IndiValue.vue";
-import IndiSwitchMultiElement from "~/components/indi/IndiSwitchMultiElement.vue";
-import IndiSwitchDropdown from "~/components/indi/IndiSwitchDropdown.vue";
-import IndiToggleSwitch from "~/components/indi/IndiToggleSwitch.vue";
-import AlternateIndiToggleSwitch from "~/components/indi/AlternateIndiToggleSwitch.vue";
-import IndiElement from "~/components/indi/IndiElement.vue";
-import IndiProperty from "~/components/indi/IndiProperty.vue";
 
 export default {
   props: {
@@ -44,12 +38,6 @@ export default {
   mixins: [indi, utils],
   components: {
     IndiValue,
-    IndiSwitchMultiElement,
-    IndiSwitchDropdown,
-    IndiToggleSwitch,
-    IndiElement,
-    IndiProperty,
-    AlternateIndiToggleSwitch
   },
   computed: {
     currentObserverEmail() {

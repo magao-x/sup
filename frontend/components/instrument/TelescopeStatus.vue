@@ -1,88 +1,83 @@
 <template>
   <div class="telescope-status" v-if="indiDefined">
-    <div class="date-utc gap-bottom">
+    <div class="date-time gap-bottom">
       <div style="text-align: right">
-        {{ readableTimestamp }}
+        {{ readableDatestampChile }}
       </div>
       <div style="text-align: left">
-        {{ readableDatestamp }}
+        {{ readableTimestampChile }} CLT
       </div>
     </div>
-    <div class="super-important view gap-bottom">
-      <div class="status-item">
-        <div class="datum">Object:</div>
-        <div class="value">
-          <indi-value
-          :indi-id="`${thisDeviceName}.catalog.object`"
-          ></indi-value>
-        </div>
+    <div class="date-time gap-bottom">
+      <div style="text-align: right">
+        {{ readableDatestampUTC }}
       </div>
-      <div class="status-item">
-        <div class="datum">RA:</div>
-        <div class="value">
-          <indi-value
-          :indi-id="`${thisDeviceName}.catdata.ra`"
-          :formatFunction="decimalDegreesToTime"
-          ></indi-value>
-        </div>
+      <div style="text-align: left">
+        {{ readableTimestampUTC }}
       </div>
+    </div>
+    <div class="date-time gap-bottom" style="flex: 1">
+      <div></div>
+      <div style="text-align: left">{{ lst }} LST</div>
+    </div>
+    <div class="view">
+      <div class="super-important">
         <div class="status-item">
-          <div class="datum">Declination:</div>
+          <!-- <div class="datum">Object:</div> -->
           <div class="value">
-            <indi-value
-              :indi-id="`${thisDeviceName}.catdata.dec`"
-              :formatFunction="decimalDegreesToDMS"
-            ></indi-value>
-          </div>
-        </div>
-      <div class="status-item">
-        <div class="datum">LST:</div>
-        <div class="value">{{ lst }}</div>
-      </div>
-      <div class="status-item">
-        <div class="datum">Hour Angle:</div>
-        <div class="value">
-          <indi-value
-              :indi-id="`${thisDeviceName}.telpos.ha`"
-              :format-function="decimalHoursToTimeEastWest"
-          ></indi-value>
-        </div>
-      </div>
-      <div class="status-item">
-        <div class="datum">PA:</div>
-        <div class="value">
-          <indi-value
-          :indi-id="`${thisDeviceName}.teldata.pa`"
-          :formatFunction="(v) => String(Number(v).toFixed(2)) + 'º'"
-          ></indi-value>
-        </div>
-      </div>
-        <div class="status-item">
-          <div class="datum">Altitude:</div>
-          <div class="value">
-            <indi-value
-            :indi-id="`${thisDeviceName}.telpos.el`"
-            :formatFunction="(v) => String(Number(v).toFixed(4))"
-            ></indi-value>º
+            <indi-value :indi-id="`${thisDeviceName}.catalog.object`"></indi-value>
           </div>
         </div>
         <div class="status-item">
-          <div class="datum">Azimuth:</div>
+          <div class="datum">HA:</div>
           <div class="value">
-            <indi-value
-            :indi-id="`${thisDeviceName}.teldata.az`"
-            :formatFunction="(v) => String(Number(v).toFixed(4))"
-            ></indi-value>º
+            <indi-value :indi-id="`${thisDeviceName}.telpos.ha`"
+              :format-function="decimalHoursToTimeEastWest"></indi-value>
           </div>
         </div>
+        <div class="status-item">
+          <div class="datum">RA:</div>
+          <div class="value">
+            <indi-value :indi-id="`${thisDeviceName}.catdata.ra`" :formatFunction="decimalDegreesToTime"></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Dec:</div>
+          <div class="value">
+            <indi-value :indi-id="`${thisDeviceName}.catdata.dec`" :formatFunction="decimalDegreesToDMS"></indi-value>
+          </div>
+        </div>
+
         <div class="status-item">
           <div class="datum">Airmass:</div>
           <div class="value">
             {{ airmass }}
           </div>
         </div>
+        <div class="status-item">
+          <div class="datum">PA:</div>
+          <div class="value">
+            <indi-value :indi-id="`${thisDeviceName}.teldata.pa`"
+              :formatFunction="(v) => String(Number(v).toFixed(2)) + 'º'"></indi-value>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Alt:</div>
+          <div class="value">
+            <indi-value :indi-id="`${thisDeviceName}.telpos.el`"
+              :formatFunction="(v) => String(Number(v).toFixed(4))"></indi-value>º
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="datum">Az:</div>
+          <div class="value">
+            <indi-value :indi-id="`${thisDeviceName}.teldata.az`"
+              :formatFunction="(v) => String(Number(v).toFixed(4))"></indi-value>º
+          </div>
+        </div>
       </div>
-      <!-- <div class="status-tiles gap-bottom">
+    </div>
+    <!-- <div class="status-tiles gap-bottom">
         <div class="status-tile view">
           <div>
             <span class="name">seeing</span>
@@ -124,14 +119,20 @@
             <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
           </div>
       </div> -->
-      <!-- <observability-plots
+    <!-- <observability-plots
         :equatorialCoords="equatorialCoords"
         :beginObsTimestamp="beginObsTimestamp"></observability-plots> -->
-    </div>
-    <div v-else class="view">Waiting for tcsi...</div>
-  </template>
+  </div>
+  <div v-else class="view">Waiting for tcsi...</div>
+</template>
 <style lang="scss" scoped>
 @import "./css/variables.scss";
+
+.telescope-status {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
 .plots img {
   display: block;
@@ -145,9 +146,11 @@
 .status-item {
   display: flex;
 }
+
 .datum {
   color: $alternate-gray;
 }
+
 .value {
   flex: 1;
   text-align: right;
@@ -155,12 +158,13 @@
 
 .super-important {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   grid-gap: 0 2 * $unit;
   font-size: 125%;
   padding: $unit;
 }
-.date-utc {
+
+.date-time {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 0 2 * $unit;
@@ -188,11 +192,12 @@ export default {
       let sign = value / Math.abs(value);
       let hours = Math.floor(value / sign);
       let fracHour = (value / sign) - hours;
+      let hoursStr = String(hours).padStart(2, "0");
       const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
       fracHour = fracHour - minutes / 60;
       const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
       let signMark = sign == -1 ? "-" : "";
-      return `${signMark}${hours}:${minutes}:${seconds}`;
+      return `${signMark}${hoursStr}:${minutes}:${seconds}`;
     },
     decimalHoursToTimeEastWest(value) {
       let sign = Math.sign(value);
@@ -221,7 +226,7 @@ export default {
     decimalDegreesToDMS(value) {
       const sign = Math.sign(value);
       const deg = Math.floor(value / sign);
-      let fracDeg = (value/sign - deg) * 60;
+      let fracDeg = (value / sign - deg) * 60;
       const min = String(Math.floor(fracDeg)).padStart(2, "0");
       fracDeg = (fracDeg - Math.floor(fracDeg)) * 60;
       const sec = String(Math.floor(fracDeg)).padStart(2, "0");
@@ -230,19 +235,35 @@ export default {
     },
   },
   computed: {
-    readableDatestamp() {
+    readableDatestampUTC() {
       return (
-        this.time.currentTime.toLocaleString(DateTime.DATE_MED) 
+        this.time.currentTime.toLocaleString(DateTime.DATE_MED)
+      );
+    },
+    readableTimestampUTC() {
+      return (
+        this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+      );
+    },
+    readableDatestampUTC() {
+      return (
+        this.time.currentTime.toLocaleString(DateTime.DATE_MED)
         // +
         // " " +
         // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
       );
     },
-    readableTimestamp() {
+    readableTimestampChile() {
       return (
-        // this.time.currentTime.toLocaleString(DateTime.DATE_MED) +
+        this.time.currentTime.setZone('America/Santiago').toLocaleString(DateTime.TIME_24_WITH_SECONDS)
+      );
+    },
+    readableDatestampChile() {
+      return (
+        this.time.currentTime.setZone('America/Santiago').toLocaleString(DateTime.DATE_MED)
+        // +
         // " " +
-        this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+        // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
       );
     },
     beginObsTimestamp() {

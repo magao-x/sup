@@ -1,5 +1,5 @@
 <template>
-  <div class="danger-zone view padded gap-bottom">
+  <div class="danger-zone">
     <div style="text-align: center; position: relative">
       <!-- indi-id="tcsi.acqFromGuider.request"  -->
       <button v-if="readyToAcquire" class="cancel" @click="cancelAcquire">cancel</button>
@@ -9,18 +9,20 @@
     </div>
     <div>
       <div v-if="indiIdExists('flipacq.presetName')" class="control">
-        <div class="name">Acquisition mirror:</div>
-        <indi-switch-multi-element class="flipacq" indi-id="flipacq.presetName"
-          :columns="2"></indi-switch-multi-element>
+        
       </div>
       <div v-else class="control">
         Waiting for flipacq...
       </div>
-      <indi-momentary-switch indi-id="tcsi.offlF_dump.request" style="width: 100%" label="focus offload"
+      <button style="width: 100%" @click="triggerOffset" :disabled="!goodToOffset">{{ maybeFocusOffset }}</button>
+      <indi-momentary-switch indi-id="tcsi.offlF_dump.request" style="width: 100%" label="focus dump"
         class="dump-focus"></indi-momentary-switch>
       <scram-button></scram-button>
     </div>
-    <div class="toggles">
+    <div class="toggles span-two">
+      <div class="name">Acquisition mirror:</div>
+      <indi-switch-multi-element class="tracking-toggle" indi-id="flipacq.presetName"
+        :columns="2"></indi-switch-multi-element>
       <div class="name">K-mirror tracking</div>
       <indi-toggle-switch class="tracking-toggle" indi-id="ktrack.tracking.toggle"
         :ignoreBusyState="true"></indi-toggle-switch>
@@ -31,7 +33,7 @@
       <div class="name">telescope T/T offload</div>
       <indi-toggle-switch class="tracking-toggle" indi-id="tcsi.offlTT_enable.toggle"
         :ignoreBusyState="true"></indi-toggle-switch>
-      <div class="name">camwfs-align loop</div>
+      <div class="name">pupil tracking</div>
       <indi-toggle-switch class="tracking-toggle" indi-id="camwfs-align.loop_state.toggle"></indi-toggle-switch>
     </div>
   </div>
@@ -91,7 +93,7 @@ body.dark .danger-zone.view {
   /* display: flex; */
   // text-align: center;
   display: grid;
-  grid-template-columns: 1fr 2fr 3fr;
+  grid-template-columns: 1fr 1fr;
   grid-gap: $unit;
   background-color: transparentize(darken($danger-red, 40), 0.2);
 }
@@ -131,28 +133,40 @@ export default {
   data() {
     return {
       acquireCooldown: 0,
+      focusCooldown: 0,
       readyToAcquire: false,
     };
   },
   methods: {
-    coolDownTick() {
+    acquireCooldownTick() {
       this.acquireCooldown = Math.max(this.acquireCooldown - 1, 0);
       if (this.acquireCooldown > 0) {
-        setTimeout(this.coolDownTick, 1000);
+        setTimeout(this.acquireCooldownTick, 1000);
+      }
+    },
+    focusCooldownTick() {
+      this.focusCooldown = Math.max(this.focusCooldown - 1, 0);
+      if (this.focusCooldown > 0) {
+        setTimeout(this.focusCooldownTick, 1000);
       }
     },
     triggerAcquire() {
       // this.indi.sendIndiNewByNames("maggieo_x", "mute", "toggle", "On");
-      this.indi.sendIndiNewByNames("tcsi", "acqFromGuider", "request", "On");
       this.readyToAcquire = false;
       this.acquireCooldown = 6;
-      setTimeout(this.coolDownTick, 1000);
+      setTimeout(this.acquireCooldownTick, 1000);
+      this.indi.sendIndiNewByNames("tcsi", "acqFromGuider", "request", "On");
     },
     prepareToAcquire() {
       this.readyToAcquire = true;
     },
     cancelAcquire() {
       this.readyToAcquire = false;
+    },
+    triggerOffset() {
+      this.focusCooldown = 6;
+      setTimeout(this.focusCooldownTick, 1000);
+      this.indi.sendIndiNewByNames("tcsi", "pyrNudge", "z", 1400);
     },
   },
   computed: {
@@ -174,7 +188,23 @@ export default {
         &&
         this.acquireCooldown == 0
       );
-    }
+    },
+    goodToOffset() {
+      return (
+        this.retrieveValueByIndiId('flipacq.presetName.in') == 'On'
+        &&
+        this.focusCooldown == 0
+      );
+    },
+    maybeFocusOffset() {
+      if (this.goodToOffset) {
+        return "apply focus offset";
+      } else if (this.focusCooldown > 0) {
+        return `wait ${this.focusCooldown} sec`;
+      } else {
+        return "insert flipacq to offset focus";
+      }
+    },
   },
   components: {
     IndiToggleSwitch,

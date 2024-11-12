@@ -1,17 +1,13 @@
 <template>
   <div class="observation-controls">
-    <observer-saving-monitor class="padded gap-bottom"></observer-saving-monitor>
-    <div class="cols top-level">
+    <observer-saving-monitor class="padded"></observer-saving-monitor>
+    <observer-control class="padded gap-bottom observer-control"></observer-control>
+    <div class="cols top-level telescope" v-if="!labMode">
       <div class="col">
-        <div class="obs-and-sparkles">
-          <observer-control class="observer-controls view padded"></observer-control>
-          <danger-zone class="padded"></danger-zone>
-        </div>
+        <telescope-status indi-id="tcsi"></telescope-status>
       </div>
-      <div class="col">
-        <telescope-status v-if="retrieveByIndiId('tcsi')" indi-id="tcsi" class="gap-bottom"></telescope-status>
-        <observability-plots :equatorialCoords="equatorialCoords" class="view"></observability-plots>
-      </div>
+      <observability-plots :equatorialCoords="equatorialCoords" class="col view"></observability-plots>
+      <danger-zone v-if="!labMode" class="padded col view"></danger-zone>
     </div>
     <div class="cols cams-and-corons">
       <div class="col">
@@ -61,21 +57,34 @@
               <indi-switch-dropdown v-if="(camName == 'sci1' || camName == 'sci2') && retrieveByIndiId(`fwscind`)"
                 :indi-id="`fwscind.filterName`"></indi-switch-dropdown>
             </td>
-            <td>
+            <td v-if="retrieveByIndiId(`fw${camName}`)">
               <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
-                :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
-              <progress v-if="retrieveByIndiId(`cam${camName}.current_exposure`)"
+              :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
+            </td>
+            <td v-else-if="camName == 'flowfs' && retrieveByIndiId(`fwlowfs`)">
+              <indi-switch-dropdown v-if="retrieveByIndiId(`fwlowfs`)"
+              :indi-id="`fwlowfs.filterName`"></indi-switch-dropdown>
+            </td>
+            <td v-else-if="retrieveByIndiId(`cam${camName}.current_exposure`)">
+              <progress
                 :value="100 - retrieveValueByIndiId(`cam${camName}.current_exposure.remaining_pct`)"
                 max="100"></progress>
             </td>
+            <td v-else></td>
             <td>
               <indi-current-target :indi-id="`cam${camName}.exptime`" format="%1.3f"
                 style="display: inline-block" width="8rem"
                 suffix="sec"></indi-current-target>
             </td>
-            <td><indi-current-target v-if="retrieveByIndiId(`cam${camName}.emgain`)"
+            <td v-if="retrieveByIndiId(`cam${camName}.expose.request`)">
+              <indi-momentary-switch
+                :indi-id="`cam${camName}.expose.request`" label="begin exposuring"></indi-momentary-switch>
+            </td>
+            <td v-else-if="retrieveByIndiId(`cam${camName}.emgain`)">
+              <indi-current-target
                 :indi-id="`cam${camName}.emgain`"></indi-current-target>
             </td>
+            <td v-else></td>
             <td>
               <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)"
                 :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
@@ -194,7 +203,7 @@
 
 .cams-and-corons {
   padding: 0.5rem;
-  grid-template-columns: 1fr 5fr 1fr;
+  grid-template-columns: 1fr 3fr 1fr;
 }
 
 .status-table {
@@ -220,12 +229,16 @@
   }
 }
 
-.obs-and-sparkles {
-  display: grid;
-  gap: 1rem;
-}
-
 .observation-controls {
+  transition: background 1s;
+  .observer-control {
+    background: $icon-gray;
+  }
+  &.active {
+      background: $plasma-blue;
+      color: var(--fg-normal);
+  }
+  
   .status-tiles {
     grid-template-columns: 1fr 1fr 1fr 1fr;
   }
@@ -235,6 +248,11 @@
   display: grid;
   grid-template-columns: 5fr 12fr;
   grid-gap: $unit;
+}
+
+.telescope.cols {
+  grid-template-columns: 1fr 3fr 1fr;
+  align-items: stretch;
 }
 </style>
 <script>
@@ -264,7 +282,7 @@ export default {
   inject: ["indi"],
   data: function () {
     return {
-      camNames: ["sci1", "sci2", "wfs", "lowfs", "tip", "acq", "visx"],
+      camNames: ["sci1", "sci2", "wfs", "flowfs", "llowfs", "tip", "acq", "visx"],
       otherFilterWheels: ["fwlyot", "fwpupil", "fwscind", "fwfpm", "fwlowfs", "fwtelsim"],
       otherStages: [
         "stagescibs", "stagepickoff", "stagebs",
@@ -295,17 +313,18 @@ export default {
         ],
         "upstream": [
           "fwpupil",
-          "stagepiaa1",
+          "stagepiaa",
           "fwfpm"
         ],
         "lowfs": [
           "stagelosel",
           "fwlowfs",
-          "stagelowfs",
+          "stageflowfs",
+          "stagellowfs",
         ],
         "sci": [
           "fwlyot",
-          "stagepiaa2",
+          "stageipiaa",
           "fwscind",
           "stagescibs",
           "fwsci1",
@@ -336,6 +355,9 @@ export default {
     }
   },
   computed: {
+    labMode() {
+      return this.retrieveValueByIndiId('tcsi.labMode.toggle') == 'On' || !this.retrieveByIndiId('tcsi');
+    },
     equatorialCoords() {
       let catData = this.retrieveByIndiId('tcsi.catdata');
       if (catData) {
@@ -354,12 +376,12 @@ export default {
     CompactFilterStageControl,
     IndiSwitchMultiElementValue,
     IndiToggleSwitch,
+    IndiMomentarySwitch,
     TelescopeStatus,
     MaterialIcon,
     FiniteStateMachineStatus,
     DangerZone,
     IndiSwitchDropdown,
-    IndiMomentarySwitch,
     IndiSwitchMultiElement,
     LogStream,
     ObserverSavingMonitor,

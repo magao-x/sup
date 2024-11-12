@@ -114,12 +114,20 @@ export default {
                     )
                 },
                 {
-                    message: "stagescis are not focused",
+                    message: "stagesci1 is not focused",
                     condition: (
-                        (this.retrieveValueByIndiId("stagesci1.presetName.fpm") !== "On") ||
-                        (this.retrieveValueByIndiId("stagesci2.presetName.fpm") !== "On")
-                    )
-                }
+                            (this.retrieveValueByIndiId("stagesci1.presetName.fpm") !== "On") &&
+                            (this.retrieveValueByIndiId("camsci1.shutter.toggle") !== "On")
+                        )
+                },
+                
+                {
+                    message: "stagesci2 is not focused",
+                    condition: (
+                            (this.retrieveValueByIndiId("stagesci2.presetName.fpm") !== "On") &&
+                            (this.retrieveValueByIndiId("camsci2.shutter.toggle") !== "On")
+                        )
+                },
             ];
             return unfilteredWarnings.filter((elem) => (elem.condition && this.indi.indiIsConnected));
         }

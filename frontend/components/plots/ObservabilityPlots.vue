@@ -1,6 +1,6 @@
 <template>
   <div class="observability-plot-container">
-    <div class="">
+    <div class="plot-and-title">
       <div class="plot-title">altitude</div>
       <plot-component
         v-if="altitudes !== null"
@@ -13,7 +13,7 @@
         class="observability-plot"
       ></plot-component>
     </div>
-    <div class="">
+    <div class="plot-and-title">
       <div class="plot-title">parallactic angle</div>
       <plot-component
         v-if="parallactic_angles !== null"
@@ -36,6 +36,16 @@
   grid-template-columns: 1fr 1fr;
   grid-gap: $unit;
   min-height: 150px;
+  max-height: 337px;
+  .plot-and-title {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .observability-plot {
+    flex: 1;
+    padding-bottom: $medgap;
+  }
 }
 .plot-title {
   color: $plasma-blue;
@@ -47,6 +57,7 @@
 import PlotComponent from "~/components/plots/PlotComponent.vue";
 import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
+import utils2 from "~/utils.js";
 
 export default {
   props: ['equatorialCoords', 'beginObsTimestamp'],
@@ -83,19 +94,10 @@ export default {
   methods: {
     async loadPlotData(ra, dec) {
       try {
-        let baseURL;
-        if (process.env.NODE_ENV == 'development') {
-          baseURL = "http://exao1.lco.cl:8000"
-        } else {
-          baseURL =
-            window.location.protocol +
-            "//" +
-            window.location.hostname +
-            ":" +
-            String(window.location.port);
-        }
-        const destURL = `${baseURL}/airmass?ra=${ra}&dec=${dec}`;
+        const destURL = utils2.buildBackendUrl(`airmass?ra=${ra}&dec=${dec}`);
         const res = await fetch(destURL);
+        console.log("Fetched result");
+        
         if (!res.ok) {
           console.log("not ok");
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
@@ -103,6 +105,7 @@ export default {
           return {parallactic_angles: null, altitudes: null};
         }
         const data = await res.json();
+        console.log(data);
         return data;
       } catch (err) {
         console.error("Error in retrieving altitude/parang:", err);
@@ -112,12 +115,19 @@ export default {
   async mounted() {
     if (this.ra == null || this.dec == null) return;
     console.log("loading plot data from mounted");
-    await this.loadPlotData(this.ra, this.dec);
+    const data = await this.loadPlotData(this.ra, this.dec);
+    console.log("Loaded plot data after mount");
+    this.parallactic_angles = data.parallactic_angles;
+    this.altitudes = data.altitudes;
+    console.log("Set plot data on component");
   },
   watch: {
     async equatorialCoords(newCoords, oldCoords) {
       if (newCoords && newCoords.ra && newCoords.dec) {
         let data = await this.loadPlotData(newCoords.ra, newCoords.dec);
+        if (!data) {
+          return;
+        }
         this.parallactic_angles = data.parallactic_angles;
         this.altitudes = data.altitudes;
       }
