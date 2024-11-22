@@ -1,6 +1,6 @@
 <template>
   <div class="observation-controls">
-    <observer-saving-monitor class="padded"></observer-saving-monitor>
+    <!-- <observer-saving-monitor class="padded"></observer-saving-monitor> -->
     <observer-control class="padded gap-bottom observer-control"></observer-control>
     <div class="cols top-level telescope" v-if="!labMode">
       <div class="col">
@@ -18,9 +18,6 @@
               :indi-id="deviceName"></finite-state-machine-status>
             <div v-else>waiting for app</div>
           </div>
-          <!-- <compact-filter-stage-control v-for="deviceName in essentialDevices"
-              :device-name="deviceName"
-              class="padded view gap-bottom"></compact-filter-stage-control> -->
           <indi-switch-multi-element v-if="deviceName.match(/^fw/)"
             :indi-id="`${deviceName}.filterName`"></indi-switch-multi-element>
           <indi-switch-multi-element v-if="deviceName.match(/^flip/) || deviceName.match(/^stage/)"
@@ -113,28 +110,6 @@
           <div class="status-tiles">
             <compact-filter-stage-control v-for="deviceName in lightPathDevices[lightPathGrouping]"
               :device-name="deviceName" class="view"></compact-filter-stage-control>
-            <!-- <div v-for="deviceName in lightPathDevices[lightPathGrouping]" class="status-tile view">
-              <div>
-                <span class="name">{{ deviceName }}</span>
-                <finite-state-machine-status v-if="retrieveByIndiId(deviceName)"
-                  :indi-id="deviceName"></finite-state-machine-status>
-                <div v-else>waiting for app</div>
-              </div>
-              <template v-if="retrieveByIndiId(`${deviceName}`)">
-                <indi-switch-dropdown v-if="deviceName.match(/^fw/)"
-                  :indi-id="`${deviceName}.filterName`"></indi-switch-dropdown>
-                <indi-switch-multi-element v-if="deviceName.match(/^flip/)" :indi-id="`${deviceName}.presetName`"
-                  :columns="2"></indi-switch-multi-element>
-                <template v-if="deviceName.match(/^stage/)">
-                  <indi-momentary-switch v-if="retrieveValueByIndiId(`${deviceName}.fsm.state`) == 'NOTHOMED'"
-                    :indi-id="`${deviceName}.home.request`" label="😾"
-                    style="line-height: 100%; padding:0; vertical-align: middle"></indi-momentary-switch>
-                  <indi-switch-dropdown v-if="retrieveByIndiId(`${deviceName}`)"
-                    :indi-id="`${deviceName}.presetName`"></indi-switch-dropdown>
-                  (<indi-value :indi-id="`${deviceName}.position.current`"></indi-value>)
-                </template>
-</template>
-</div> -->
           </div>
         </div>
       </div>
@@ -229,20 +204,20 @@
   }
 }
 
-.observation-controls {
-  transition: background 1s;
-  .observer-control {
-    background: $icon-gray;
-  }
-  &.active {
-      background: $plasma-blue;
-      color: var(--fg-normal);
-  }
+// .observation-controls {
+//   transition: background 1s;
+//   .observer-control {
+//     background: $icon-gray;
+//   }
+//   &.active {
+//       background: $plasma-blue;
+//       color: var(--fg-normal);
+//   }
   
-  .status-tiles {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-  }
-}
+//   .status-tiles {
+//     grid-template-columns: 1fr 1fr 1fr 1fr;
+//   }
+// }
 
 .telescope-controls {
   display: grid;

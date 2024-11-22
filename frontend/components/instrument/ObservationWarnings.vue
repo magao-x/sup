@@ -40,7 +40,7 @@ export default {
     inject: ["indi"],
     computed: {
         warnings() {
-            const labMode = this.retrieveValueByIndiId('stagepickoff.presetName.tel') == 'Off';
+            const labMode = this.retrieveValueByIndiId('tcsi.labMode.toggle') == 'On' || this.retrieveValueByIndiId('stagepickoff.presetName.tel') == 'Off';
             const loopClosed = this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'On';
             const unfilteredWarnings = [
                 {

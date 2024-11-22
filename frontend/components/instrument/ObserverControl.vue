@@ -1,25 +1,45 @@
 <template>
   <div class="observer-control" :class="{ 'active': isObserving }" v-if="indiDefined">
     <div style="display: flex">
-      <indi-toggle-switch indi-id="observers.obs_on.toggle" label-on="Recording" label-off="Off" class="recording margin-right"></indi-toggle-switch>
-      <div style="flex: 1" class="margin-right">
-        Purpose:
+      <indi-toggle-switch id="recording" indi-id="observers.obs_on.toggle" label-on="Recording" label-off="Off"
+        class="recording spaced"></indi-toggle-switch>
+      <div style="flex: 1" class="purpose">
+        <div class="label-text">Purpose:</div>
         <indi-current-target indi-id="observers.obs_name"></indi-current-target>
       </div>
-      <div style="flex: 1" class="margin-right">
-        Current observer:
+      <div class="current-observer">
+        <div class="label-text">Current observer:</div>
         <indi-switch-dropdown indi-id="observers.observers"></indi-switch-dropdown>
       </div>
-      <div v-for="(names, group) in streamNames" class="toggles" style="display: flex; text-align: center">
+      <div v-for="(names, group) in streamNames" class="toggles spaced">
         <span class="group-label">{{ group }}</span>
-        <alternate-indi-toggle-switch v-for="name in names" :indi-id="`observers.writers.${name}`" :label="name"
-          :disabled="isObserving" class="stream"></alternate-indi-toggle-switch>
-        <!-- <span v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On'" class="glowy stream">
-          {{ name }}
+        <div v-for="name in names" class="stream" :class="{
+          glowy: isObserving && retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On',
+          notGlowy: isObserving && retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'Off'
+        }">
+          <div class="label-text">{{ name }}</div>
+          <alternate-indi-toggle-switch v-if="!isObserving" :stacked="true"
+            :indi-id="`observers.writers.${name}`"></alternate-indi-toggle-switch>
+          <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On'">
+            <material-icon name="power_settings_new"></material-icon>
+          </div>
+          <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'Off'">
+            <material-icon name="more_horiz"></material-icon>
+          </div>
+          <div v-else>
+            <material-icon name="link_off"></material-icon>
+          </div>
+        </div>
+        <!-- <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On'" class="glowy stream">
+          <div class="label-text">{{ name }}</div>
           <material-icon name="power_settings_new"></material-icon>
-        </span>
+        </div>
+        <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'Off'" class="notGlowy stream">
+          <div class="label-text">{{ name }}</div>
+          <material-icon name="more_horiz"></material-icon>
+        </div>
         <span v-else class="notGlowy stream">
-          {{ name }}
+          <div class="label-text">{{ name }}</div>
           <material-icon name="link_off"></material-icon>
         </span> -->
       </div>
@@ -29,16 +49,28 @@
 <style lang="scss" scoped>
 @import "./css/variables.scss";
 
+#recording {
+  margin-top: $unit;
+}
+
+
+
 .observer-control {
   background: var(--bg-alternate);
 }
 
 .toggles {
   position: relative;
-  padding-top: 1rem;
-  padding-left: 2rem;
-  border-top: 1px solid gray;
+  display: flex;
+  margin-left: $medgap;
+  padding-left: 1.5rem;
   border-left: 1px solid gray;
+
+  .label-text {
+    line-height: $unit;
+    display: block;
+    padding: 0.5rem;
+  }
 
   .group-label {
     position: absolute;
@@ -47,39 +79,33 @@
     font-variant: small-caps;
   }
 
-  label {
-    span {
-      display: block
-    }
+  .stream {
+    text-align: center;
 
-    input {
+    .material-icons {
       display: block;
-      margin: 0 auto;
     }
   }
 }
 
-.margin-right {
-  margin-right: 1rem;
+.glowy {
+  text-shadow: 0 0 5px $plasma-blue;
+  /* Initial shadow */
+  animation: pulse 1s infinite alternate;
+  /* Animation */
+  color: $plasma-blue;
 }
 
-span.stream {
-  margin-right: 0.2rem;
-}
+@keyframes pulse {
+  0% {
+    text-shadow: 0 0 5px $plasma-blue;
+    /* Initial shadow */
+  }
 
-
-// .glowy {
-//   text-shadow: 0 0 5 $plasma-blue; /* Initial shadow */
-//   animation: pulse 1s infinite alternate; /* Animation */
-//   color: $plasma-blue;
-// }
-// .notGlowy {
-//   color: $icon-gray;
-// }
-
-
-.cols {
-  grid-template-columns: 1fr 1fr 1fr;
+  100% {
+    text-shadow: 0 0 20px $plasma-blue;
+    /* Pulsing shadow */
+  }
 }
 
 .label {
@@ -93,28 +119,17 @@ span.stream {
 .recording {
   font-size: 125%;
   text-align: center;
-  padding: $medgap 0;
-  margin-right: $medgap;
 }
 
-.purpose {
-  font-size: 125%;
-  display: flex;
-}
-
-.writing-toggles {
-  display: flex;
-  text-align: center;
-  width: 100%;
-
-  .cam-toggle {
-    flex: 1;
-  }
-}
-
+.recording,
+.purpose,
 .current-observer {
+  padding: 0 $medgap;
+  margin-right: $medgap;
+  font-size: 125%;
   line-height: 1.7em;
 }
+
 
 .save-path {
   font-family: monospace;

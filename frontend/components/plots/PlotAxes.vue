@@ -336,22 +336,28 @@ export default {
         if (!dataset.vline){
           continue;
         }
-        console.log("vert line", dataset);
+        let color;
+        if (dataset.color) {
+          color = dataset.color;
+        } else {
+          color = "#f47750";
+        }
+        // console.log("vert line", dataset);
         let line = this.d3svg
         .append("path")
         .datum([
             {x: dataset.vline, y: 0},
             {x: dataset.vline, y: 1}
           ])
-          .style("stroke", "#f47750");
+          .style("stroke", color);
           
           if (dataset.dashed) {
             line = line.style("stroke-dasharray", "5,5");
           }
           line.attr("d", d3.line()
             .x(d=>{
-              console.log(xGetter(d));
-              console.log(this.xScale(xGetter(d)));
+              // console.log(xGetter(d));
+              // console.log(this.xScale(xGetter(d)));
               return this.xScale(xGetter(d));
             })
             .y(d=>this.yFractionalScale(yGetter(d)))

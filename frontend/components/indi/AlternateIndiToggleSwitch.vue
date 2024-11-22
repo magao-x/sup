@@ -1,10 +1,8 @@
 <template>
-  <span v-if="indiDefined" @click="toggle" :class="{'glowy': switchValue && disabled}">
-    <span class="label-text">{{ label }}</span>
-    <!-- <input type="checkbox" :disabled="switchDisabled"
-      :checked="switchValue" @input="toggle"> -->
-      <material-icon v-if="switchValue" name="check_box"></material-icon>
-      <material-icon v-else name="check_box_outline_blank"></material-icon>
+  <span v-if="indiDefined" @click="toggle" :class="{'glowy': switchValue && disabled, 'stacked': stacked}">
+    <span v-if="label" class="label-text stackable">{{ label }}</span>
+    <material-icon v-if="switchValue" name="check_box" class="stackable"></material-icon>
+    <material-icon v-else name="check_box_outline_blank" class="stackable"></material-icon>
   </span>
   <span v-else>?</span>
 </template>
@@ -15,6 +13,13 @@
   text-shadow: 0 0 5 $plasma-blue; /* Initial shadow */
   animation: pulse 1s infinite alternate; /* Animation */
   color: $plasma-blue;
+}
+
+.stacked {
+  .stackable {
+    display: block;
+    margin: 0.25rem;
+  }
 }
 
 @keyframes pulse {
@@ -48,7 +53,11 @@ export default {
     disabled: {
       type: Boolean,
       default: () => false,
-    }
+    },
+    stacked: {
+      type: Boolean,
+      default: () => false,
+    },
   },
   methods: {
     toggle: function () {

@@ -9,7 +9,7 @@ Vue.use(VueVirtualScroller)
 let textEncoder = new TextEncoder();
 let textDecoder = new TextDecoder();
 
-const MAX_LOG_ENTRIES = 1000;
+const MAX_LOG_ENTRIES = 10;
 
 export default {
     methods: {

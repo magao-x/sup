@@ -113,6 +113,16 @@ class SupViews:
                 {'x': ts.to_value('iso'), 'y': angle}
                 for (ts, angle) in zip(sample_times, altitude.to(u.degree).value)
             ],
+            'solar_system': {
+                'moon': {
+                    'rise': LCO_SITE.moon_rise_time(current_time).to_value('iso'),
+                    'set': LCO_SITE.moon_set_time(current_time).to_value('iso'),
+                },
+                'sun': {
+                    'rise': LCO_SITE.sun_rise_time(current_time).to_value('iso'),
+                    'set': LCO_SITE.sun_set_time(current_time).to_value('iso'),
+                },
+            },
         }
         return OrjsonResponse(payload)
 

@@ -78,7 +78,13 @@ export default {
       return this.equatorialCoords?.dec;
     },
     altitudePlotData() {
-      return {"altitude": {points: this.altitudes}};
+      return {
+        "altitude": {points: this.altitudes}, 
+        "moonrise": {vline: this.solar_system.moon.rise, dashed: true, color: "#4d4d4d"},
+        "moonset": {vline: this.solar_system.moon.set, dashed: true, color: "#4d4d4d"},
+        "sunrise": {vline: this.solar_system.sun.rise, dashed: true, color: "#fdbc4b"},
+        "sunset": {vline: this.solar_system.sun.set, dashed: true, color: "#fdbc4b"},
+    };
     },
     parallacticAnglePlotData() {
       let parangData = {
@@ -111,25 +117,32 @@ export default {
         console.error("Error in retrieving altitude/parang:", err);
       }
     },
+    async setPlotData(data) {
+      console.log("Setting plot data on component");
+      this.parallactic_angles = data.parallactic_angles;
+      this.altitudes = data.altitudes;
+      this.solar_system = data.solar_system;
+      console.log("Done setting plot data");
+    }
   },
   async mounted() {
     if (this.ra == null || this.dec == null) return;
     console.log("loading plot data from mounted");
     const data = await this.loadPlotData(this.ra, this.dec);
     console.log("Loaded plot data after mount");
-    this.parallactic_angles = data.parallactic_angles;
-    this.altitudes = data.altitudes;
-    console.log("Set plot data on component");
+    await this.setPlotData(data);
   },
   watch: {
     async equatorialCoords(newCoords, oldCoords) {
-      if (newCoords && newCoords.ra && newCoords.dec) {
+      if (newCoords && newCoords.ra && newCoords.dec
+      //  && (oldCoords.ra !== newCoords.ra || oldCoords.dec !== newCoords.dec)
+      ) {
         let data = await this.loadPlotData(newCoords.ra, newCoords.dec);
         if (!data) {
           return;
         }
-        this.parallactic_angles = data.parallactic_angles;
-        this.altitudes = data.altitudes;
+        await this.setPlotData(data);
+        console.log("updated plot");
       }
     }
   }
