@@ -39,10 +39,14 @@ export default {
         onWebSocketMessage(event) {
           event.data.arrayBuffer().then((buf) => {
             let msg = JSON.parse(textDecoder.decode(buf));
-            if (msg.action == "init") {
+            if (msg.action == "indi_init") {
               this.reinitializeIndiWorld(msg.payload);
-            } else if (msg.action == "batch_update") {
+            } else if (msg.action == "indi_batch_update") {
               this.batchUpdate(msg.payload);
+            } else if (msg.action == "instgraph_updated") {
+              console.log("Receiving instGraph data", msg.payload.file);
+              this.$store.dispatch('updateInstGraphUpdateTime');
+              this.$store.dispatch('updateInstGraphFilename', msg.payload.file);
             }
           });
         },
@@ -103,6 +107,11 @@ export default {
           if (this.systemLogs.length > MAX_LOG_ENTRIES) {
             this.systemLogs.splice(0, this.systemLogs.length - MAX_LOG_ENTRIES);
           }
+        },
+        instgraphUpdate(payload) {
+          console.log("instGraph updated ", msg.payload.file);
+          this.$store.dispatch('updateInstGraphUpdateTime');
+          this.$store.dispatch('updateInstGraphFielname', payload.file);
         },
         singlePropertyDelete(deviceName, propertyName) {
           Vue.delete(this.indiWorld[deviceName], propertyName);

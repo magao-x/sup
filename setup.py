@@ -82,6 +82,7 @@ setup(
         'toml>=0.10.2',
         'websockets>=10.2',
         'blosc>=1.11.1',
+        'watchdog>=6.0.0',
     ],
     include_package_data=True,
     entry_points={

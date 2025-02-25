@@ -20,6 +20,8 @@ export default new Vuex.Store({
       UTC: null,
       lightPath: null,
       config: constants.DEFAULT_CONFIG,
+      instGraphUpdateTime: null,
+      instGraphFilename: null,
     },
     mutations: {
       heartbeat (state) {
@@ -72,6 +74,13 @@ export default new Vuex.Store({
       setConfig(state, new_config) {
         state.config = new_config;
       },
+      setInstGraphUpdateTime(state) {
+        state.instGraphUpdateTime = Date.now();
+      },
+      setInstGraphFilename(state, filename) {
+        console.log("Setting instGraph filename",filename)
+        state.instGraphFilename = filename;
+      }
     },
     actions: {
       srv_heartbeat({ commit }, payload) {
@@ -116,6 +125,15 @@ export default new Vuex.Store({
       },
       fetchConfig({ commit }, config) {
         commit('setConfig', config);
+
+        let path_split = config.instgraph_file_path.split("/");
+        commit('setInstGraphFilename', path_split[path_split.length - 1]);
+      },
+      updateInstGraphUpdateTime({ commit }) {
+        commit('setInstGraphUpdateTime');
+      },
+      updateInstGraphFilename({ commit }, filename) {
+        commit('setInstGraphFilename', filename);
       }
     }
   });

@@ -8,6 +8,8 @@ import os
 import os.path
 import sys
 from pathlib import Path
+import multiprocessing
+import time
 
 import xconf
 from starlette.endpoints import WebSocketEndpoint
@@ -30,11 +32,15 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import FileResponse, JSONResponse
-from starlette.routing import Route, WebSocketRoute
+from starlette.routing import Route, WebSocketRoute, Mount
+from starlette.staticfiles import StaticFiles
+
+from watchdog import observers
+from watchdog.events import FileSystemEventHandler
 
 from .constants import (
     INSTRUMENT_CONFIG_ROOT, InstrumentLayouts, SITE_LOCATION,
-    CONFIG_FILENAME,
+    CONFIG_FILENAME, INSTGRAPH_FILE_PATH
 )
 from .utils import OrjsonResponse
 
@@ -193,10 +199,16 @@ class SupWebSocket(AppWebSocketEndpoint):
     async def on_connect(self, websocket):
         self.app._connected_clients.append(websocket)
         await websocket.accept()
+        log.debug("Sending indi init payload")
         await websocket.send_bytes(orjson.dumps({
-            'action': 'init',
+            'action': 'indi_init',
             'payload': self.app.indi_client.to_serializable()['devices'],
         }))
+        log.debug("Sending instgraph init payload")
+        # await websocket.send_bytes(orjson.dumps({
+        #     'action': 'instgraph_updated',
+        #     'payload': {'file': INSTGRAPH_FILE_PATH.name},
+        # }))
 
     async def on_indi_new(self, websocket, payload):
         if not (
@@ -229,6 +241,35 @@ class SupWebSocket(AppWebSocketEndpoint):
         except ValueError:
             pass
 
+class FileChangeHandler(FileSystemEventHandler):
+    def __init__(self, web_interface, file_path_to_watch, debouncing_interval_sec, loop):
+        self.web_interface = web_interface
+        self.file_path_to_watch = file_path_to_watch
+        self.debouncing_interval_sec = debouncing_interval_sec
+        self.loop = loop
+        self._last_modified_time = 0
+
+    def on_modified(self, event):
+        """Trigger only if the specific file is modified."""
+        if event.is_directory:
+            return
+
+        current_time = time.time()
+
+        # Check if enough time has passed since the last update
+        if current_time - self._last_modified_time < self.debouncing_interval_sec:
+            return
+
+        self._last_modified_time = current_time 
+
+        log.debug(f"Update noticed on file {event.src_path}")
+        if os.path.realpath(event.src_path) == os.path.realpath(self.file_path_to_watch):
+            log.debug(f"Update noticed on target file {event.src_path}")
+            asyncio.run_coroutine_threadsafe(
+                self.web_interface.emit_instgraph_update(), 
+                self.loop
+            )
+
 @xconf.config
 class IndiConfig:
     hostname : str = xconf.field(default="localhost", help="Hostname of INDI server")
@@ -254,24 +295,61 @@ class WebInterface(xconf.Command):
         default=0.2,
         help="How often to emit a batch of updates over the websocket to connected clients"
     )
+    debouncing_interval_sec : float = xconf.field(
+        default=0.2,
+        help="How long to wait before sending a message over the websocket that the instGraph file has updated"
+    )
+    instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
 
     def __post_init__(self):
         self._running_tasks = set()
         self._connected_clients = []
+        self._last_instgraph_update = 0
+        self._posix_instgraph_file_path = pathlib.Path(self.instgraph_file_path)
 
-    async def emit_updates(self):
+    async def emit_indi_updates(self):
         while True:
             try:
                 batch = await self.indi_batcher.generate_batch()
                 for websocket in self._connected_clients:
                     try:
-                        await websocket.send_bytes(orjson.dumps({'action': 'batch_update', 'payload': batch}))
+                        await websocket.send_bytes(orjson.dumps({'action': 'indi_batch_update', 'payload': batch}))
                     except Exception as e:
                         log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
             except Exception as e:
-                log.warning(f"Exception in emit_updates(): {type(e)=} {e}")
+                log.warning(f"Exception in emit_indi_updates(): {type(e)=} {e}")
                 traceback.print_exc(file=sys.stdout)
             await asyncio.sleep(self.batch_update_interval_sec)
+
+    async def emit_instgraph_update(self):
+        """Send file update notification via WebSocket."""
+        try:
+            for websocket in self._connected_clients:
+                try:
+                    log.debug(f"Sending instgraph udpate trigger for file {self._posix_instgraph_file_path.name}")
+                    await websocket.send_bytes(orjson.dumps({'action': 'instgraph_updated', 'payload': {'file': self._posix_instgraph_file_path.name}}))
+                except Exception as e:
+                    log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
+        except Exception as e:
+            log.warning(f"Exception in emit_instgraph_updated(): {type(e)=} {e}")
+            traceback.print_exc(file=sys.stdout)
+        await asyncio.sleep(self.batch_update_interval_sec)
+
+    async def start_file_watcher(self, file_path_to_watch=None):
+        """Run the watchdog observer as an async background task."""
+        loop = asyncio.get_event_loop()
+
+        file_path_to_watch = file_path_to_watch or self._posix_instgraph_file_path
+        event_handler = FileChangeHandler(self, file_path_to_watch, self.debouncing_interval_sec, loop)
+        observer = observers.Observer()
+        observer.schedule(event_handler, file_path_to_watch.parent, recursive=False)
+        observer.start()
+
+        try:
+            await asyncio.to_thread(observer.join)  # Run observer in a separate thread
+        finally:
+            observer.stop()
+            observer.join()
 
     async def trigger_get_properties(self, message):
         if message is constants.ConnectionStatus.CONNECTED:
@@ -287,15 +365,18 @@ class WebInterface(xconf.Command):
         self.indi_batcher = INDIUpdateBatcher(self.indi_client)
         loop.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.inbound, self.indi_batcher.process_update))
 
+        loop.create_task(self.start_file_watcher())
+
         indi_coro = self.indi_client.connection.run(reconnect_automatically=True)
         self._running_tasks.add(loop.create_task(indi_coro))
 
-        emit_updates_coro = self.emit_updates()
-        self._running_tasks.add(loop.create_task(emit_updates_coro))
+        emit_indi_updates_coro = self.emit_indi_updates()
+        self._running_tasks.add(loop.create_task(emit_indi_updates_coro))
 
     async def cancel_tasks(self):
         await self.indi_client.connection.stop()
         for task in self._running_tasks:
+            log.info(f"Cancelling task: {task}")
             task.cancel()
 
     def main(self):
@@ -310,6 +391,7 @@ class WebInterface(xconf.Command):
                 Route('/airmass', endpoint=self.views.airmass),
                 Route('/config', endpoint=self.views.config),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
+                Mount("/drawio-files", StaticFiles(directory=self._posix_instgraph_file_path.parent), name="drawio-files"),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],
             on_startup=[self.spawn_tasks],

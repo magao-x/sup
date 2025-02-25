@@ -8,6 +8,7 @@ import Cameras from "~/pages/magaox/Cameras.vue";
 import AdaptiveOptics from "~/pages/magaox/AdaptiveOptics.vue";
 import Power from "~/pages/magaox/Power.vue";
 import PlantStatus from "~/pages/magaox/PlantStatus.vue";
+import InstGraph from "~/pages/InstGraph.vue";
 
 // SCOOB
 import ScoobObservation from "~/pages/scoob/Observation.vue";
@@ -25,13 +26,15 @@ export const map =
                 { path: '/lab', component: LabMode },
                 { path: '/dashboard', component: Dashboard },
                 { path: '/plant-status', component: PlantStatus},
+                { path: '/instgraph', component: InstGraph},
             ],
         "tabs": {
             "observation": {"icon": "visibility", "path": "/", "label": "observation"},
             "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
             "ao": {"icon": "blur_on", "path": "/ao", "label": "AO"},
             "dashboard": {"icon": "speed", "path": "/dashboard", "label": "dashboard"},
-            "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
+            // "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
+            "state": {"icon": "power_settings_new", "path": "/instgraph", "label": "instgraph"},
         }
     },
     'scoob': {
