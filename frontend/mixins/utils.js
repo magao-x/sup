@@ -110,6 +110,33 @@ export default {
       let semester = ts.month > 6 ? 'B' : 'A';
       return ts.toFormat("yyyy") + semester;
     },
+    formatSeconds(secs) {
+      console.log(secs);
+      let out = [];
+      const hours = Math.floor(secs / (60 * 60));
+      let minutes = Math.floor((secs - 60 * 60 * hours) / 60);
+      let seconds = Math.round(secs - 60 * 60 * hours - 60 * minutes);
+      if (seconds == 60) {
+        // edge case where rounding up gets a whole minute
+        minutes += 1;
+        seconds = 0;
+      }
+      if (hours > 0) {
+        out.push(`${hours}h`);
+      }
+      if (hours > 0 || minutes > 0) {
+        out.push(`${minutes}m`);
+      }
+      out.push(`${seconds}s`);
+      out.reverse();
+      let outStr = out.pop();
+      console.log(out, hours, minutes, seconds);
+      for (let part of out) {
+        outStr += " " + part;
+        console.log(outStr);
+      }
+      return outStr;
+    },
     dateNightFromDateTime(ts) {
       // (JS port of the datestamp_strings_from_ts function in lookyloo that does this)
       // if the span begins before noon Chile time on the given D, the

@@ -124,7 +124,12 @@ class SupViews:
                 },
             },
         }
-        return OrjsonResponse(payload)
+        try:
+            serialized = OrjsonResponse(payload)
+        except TypeError as e:
+            raise Exception(f"Couldn't serialize {payload=} because {e}")
+        return serialized
+
 
 class INDIUpdateBatcher:
     def __init__(self, client_instance):

@@ -1,6 +1,81 @@
 @import "~/css/variables.scss";
 @import "~/css/icons/material-icons.css";
 @import "~/css/fonts/noto/noto.css";
+
+
+body {
+  --btn-active: #{$plasma-blue};
+  &.dark {
+    --btn-bg: #{$charcoal-gray};
+    --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
+    --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{darken($icon-blue, 40)});
+    --btn-commit-bg-gradient: linear-gradient(#{lighten($commit, 10)}, #{$commit});
+    --btn-edit-bg-gradient: linear-gradient(#{lighten($edit, 10)}, #{$edit});
+    --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{darken($danger-red, 40)});
+    --btn-fg: #{$cardboard-gray};
+    --inset-bg: #{$shade-black};
+    --inset-fg: #{$cardboard-gray};
+    --bg-alternate: #{$icon-gray};
+    --bg-normal: #{$charcoal-gray};
+    // background: #{$charcoal-gray};
+    background: linear-gradient(180deg, rgba(49,54,59,1) 0%, rgba(49,55,61,1) 57%, rgba(57,75,109,1) 73%, rgba(149,122,146,1) 86%, rgba(189,130,123,1) 92%, rgba(242,146,90,1) 95%, rgba(254,219,116,1) 97%, rgba(245,115,24,1) 100%), url("images/vizzy.svg");
+    background-size: cover;
+    background-attachment: fixed;
+    height: 100vh;
+    --deco-focus: #{$plasma-blue};
+    --deco-hover: #{$plasma-blue};
+    --fg-active: #{$plasma-blue};
+    --fg-inactive: #{$coastal-fog};
+    --border: #{$coastal-fog};
+    --fg-link: #{$abyss-blue};
+    --fg-negative: #{$icon-red};
+    --fg-neutral: #{$beware-orange};
+    --fg-normal: #{$cardboard-gray};
+    color: #{$cardboard-gray};
+    --fg-positive: #{$noble-fir};
+    --fg-visited: #{$coastal-fog};
+    .view {
+      --bg-alternate: #{$charcoal-gray};
+      --bg-normal: #{$shade-black};
+      background: transparentize($shade-black, 0.2);
+      
+      --inset-bg: #{$charcoal-gray};
+      --inset-fg: #{$cardboard-gray};
+      border: 1px solid var(--border);
+    }
+  }
+  &.light {
+    --btn-bg: #{$cardboard-gray};
+    --btn-fg: #{$charcoal-gray};
+    --inset-bg: #{$paper-white};
+    --inset-fg: #{$charcoal-gray};
+    --bg-alternate: #{$alternate-gray};
+    --bg-normal: #{$cardboard-gray};
+    background: #{$cardboard-gray};
+    --deco-focus: #{$plasma-blue};
+    --deco-hover: #{$hover-blue};
+    --fg-active: #{$plasma-blue};
+    --fg-inactive: #{$coastal-fog};
+    --border: #{$alternate-gray};
+    --fg-link: #{$abyss-blue};
+    --fg-negative: #{$icon-red};
+    --fg-neutral: #{$beware-orange};
+    --fg-normal: #{$shade-black};
+    color: #{$shade-black};
+    --fg-positive: #{$noble-fir};
+    --fg-visited: #{$coastal-fog};
+    .view {
+      --bg-alternate: #{$alternate-gray};
+      --bg-normal: #{$paper-white};
+      background: #{$paper-white};
+      color: #{$charcoal-gray};
+      --inset-bg: #{$cardboard-gray};
+      --inset-fg: #{$shade-black};
+      border: 1px solid var(--border);
+    }
+  }
+}
+
 body {
   background-color: var(--bg-normal);
   line-height: 1.6;
@@ -25,7 +100,7 @@ button {
   font: inherit;
 }
 
-input {
+input, select {
   box-sizing: border-box;
   background: var(--inset-bg);
   color: inherit;
@@ -33,7 +108,7 @@ input {
   padding: 0.2 * $unit;
 }
 
-input:enabled {
+input:enabled, select:enabled {
   color: var(--inset-fg);
 }
 
@@ -192,16 +267,45 @@ a:active {
   align-items: stretch;
   padding: $lggap;
 }
+// select {
+//   appearance: none;
+//   // background: var(--inset-bg);
+//   // border-top: none;
+//   // border-left: none;
+//   // border-right: none;
+//   // padding-bottom: $medgap;
+//   padding: 0;
+//   margin: 0;
+//   font-size: inherit;
+//   // border-bottom: 1px solid var(--border);
+//   color: var(--fg-normal) !important;
+//   cursor: inherit;
+//   line-height: inherit;
+//   box-sizing: border-box;
+//   &::before {
+//     box-sizing: border-box;
+//   }
+//   &::after {
+//     box-sizing: border-box;
+//   }
+// }
+
 select {
   background: var(--inset-bg);
   border-top: none;
   border-left: none;
   border-right: none;
-  padding: $medgap;
-  font-size: 115%;
-  border-bottom: 1px solid var(--border);
-  color: var(--fg-normal) !important;
+  padding-right: 1em;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: inherit;
+  line-height: inherit;
+  z-index: 1;
+  color: inherit;
+  outline: none;
 }
+
 
 .gap-bottom { margin-bottom: $unit; }
 

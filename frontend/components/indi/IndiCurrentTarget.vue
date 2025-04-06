@@ -24,7 +24,7 @@
     flex: 1
   }
   .property {
-    display: flex;
+    display: inline-flex;
   }
   </style>
   <script>

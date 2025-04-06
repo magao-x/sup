@@ -42,6 +42,16 @@ export default {
         warnings() {
             const labMode = this.retrieveValueByIndiId('tcsi.labMode.toggle') == 'On' || this.retrieveValueByIndiId('stagepickoff.presetName.tel') == 'Off';
             const loopClosed = this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'On';
+            const anyPIAA = (
+                (this.retrieveValueByIndiId("fwfpm.filterName.cmc") == "On") ||
+                (this.retrieveValueByIndiId("stagepiaa.presetName.out") !== "On") ||
+                (this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On")
+            );
+            const allPIAA = (
+                (this.retrieveValueByIndiId("fwfpm.filterName.cmc") === "On") &&
+                (this.retrieveValueByIndiId("stagepiaa.presetName.vispiaa") === "On") &&
+                (this.retrieveValueByIndiId("stageipiaa.presetName.vispiaa") === "On")
+            );
             const unfilteredWarnings = [
                 {
                     message: "calibration source is on",
@@ -127,6 +137,10 @@ export default {
                             (this.retrieveValueByIndiId("stagesci2.presetName.fpm") !== "On") &&
                             (this.retrieveValueByIndiId("camsci2.shutter.toggle") !== "On")
                         )
+                },
+                {
+                    message: "PIAA is only partly configured",
+                    condition: (anyPIAA && !allPIAA),
                 },
             ];
             return unfilteredWarnings.filter((elem) => (elem.condition && this.indi.indiIsConnected));
