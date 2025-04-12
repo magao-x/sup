@@ -12,7 +12,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 .dashboard {
   max-width: 100%;
 }

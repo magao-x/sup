@@ -14,7 +14,7 @@
   </div>
 </template>
 <style scoped lang="scss">
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 </style>
 <script>
 import ToggleSwitch from "~/components/basic/ToggleSwitch.vue";

@@ -13,7 +13,8 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "sass:color";
+@use "./css/variables.scss" as *;
 .toggle-and-commit {
   display: inline-flex;
   .switch {
@@ -99,13 +100,13 @@
   }
   &.deactivating.readWrite {
     .doodad {
-      background: darken($plasma-blue, 10);
+      background: color.adjust($plasma-blue, $lightness: -10%);
       border: 1px solid transparent;
     }
   }
   &.active {
     &.readWrite {
-      box-shadow: 0 0 5px lighten($plasma-blue, 15);
+      box-shadow: 0 0 5px color.adjust($plasma-blue, $lightness: 15%);
     }
     .doodad {
       left: auto;

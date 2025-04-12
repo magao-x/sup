@@ -10,7 +10,7 @@
   <div v-else>Waiting for device</div>
 </template>
 <style lang="scss" scoped>
-@import './css/variables.scss';
+@use '~/css/variables.scss' as *;
 
 .device {
   margin: 1rem;

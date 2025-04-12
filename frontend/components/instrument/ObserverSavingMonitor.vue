@@ -6,7 +6,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 .observer-saving-monitor { 
     background: var(--bg-alternate);
     transition: background 1s;

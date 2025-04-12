@@ -9,8 +9,13 @@
       <indi-current-target indi-id="observers.obs_name" width="20em"></indi-current-target>
     </div>
     <div style="display: flex;">
+      
       <div class="recording"><indi-toggle-switch id="recording" indi-id="observers.obs_on.toggle" label-on="Recording"
           label-off="Off"></indi-toggle-switch>
+      </div>
+      <div class="section dates">
+        <div class="value">{{ readableDateTimeUTC }}</div><div class="zone">UTC</div>
+        <div class="value">{{ readableDateTimeChile }}</div><div class="zone">Chile</div>
       </div>
       <div class="section totals">
         <span class="group-label">
@@ -24,44 +29,25 @@
         </div>
       </div>
       <div class="all-toggles">
-        <div v-for="(names, group) in streamNames" class="toggles section">
+        <div v-for="(names, group) in streamNames" class="toggles section labeled">
           <span class="group-label">{{ group }}</span>
           <div v-for="name in names" class="stream" :class="{
             glowy: isObserving && retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On',
             notGlowy: isObserving && retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'Off'
           }">
-            <div class="label-text">{{ name }}</div>
-            <alternate-indi-toggle-switch v-if="!isObserving" :stacked="true"
+            <alternate-indi-toggle-switch :stacked="true"
+              :disabled="isObserving"
+              :label="name"
               :indi-id="`observers.writers.${name}`"></alternate-indi-toggle-switch>
-            <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On'">
-              <material-icon name="power_settings_new"></material-icon>
-            </div>
-            <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'Off'">
-              <material-icon name="more_horiz"></material-icon>
-            </div>
-            <div v-else>
-              <material-icon name="link_off"></material-icon>
-            </div>
           </div>
-          <!-- <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'On'" class="glowy stream">
-          <div class="label-text">{{ name }}</div>
-          <material-icon name="power_settings_new"></material-icon>
-        </div>
-        <div v-else-if="retrieveValueByIndiId(`${name}-sw.writing.toggle`) == 'Off'" class="notGlowy stream">
-          <div class="label-text">{{ name }}</div>
-          <material-icon name="more_horiz"></material-icon>
-        </div>
-        <span v-else class="notGlowy stream">
-          <div class="label-text">{{ name }}</div>
-          <material-icon name="link_off"></material-icon>
-        </span> -->
         </div>
       </div>
+
     </div>
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 #recording {
   margin-top: $unit;
@@ -72,14 +58,31 @@
   .metadata {
     margin-bottom: $lggap;
   }
+  .dates {
+    // vertical-align: middle;
+    // display: inline-block;
+    display: grid;
+    grid-template-columns: 10em 3em;
+    grid-gap: 0 $unit;
+    font-weight: bold;
+    font-size: 125%;
+    // margin-right: $unit;
+    min-width: 13em;
+    .value {
+      text-align: right;
+    }
+  }
 }
 
 .section {
   border-left: 1px solid gray;
   position: relative;
-  padding-left: 1rem;
-  padding-right: 0.5rem;
+
+  padding: 0 0.5em;
   margin-left: $medgap;
+  &.labeled {
+    padding-left: 1.5em;
+  }
 
   .group-label {
     position: absolute;
@@ -111,6 +114,7 @@
 .toggles {
   display: flex;
   flex: 1;
+  padding-bottom: 2 * $lggap;
 
   .label-text {
     line-height: 1.0;
@@ -124,6 +128,7 @@
 
     .material-icons {
       display: block;
+      height: 1em;
     }
   }
 }
@@ -173,6 +178,9 @@ import IndiElement from "~/components/indi/IndiElement.vue";
 import IndiProperty from "~/components/indi/IndiProperty.vue";
 import IndiCurrentTarget from "~/components/indi/IndiCurrentTarget.vue";
 import MaterialIcon from "~/components/basic/MaterialIcon.vue";
+import { DateTime } from "luxon";
+
+const isoLikeFormat = "yyyy-MM-dd HH:mm:ss";
 
 export default {
   props: {
@@ -186,10 +194,47 @@ export default {
         "camsci1", "camsci2"
       ],
     },
+    isObserving: {
+      type: Boolean,
+      default: () => false,
+    },
   },
   computed: {
-    isObserving() {
-      return this.retrieveValueByIndiId(`${this.device}.obs_on.toggle`) == "On";
+    // isObserving() {
+    //   return this.retrieveValueByIndiId(`${this.device}.obs_on.toggle`) == "On";
+    // },
+    readableDateTimeUTC() {
+      return this.time.currentTime.toFormat(isoLikeFormat);
+    },
+    // readableTimestampUTC() {
+    //   return (
+    //     this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+    //   );
+    // },
+    // readableDatestampUTC() {
+    //   return (
+    //     this.time.currentTime.toLocaleString(DateTime.DATE_MED)
+    //     // +
+    //     // " " +
+    //     // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+    //   );
+    // },
+    readableDateTimeChile() {
+      return this.time.currentTime.setZone('America/Santiago').toFormat(isoLikeFormat);
+      return (
+        this.time.currentTime.setZone('America/Santiago').toLocaleString(DateTime.TIME_24_WITH_SECONDS)
+      );
+    },
+    // readableDatestampChile() {
+    //   return (
+    //     this.time.currentTime.setZone('America/Santiago').toLocaleString(DateTime.DATE_MED)
+    //     // +
+    //     // " " +
+    //     // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
+    //   );
+    // },
+    isLabMode() {
+      return this.retrieveValueByIndiId("tcsi.labMode.toggle") !== "Off";
     },
     targetTimeTotal() {
       return this.formatSeconds(this.retrieveValueByIndiId(`${this.device}.obs_time.target`));

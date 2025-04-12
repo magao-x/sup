@@ -4,8 +4,8 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "~/css/variables.scss";
-@import "~/css/main.scss";
+@use "~/css/variables.scss";
+@use "~/css/main.scss";
 .toggle.btn {
   &.inactive {}
   &.active {}

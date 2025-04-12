@@ -2,7 +2,7 @@
   <plot-component :data="plotData" :timeSeries="true" :numMinutes="numMinutes"></plot-component>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 </style>
 <script>
 import Vue from "vue";

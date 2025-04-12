@@ -35,7 +35,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 .indi-properties-table {
   width: 100%;
   .row {

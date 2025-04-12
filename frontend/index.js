@@ -6,7 +6,7 @@ import common from "./common.js";
 import constants from "./constants.js";
 import store from './store';
 import { map } from './map.js'
-import utils from '~/utils.js';
+import utils from './utils.js';
 import VueRouter from 'vue-router'
 
 Vue.use(VueRouter)

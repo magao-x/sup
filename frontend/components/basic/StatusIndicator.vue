@@ -6,7 +6,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import './css/variables.scss';
+@use '~/css/variables.scss' as *;
 
 .material-icons {
   // font-size: calc(0.75 * 24px);

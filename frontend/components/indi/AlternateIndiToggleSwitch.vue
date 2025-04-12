@@ -1,13 +1,15 @@
 <template>
-  <span v-if="indiDefined" @click="toggle" :class="{'glowy': switchValue && disabled, 'stacked': stacked}">
+  <div v-if="indiDefined" @click="toggle" :class="{'glowy': switchValue && disabled, 'stacked': stacked}">
     <span v-if="label" class="label-text stackable">{{ label }}</span>
-    <material-icon v-if="switchValue" name="check_box" class="stackable"></material-icon>
-    <material-icon v-else name="check_box_outline_blank" class="stackable"></material-icon>
-  </span>
-  <span v-else>?</span>
+    <material-icon v-if="switchValue && !disabled" name="check_box" class="stackable"></material-icon>
+    <material-icon v-else-if="!switchValue && !disabled" name="check_box_outline_blank" class="stackable"></material-icon>
+    <material-icon v-else-if="switchValue && disabled" name="power_settings_new" class="stackable"></material-icon>
+    <material-icon v-else-if="!switchValue && disabled" name="more_horiz" class="stackable"></material-icon>
+  </div>
+  <div v-else>?</div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 .glowy {
   text-shadow: 0 0 5 $plasma-blue; /* Initial shadow */

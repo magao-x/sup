@@ -15,7 +15,7 @@
   </nav>
 </template>
 <style lang="scss" scoped>
-@import "~/css/variables.scss";
+@use "~/css/variables.scss" as *;
 .error {
   padding: 1em;
   color: $error;
@@ -26,17 +26,22 @@
 
 #logo {
   height: 100%;
-  display: flex;
-flex: 1;
-position: relative;
- img {
+  
+  flex: 1;
+  position: relative;
+  text-align: right;
+  // padding-top: 1.5rem;
+  vertical-align: middle;
+  img {
+   box-sizing: border-box;
+    // padding: 0 1rem;
     width: 168px;
-    padding: 0 1rem;
     filter: drop-shadow(0px 0px 5px #3daee9);
     mix-blend-mode: screen;
-    position: absolute;
-    right: 0;
-    top: 0.5rem;
+    // position: absolute;
+    // right: 0;
+    // margin-bottom: -25px;
+    // display: block;
   }
 }
 
@@ -51,7 +56,7 @@ nav.top {
 
 nav.top .tab-bar {
   display: flex;
-  padding: 1rem 1rem 0rem 1rem;
+  padding: 1.5rem 1rem 0rem 1rem;
   margin: 0;
   .tab {
     // background: var(--bg-normal);

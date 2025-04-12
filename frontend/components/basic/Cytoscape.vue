@@ -13,10 +13,34 @@
 import Vue from "vue";
 import cytoscape from "cytoscape";
 import elk from "cytoscape-elk";
-import nodeHtmlLabel from "cytoscape-node-html-label";
+// import nodeHtmlLabel from "cytoscape-node-html-label";
+import dagre from 'cytoscape-dagre';
+
+cytoscape.use( dagre );
+import utils from '~/utils.js';
 
 cytoscape.use(elk);
-nodeHtmlLabel(cytoscape);
+// nodeHtmlLabel(cytoscape);
+import tidytree from "cytoscape-tidytree";
+cytoscape.use(tidytree);
+
+function nameToColor(name) {
+  if (/^cam.+/.test(name)) {
+    return "#f39c1f";
+  } else if(/^stage.+/.test(name)) {
+    return "#bdc3c7";
+  } else if (/.+ttm$/.test(name) || /^ttm.+/.test(name)) {
+    return "#f47750";
+  } else if (/^dm.+/.test(name)) {
+    return "#c0392b";
+  } else if (/^fw.+/.test(name)) {
+    return "#2ecc71";
+  } else if (/^flip.+/.test(name)) {
+    return "#9b59b6";
+  } else {
+    return "#77797d";
+  }
+}
 
 export default Vue.extend({
   data() {
@@ -27,13 +51,8 @@ export default Vue.extend({
   methods: {
     async getAllData() {
       try {
-        const baseURL =
-          window.location.protocol +
-          "//" +
-          window.location.hostname +
-          ":" + "8000";
-        // String(window.location.port);
-        const res = await fetch(`${baseURL}/light-path`);
+        const destURL = utils.buildBackendUrl('light-path');
+        const res = await fetch(destURL);
         if (!res.ok) {
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
           throw new Error(message);
@@ -96,30 +115,41 @@ export default Vue.extend({
       container: this.$el,
 
       // demo your layout
+      // layout: {
+      //   name: "elk",
+      //   elk: {
+      //     algorithm: "layered",
+      //     // "elk.direction": "RIGHT",
+      //     // 'elk.alignment': 'TOP',
+      //     // 'elk.layered.thoroughness': 1,
+      //     'elk.layered.nodePlacement.bk.fixedAlignment': 'LEFTDOWN',
+      //     // 'elk.layered.nodePlacement.favorStraightEdges': true,
+      //     // 'elk.layered.layering.strategy': 'STRETCH_WIDTH',
+      //     // "elk.layered.nodePlacement.strategy": "SIMPLE",
+      //     // 'elk.layered.compaction.postCompaction.strategy': 'LEFT',
+      //     // 'elk.layered.priority.straightness': 10000000,
+      //     'elk.edgeRouting': 'ORTHOGONAL',
+      //     'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      //     'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX'
+      //   },
+      //   // some more options here...
+      // },
       layout: {
-        name: "elk",
-        elk: {
-          algorithm: "layered",
-          // "elk.direction": "RIGHT",
-          // 'elk.alignment': 'TOP',
-          // 'elk.layered.thoroughness': 1,
-          'elk.layered.nodePlacement.bk.fixedAlignment': 'LEFTDOWN',
-          // 'elk.layered.nodePlacement.favorStraightEdges': true,
-          // 'elk.layered.layering.strategy': 'STRETCH_WIDTH',
-          // "elk.layered.nodePlacement.strategy": "SIMPLE",
-          // 'elk.layered.compaction.postCompaction.strategy': 'LEFT',
-          // 'elk.layered.priority.straightness': 10000000,
-          'elk.edgeRouting': 'ORTHOGONAL',
-        },
-        // some more options here...
+        name: 'dagre',
+        rankDir: "UD",
+        // rankDir: "LR",
       },
-
       style: [
         {
           selector: "node",
           style: {
-            "background-color": "#dd4de2",
-            // label: "data(id)",
+            // "background-color": "#dd4de2",
+            "background-color": function(ele){return nameToColor(ele.data().label);},
+            label: "data(id)",
+            'text-valign': 'center',
+            'text-halign': 'center',
+            width: 120,
+            shape: "rectangle",
           },
         },
 
@@ -128,24 +158,24 @@ export default Vue.extend({
           style: {
             "curve-style": "bezier",
             "target-arrow-shape": "triangle",
-            "line-color": "#dd4de2",
-            "target-arrow-color": "#dd4de2",
+            "line-color": "#77797d",
+            "target-arrow-color": "#77797d",
             opacity: 0.5,
           },
         },
       ],
       elements: elements,
     });
-    cy.nodeHtmlLabel([{
-      query: '.nodeIcon',
-      halign: 'center',
-      valign: 'center',
-      halignBox: 'center',
-      valignBox: 'center',
-      tpl: (data) => {
-        return "<b>" + data.label + "</b>";
-      }
-    }]);
+    // cy.nodeHtmlLabel([{
+    //   query: '.nodeIcon',
+    //   halign: 'center',
+    //   valign: 'center',
+    //   halignBox: 'center',
+    //   valignBox: 'center',
+    //   tpl: (data) => {
+    //     return "<b>" + data.label + "</b>";
+    //   }
+    // }]);
   },
 });
 </script>

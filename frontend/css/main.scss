@@ -1,27 +1,39 @@
-@import "~/css/variables.scss";
-@import "~/css/icons/material-icons.css";
-@import "~/css/fonts/noto/noto.css";
-
+@use "sass:color";
+@use "~/css/variables.scss" as *;
+@use "~/css/icons/material-icons.css" as *;
+@use "~/css/fonts/noto/noto.css" as *;
 
 body {
+  height: 100vh;
+}
+
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
   --btn-active: #{$plasma-blue};
   &.dark {
+    // background: #{$charcoal-gray};
+    // background: , url("~/css/images/vizzy.svg");
+    background-image: url("~/css/images/vizzy.svg"), linear-gradient(180deg, rgba(49,54,59,1) 0%, rgba(49,55,61,1) 57%, rgba(57,75,109,1) 73%, rgba(149,122,146,1) 86%, rgba(189,130,123,1) 92%, rgba(242,146,90,1) 95%, rgba(254,219,116,1) 97%, rgba(245,115,24,1) 100%);
+    // background-size: cover;
+    background-position: bottom -5px right -5px, auto;
+    background-size: 50%, cover;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     --btn-bg: #{$charcoal-gray};
     --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
-    --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{darken($icon-blue, 40)});
-    --btn-commit-bg-gradient: linear-gradient(#{lighten($commit, 10)}, #{$commit});
-    --btn-edit-bg-gradient: linear-gradient(#{lighten($edit, 10)}, #{$edit});
-    --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{darken($danger-red, 40)});
+    --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{color.adjust($icon-blue, $lightness: -40%)});
+    --btn-commit-bg-gradient: linear-gradient(#{color.adjust($commit, $lightness: 10%)}, #{$commit});
+    --btn-edit-bg-gradient: linear-gradient(#{color.adjust($edit, $lightness: 10%)}, #{$edit});
+    --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{color.adjust($danger-red, $lightness: -40%)});
     --btn-fg: #{$cardboard-gray};
     --inset-bg: #{$shade-black};
     --inset-fg: #{$cardboard-gray};
     --bg-alternate: #{$icon-gray};
     --bg-normal: #{$charcoal-gray};
-    // background: #{$charcoal-gray};
-    background: linear-gradient(180deg, rgba(49,54,59,1) 0%, rgba(49,55,61,1) 57%, rgba(57,75,109,1) 73%, rgba(149,122,146,1) 86%, rgba(189,130,123,1) 92%, rgba(242,146,90,1) 95%, rgba(254,219,116,1) 97%, rgba(245,115,24,1) 100%), url("images/vizzy.svg");
-    background-size: cover;
-    background-attachment: fixed;
-    height: 100vh;
+    
+
     --deco-focus: #{$plasma-blue};
     --deco-hover: #{$plasma-blue};
     --fg-active: #{$plasma-blue};
@@ -37,7 +49,8 @@ body {
     .view {
       --bg-alternate: #{$charcoal-gray};
       --bg-normal: #{$shade-black};
-      background: transparentize($shade-black, 0.2);
+      
+      background: color.scale($shade-black, $alpha: -20%);
       
       --inset-bg: #{$charcoal-gray};
       --inset-fg: #{$cardboard-gray};
@@ -77,13 +90,14 @@ body {
 }
 
 body {
-  background-color: var(--bg-normal);
+  // background-color: var(--bg-normal);
   line-height: 1.6;
   font-size: 14px;
   color: var(--fg-normal);
   font-family: "Noto Sans", serif;
   margin: 0;
   padding: 0;
+  height: 100vh;
 }
 
 h1,

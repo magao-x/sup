@@ -52,7 +52,7 @@
   </div>
 </template>
 <style scoped lang="scss">
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 select {
   border: 1px solid $plasma-blue;
   background: var(--inset-bg);

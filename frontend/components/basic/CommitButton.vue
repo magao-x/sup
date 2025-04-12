@@ -2,7 +2,7 @@
   <button class="square commit" :disabled="disabled" @click="$emit('commit')"><i class="material-icons">done</i></button>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 button.commit {
   border-bottom: 1px solid $commit;
   font-weight: bold;

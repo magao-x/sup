@@ -2,12 +2,13 @@
   <div class="observation-controls">
     <!-- <observer-saving-monitor class="padded"></observer-saving-monitor> -->
     <observer-control class="padded gap-bottom observer-control"></observer-control>
-    <div class="cols top-level telescope" v-if="!labMode">
+    <!-- <div class="cols top-level telescope" v-if="!labMode"> -->
+    <div class="cols top-level telescope">
       <div class="col">
         <telescope-status indi-id="tcsi"></telescope-status>
       </div>
-      <observability-plots :equatorialCoords="equatorialCoords" class="col view"></observability-plots>
-      <danger-zone v-if="!labMode" class="padded col view"></danger-zone>
+      <!-- <observability-plots :equatorialCoords="equatorialCoords" class="col view"></observability-plots> -->
+      <danger-zone class="padded col view"></danger-zone>
     </div>
     <div class="cols cams-and-corons">
       <div class="col">
@@ -174,7 +175,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 .cams-and-corons {
   padding: 0.5rem;
@@ -226,7 +227,7 @@
 }
 
 .telescope.cols {
-  grid-template-columns: 1fr 3fr 1fr;
+  grid-template-columns: 4fr 1fr;
   align-items: stretch;
 }
 </style>

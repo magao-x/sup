@@ -39,7 +39,8 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "sass:color";
+@use "./css/variables.scss" as *;
 
 .flipacq {
   .buttons.minigrid {
@@ -95,7 +96,7 @@ body.dark .danger-zone.view {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: $unit;
-  background-color: transparentize(darken($danger-red, 40), 0.2);
+  background-color: color.scale(color.adjust($danger-red, $lightness: 10%), $alpha: -20%);
 }
 
 /* .tracking-toggle {

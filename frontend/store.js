@@ -63,10 +63,14 @@ export default new Vuex.Store({
       },
       indi_del(state, payload) {
         let {deviceName, propertyName} = payload;
+        console.log('indi_del', payload);
         if (propertyName === "*") {
+          console.log('before delete', state.devices[deviceName]);
           Vue.delete(state.devices, deviceName);
         } else {
+          console.log('before delete', state.devices[deviceName][propertyName]);
           Vue.delete(state.devices[deviceName], propertyName);
+          console.log('after delete', state.devices[deviceName]);
         }
       },
       setConfig(state, new_config) {

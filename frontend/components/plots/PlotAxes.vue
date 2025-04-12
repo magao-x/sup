@@ -14,12 +14,15 @@
   display: flex;
   flex-direction: column;
 }
+
 .axes {
   max-width: 100%;
   max-height: 100%;
   flex: 1;
 }
-.y.axis, .x.axis {
+
+.y.axis,
+.x.axis {
   font-size: 100%;
 }
 </style>
@@ -32,7 +35,7 @@ import constants from "./constants.js";
 const tickSpacing = 80;
 
 function timeZoneify(d, customTimeZone) {
-  const newDate = DateTime.fromISO(d.replace(" ", "T"), {zone: customTimeZone});
+  const newDate = DateTime.fromISO(d.replace(" ", "T"), { zone: customTimeZone });
   return newDate.toJSDate();
 }
 
@@ -43,25 +46,25 @@ export default {
   props: {
     dataColors: {
       type: Array,
-      default: function() {
+      default: function () {
         return constants.colorCycle;
       }
     },
     axisColor: {
       type: String,
-      default: function() {
+      default: function () {
         return constants.axisColor;
       }
     },
     markerSize: {
       type: Number,
-      default: function() {
+      default: function () {
         return 2;
       }
     },
     timeSeries: {
       type: Boolean,
-      default: function() {
+      default: function () {
         return false;
       }
     },
@@ -91,7 +94,7 @@ export default {
     },
     data: {
       type: Object,
-      default: function() {
+      default: function () {
         return {
           xsquared: {
             points: [
@@ -126,7 +129,7 @@ export default {
 
       // loop over points in all lines
       for (let [name, lineData] of dataEntries) {
-        if(!lineData.points) {
+        if (!lineData.points) {
           continue;
         }
         let [newValMin, newValMax] = d3.extent(lineData.points, accessor);
@@ -166,7 +169,7 @@ export default {
         if (this.fixedXDomain !== null) {
           xDomain = this.fixedXDomain;
         } else if (this.numMinutes !== null) {
-          const startTime = this.time.currentTime.minus({minutes: this.numMinutes});
+          const startTime = this.time.currentTime.minus({ minutes: this.numMinutes });
           xDomain = [startTime, this.time.currentTime];
         } else {
           xDomain = this.computeDomain(xGetter);
@@ -206,7 +209,7 @@ export default {
         .scaleLinear()
         .domain(yDomain) // input
         .range([height, 0]); // output
-      
+
       this.yFractionalScale = d3
         .scaleLinear()
         .domain([0, 1])
@@ -267,7 +270,7 @@ export default {
       //   .attr("class", "x axis")
       //   .attr("transform", "translate(0," + height + ")")
       //   .style("color", this.axisColor);
-        
+
 
       // if (this.timeSeries) {
       //   xAxis.call(d3.axisBottom(this.xScale).ticks(width / tickSpacing, "%H:%M")); // Create an axis component with d3.axisBottom
@@ -285,7 +288,7 @@ export default {
       let idx = 0;
       for (let [name, dataset] of Object.entries(this.data)) {
         // 9. Append the path, bind the data, and call the line generator
-        if (!dataset.points){
+        if (!dataset.points) {
           continue;
         }
         this.d3svg
@@ -311,29 +314,52 @@ export default {
         //   .attr("r", this.markerSize);
         idx = (idx + 1) % this.dataColors.length;
       }
-      
+
       if (this.showNowUTC) {
         this.line = d3
           .line()
           .x(d => this.xScale(xGetter(d))) // set the x values for the line generator
-          .y(d => this.yScale(yGetter(d))); 
+          .y(d => this.yScale(yGetter(d)));
         this.d3svg
           .append("path")
           .datum([
-            {x: this.time.currentTime.toISO(), y: 0},
-            {x: this.time.currentTime.toISO(), y: 1}
+            { x: this.time.currentTime.toISO(), y: 0 },
+            { x: this.time.currentTime.toISO(), y: 1 }
           ])
           .style("stroke", "#f47750")
           // .style("stroke-dasharray", "5,5")
           .attr("d", d3.line()
-            .x(d=>this.xScale(xGetter(d)))
-            .y(d=>this.yFractionalScale(yGetter(d)))
+            .x(d => this.xScale(xGetter(d)))
+            .y(d => this.yFractionalScale(yGetter(d)))
           );
       }
 
       for (let [name, dataset] of Object.entries(this.data)) {
         // Draw vertical lines if requested
-        if (!dataset.vline){
+        if (!dataset.vspan) {
+          continue;
+        }
+        let color;
+        if (dataset.color) {
+          color = dataset.color;
+        } else {
+          color = "#f47750";
+        }
+        const xStart = this.xScale(timeZoneify(dataset.vspan.from, 'Etc/UTC'));
+        const xEnd = this.xScale(timeZoneify(dataset.vspan.to, 'Etc/UTC'));
+        this.d3svg.append("rect")
+          .attr('x', xStart)
+          .attr('y', this.yFractionalScale(1))
+          .attr('width', xEnd - xStart)
+          .attr('height', Math.abs(this.yFractionalScale(1) - this.yFractionalScale(0)))
+          .attr("fill", "lightblue")
+          .attr("opacity", 0.4);
+
+      }
+
+      for (let [name, dataset] of Object.entries(this.data)) {
+        // Draw vertical lines if requested
+        if (!dataset.vline) {
           continue;
         }
         let color;
@@ -344,28 +370,28 @@ export default {
         }
         // console.log("vert line", dataset);
         let line = this.d3svg
-        .append("path")
-        .datum([
-            {x: dataset.vline, y: 0},
-            {x: dataset.vline, y: 1}
+          .append("path")
+          .datum([
+            { x: dataset.vline, y: 0 },
+            { x: dataset.vline, y: 1 }
           ])
           .style("stroke", color);
-          
-          if (dataset.dashed) {
-            line = line.style("stroke-dasharray", "5,5");
-          }
-          line.attr("d", d3.line()
-            .x(d=>{
-              // console.log(xGetter(d));
-              // console.log(this.xScale(xGetter(d)));
-              return this.xScale(xGetter(d));
-            })
-            .y(d=>this.yFractionalScale(yGetter(d)))
-          );
+
+        if (dataset.dashed) {
+          line = line.style("stroke-dasharray", "5,5");
+        }
+        line.attr("d", d3.line()
+          .x(d => {
+            // console.log(xGetter(d));
+            // console.log(this.xScale(xGetter(d)));
+            return this.xScale(xGetter(d));
+          })
+          .y(d => this.yFractionalScale(yGetter(d)))
+        );
       }
     }
   },
-  mounted: function() {
+  mounted: function () {
     this.updatePlot();
     this.resizeSensor = new ElementQueries.ResizeSensor(this.$el, () =>
       this.updatePlot()
@@ -376,7 +402,7 @@ export default {
     };
     this.timer = setTimeout(this.updater, FIVE_MINUTES);
   },
-  beforeDestroy: function() {
+  beforeDestroy: function () {
     this.resizeSensor.detach();
     clearTimeout(this.timer);
   }

@@ -2,7 +2,7 @@
     <button :disabled="disabled" @click="onClick">{{ label }}</button>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 </style>
 <script>

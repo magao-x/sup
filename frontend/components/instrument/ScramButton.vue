@@ -63,7 +63,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "~/css/variables.scss";
+@use "~/css/variables.scss";
 button {
   display: block;
   width: 100%;

@@ -1,7 +1,16 @@
-[tel]
+[source]
+device = "pdu0"
+conditions = [
+    {id = "pdu0.source.state", value = "On"}
+]
+[tcsi]
+conditions = [
+    {id = "tcsi.teldata.dome_stat", value = 1}
+]
 [fwtelsim]
+in = ["source"]
 [stagepickoff]
-in = ["tel", "fwtelsim"]
+in = ["tcsi", "fwtelsim"]
 
 [stagek]
 in = ["stagepickoff"]
@@ -37,10 +46,12 @@ in = ["fliptip"]
 in = ["modttm"]
 [stagecamlensy]
 in = ["modttm"]
-[shwfs]
-in = ["stagecamlensx", "stagecamlensy"]
+
 [camwfs]
-in = ["shwfs"]
+in = ["stagecamlensx", "stagecamlensy"]
+conditions = [
+    {id = 'camwfs.shutter.toggle', value = 'Off'}
+]
 
 # science arm
 [dmncpc]

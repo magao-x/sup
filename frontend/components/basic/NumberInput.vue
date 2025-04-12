@@ -12,7 +12,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import './css/variables.scss';
+@use '~/css/variables.scss' as *;
 .number-input { flex: 1; display: flex; }
 input {
     flex: 1;

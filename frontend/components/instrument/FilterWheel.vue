@@ -28,7 +28,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "~/css/variables.scss";
+@use "~/css/variables.scss";
 .filter-wheel {
   margin: 1rem;
   flex: 1;

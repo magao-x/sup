@@ -22,7 +22,7 @@
   <div v-else>Waiting for element {{ indiId }}  {{ thisElement }}</div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 .element {
   display: flex;

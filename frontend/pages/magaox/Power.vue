@@ -11,7 +11,7 @@
   </div>
 </template>
 <style scoped lang="scss">
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 .power {
   margin: $unit;
   padding: $unit;

@@ -1,3 +1,5 @@
+@use "sass:color";
+
 // var(--inset-bg):    #002b36;  // bg
 // var(--bg-alternate):    #073642;  // lighter bg
 // $base01:    #586e75;
@@ -17,12 +19,12 @@
 // Breeze
 $darken-pct: 0;
 // Primary colors
-$paper-white: darken(#fcfcfc, $darken-pct);
-$cardboard-gray: darken(#eff0f1, $darken-pct);
-$alternate-gray: darken(#bdc3c7, $darken-pct);
-$icon-gray: darken(#4d4d4d, $darken-pct);
-$charcoal-gray: darken(#31363b, $darken-pct);
-$shade-black: darken(#232629, $darken-pct);
+$paper-white: #fcfcfc;
+$cardboard-gray: #eff0f1;
+$alternate-gray: #bdc3c7;
+$icon-gray: #4d4d4d;
+$charcoal-gray: #31363b;
+$shade-black: #232629;
 $plasma-blue: #3daee9;
 // Secondary
 $pimpinella: #e74c3c;

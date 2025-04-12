@@ -6,26 +6,27 @@
 </div>
 </template>
 <style lang="scss">
-@import '~/css/variables.scss';
+@use '~/css/variables.scss' as *;
 .warnings {
     display: flex;
-    position: fixed;
+    // position: fixed;
     top: 0;
     right: 0;
     z-index: 1000;
     width: 100vw;
 }
-body:has(.state-warning) {
-    padding-top: 6rem;
+#app .view.state-warning {
+    border: none;
+    font-size: 1.75rem;
+    padding: $unit;
+    flex: 1;
+    text-align: center;
+    height: 6rem;
+    box-sizing: border-box;
+    background: $beware-orange;
+    color: var(--fg-normal);
 }
-body.dark .view.state-warning {
-  background: $beware-orange;
-  border: none; //lighten($beware-orange, 20%);
-  font-size: 1.75rem;
-  padding: $unit;
-  flex: 1;
-  text-align: center;
-  height: 3.7rem;
+#app.dark .view.state-warning {
 }
 </style>
 <script>

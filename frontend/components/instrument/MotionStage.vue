@@ -31,7 +31,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "~/css/variables.scss";
+@use "~/css/variables.scss" as *;
 .motion-stage {
   flex: 1;
 }

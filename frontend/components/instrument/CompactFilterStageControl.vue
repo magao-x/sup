@@ -22,7 +22,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 </style>
 <script>
 import utils from "~/mixins/utils.js";

@@ -2,7 +2,7 @@
   <span>{{ value }}</span>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 </style>
 <script>
 import indi from "~/mixins/indi.js";

@@ -1,32 +1,31 @@
 <template>
-  <div id="app">
+  <div id="app" :class="{'light': isLightMode, 'dark': !isLightMode}">
     <flames :active="showFlames"></flames>
     <div class="status">
-      <div class="status-indicator">{{ readableTimestamp }}</div>
       <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
       <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
       <loop-state indi-id="holoop"></loop-state>
       <loop-state indi-id="loloop"></loop-state>
       <indi-toggle-switch indi-id="tcsi.labMode.toggle" label-on="lab" label-off="tcs"></indi-toggle-switch>
+      <div style="flex: 1"></div>
+      <button class="btn square" @click="toggleLightMode">+</button>
     </div>
     <TabBar></TabBar>
     <observation-warnings></observation-warnings>
-    <!-- <div class="flex-row"> -->
       <div class="content">
         <keep-alive>
           <router-view></router-view>
         </keep-alive>
       </div>
-    <!-- </div> -->
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 #app {
   margin: 0 auto;
-  // max-width: 80rem;
-  // padding-bottom: 25vh;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .devices {
   display: flex;
@@ -34,12 +33,14 @@
   flex-wrap: wrap;
 }
 
+.content {
+  flex: 1;
+}
+
 .status {
   color: $icon-gray;
   background: #1f1f1f;
   background: linear-gradient(180deg,#1f1f1f 0%,#000);
-  flex: 1;
-  padding-right: 1rem;
   box-sizing: border-box;
   display: flex;
   & > * {
@@ -69,13 +70,6 @@
   .status-right {
     text-align: right;
   }
-}
-// .content {
-//   flex: 1;
-//   overflow: hidden;
-// }
-.content {
-  overflow: hidden;
 }
 
 .fade-enter-active,
@@ -142,6 +136,7 @@ export default Vue.extend({
   data: function () {
     return {
       flamesEnabled: false,
+      isLightMode: false,
     };
   },
   inject: ["time", "indi" ],
@@ -153,7 +148,10 @@ export default Vue.extend({
   methods: {
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;
-    }, 
+    },
+    toggleLightMode() {
+      this.isLightMode = !this.isLightMode;
+    },
   },
   computed: {
     devices() {

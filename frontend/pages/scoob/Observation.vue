@@ -2,7 +2,7 @@
   <div class="content observation"><div class="view">Placeholder for SCOOB</div></div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 .observation {
   margin: $unit;

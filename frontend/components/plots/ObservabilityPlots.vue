@@ -29,7 +29,7 @@
   </div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 .observability-plot-container {
   display: grid;
@@ -90,9 +90,15 @@ export default {
       let parangData = {
         "parallactic angle": {points: this.parallactic_angles},
       };
-      if (this.beginObsTimestamp) {
-        console.log(this.beginObsTimestamp);
-        parangData["start"] = {vline: this.beginObsTimestamp, dashed: true};
+      let obsStart = this.retrieveValueByIndiId(`observers.obs_start.observation`);
+      let tgtStart = this.retrieveValueByIndiId(`observers.obs_start.target`);
+      if (obsStart) {
+        console.log(obsStart);
+        parangData["obs start"] = {vspan: {from: obsStart, to: this.time.currentTime.toISO()}, dashed: true};
+      }
+      if (tgtStart) {
+        console.log(tgtStart);
+        parangData["tgt start"] = {vspan: {from: tgtStart, to: this.time.currentTime.toISO()}, dashed: true};
       }
       return parangData;
     },

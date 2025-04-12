@@ -4,7 +4,7 @@
   </button>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 button.restore {
   border-bottom: 1px solid $restore;
   &:enabled:hover, &:enabled:active {

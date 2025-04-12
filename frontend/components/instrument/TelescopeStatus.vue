@@ -1,24 +1,21 @@
 <template>
   <div class="telescope-status" v-if="indiDefined">
     <div class="date-time gap-bottom">
-      <div style="text-align: right">
-        {{ readableDatestampChile }}
+      <div class="label">
+        RA
       </div>
-      <div style="text-align: left">
-        {{ readableTimestampChile }} CLT
+      <div class="value">
+        <indi-value :indi-id="`${thisDeviceName}.catdata.ra`" :formatFunction="decimalDegreesToTime"></indi-value>
       </div>
-    </div>
-    <div class="date-time gap-bottom">
-      <div style="text-align: right">
-        {{ readableDatestampUTC }}
+      <div class="label">LST</div>
+      <div class="value">{{ lst }}</div>
+      <div class="label">HA</div>
+      <div class="sign">
+        <indi-value :indi-id="`${thisDeviceName}.telpos.ha`" :format-function="decimalHoursToEastWest"></indi-value>
       </div>
-      <div style="text-align: left">
-        {{ readableTimestampUTC }}
+      <div>
+        <indi-value :indi-id="`${thisDeviceName}.telpos.ha`" :format-function="decimalHoursToTimeUnsigned"></indi-value>
       </div>
-    </div>
-    <div class="date-time gap-bottom" style="flex: 1">
-      <div></div>
-      <div style="text-align: left">{{ lst }} LST</div>
     </div>
     <div class="view">
       <div class="super-important">
@@ -32,7 +29,7 @@
           <div class="datum">HA:</div>
           <div class="value">
             <indi-value :indi-id="`${thisDeviceName}.telpos.ha`"
-              :format-function="decimalHoursToTimeEastWest"></indi-value>
+              :format-function="decimalHoursToTimeUnsigned"></indi-value>
           </div>
         </div>
         <div class="status-item">
@@ -119,14 +116,13 @@
             <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
           </div>
       </div> -->
-    <!-- <observability-plots
-        :equatorialCoords="equatorialCoords"
-        :beginObsTimestamp="beginObsTimestamp"></observability-plots> -->
+    <observability-plots :equatorialCoords="equatorialCoords"
+      :beginObsTimestamp="beginObsTimestamp"></observability-plots>
   </div>
   <div v-else class="view">Waiting for tcsi...</div>
 </template>
 <style lang="scss" scoped>
-@import "./css/variables.scss";
+@use "./css/variables.scss" as *;
 
 .telescope-status {
   display: flex;
@@ -151,7 +147,7 @@
   color: $alternate-gray;
 }
 
-.value {
+.status-item .value {
   flex: 1;
   text-align: right;
 }
@@ -166,11 +162,22 @@
 
 .date-time {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1rem 1fr;
   grid-gap: 0 2 * $unit;
-  font-size: 150%;
+  font-size: 48px;
   padding: 0.125rem;
   font-weight: bold;
+  color: var(--fg-neutral);
+  .label {
+    grid-column: 1;
+    text-align: right
+  }
+  .sign {
+    grid-column: 2;
+  }
+  .value {
+    grid-column: 3;
+  }
 }
 </style>
 <script>
@@ -178,7 +185,6 @@ import indi from "~/mixins/indi.js";
 import utils from "~/mixins/utils.js";
 import IndiValue from "~/components/indi/IndiValue.vue";
 import ObservabilityPlots from '~/components/plots/ObservabilityPlots.vue';
-import { DateTime } from "luxon";
 
 export default {
   props: ["device", "indiId"],
@@ -190,29 +196,26 @@ export default {
   methods: {
     decimalHoursToTime(value) {
       let sign = value / Math.abs(value);
+      let signMark = sign == -1 ? "-" : "";
+      return `${signMark}${this.decimalHoursToTimeUnsigned(value)}`;
+    },
+    decimalHoursToTimeUnsigned(value) {
+      let sign = value / Math.abs(value);
       let hours = Math.floor(value / sign);
       let fracHour = (value / sign) - hours;
       let hoursStr = String(hours).padStart(2, "0");
       const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
       fracHour = fracHour - minutes / 60;
       const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
-      let signMark = sign == -1 ? "-" : "";
-      return `${signMark}${hoursStr}:${minutes}:${seconds}`;
+      return `${hoursStr}:${minutes}:${seconds}`;
     },
-    decimalHoursToTimeEastWest(value) {
-      let sign = Math.sign(value);
-      let hours = Math.floor(value / sign);
-      let fracHour = (value / sign) - hours;
-      const minutes = String(Math.floor(fracHour * 60)).padStart(2, "0");
-      fracHour = fracHour - minutes / 60;
-      const seconds = String(Math.floor(60 * 60 * fracHour)).padStart(2, "0");
-      let signMark;
+    decimalHoursToEastWest(value) {
+      const sign = Math.sign(value);
       if (sign == 1) {
-        signMark = "W ";
+        return "W";
       } else {
-        signMark = "E ";
+        return "E";
       }
-      return `${signMark}${hours}:${minutes}:${seconds}`;
     },
     decimalDegreesToTime(value) {
       let origHours = (value / 360) * 24;
@@ -235,37 +238,6 @@ export default {
     },
   },
   computed: {
-    readableDatestampUTC() {
-      return (
-        this.time.currentTime.toLocaleString(DateTime.DATE_MED)
-      );
-    },
-    readableTimestampUTC() {
-      return (
-        this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
-      );
-    },
-    readableDatestampUTC() {
-      return (
-        this.time.currentTime.toLocaleString(DateTime.DATE_MED)
-        // +
-        // " " +
-        // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
-      );
-    },
-    readableTimestampChile() {
-      return (
-        this.time.currentTime.setZone('America/Santiago').toLocaleString(DateTime.TIME_24_WITH_SECONDS)
-      );
-    },
-    readableDatestampChile() {
-      return (
-        this.time.currentTime.setZone('America/Santiago').toLocaleString(DateTime.DATE_MED)
-        // +
-        // " " +
-        // this.time.currentTime.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)
-      );
-    },
     beginObsTimestamp() {
       return null;
       let positionProp = this.thisDevice?.catalog;
@@ -299,6 +271,15 @@ export default {
       const catdata = this.thisDevice.catdata;
       return `/airmass?ra=${catdata._elements.ra._value}&dec=${catdata._elements.dec._value}`;
     },
+    equatorialCoords() {
+      let catData = this.retrieveByIndiId('tcsi.catdata');
+      if (catData) {
+        return {
+          ra: catData._elements.ra._value,
+          dec: catData._elements.dec._value,
+        };
+      }
+    }
   },
 };
 </script>

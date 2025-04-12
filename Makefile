@@ -3,8 +3,10 @@
 all: buildjs
 
 init:
-	pip install -e .
-	cd frontend/ && yarn install
+	sudo /opt/conda/envs/sup/bin/pip install .
+	sudo chown -R $(USER):magaox-dev ./
+	sudo chmod -R g+rwX ./
+	cd frontend/ && /opt/conda/envs/sup/bin/yarn install
 
 justjs:
 	cd frontend/ && NODE_ENV=production yarn parcel build -d ../sup/static/ index.html
