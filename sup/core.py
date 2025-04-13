@@ -393,7 +393,7 @@ class WebInterface(xconf.Command):
                 Route('/airmass', endpoint=self.views.airmass),
                 Route('/config', endpoint=self.views.config),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
-                Mount("/instagraph", endpoint=self.views.instgraph),
+                Route("/instgraph", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],
             on_startup=[self.spawn_tasks],
