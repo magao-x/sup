@@ -390,7 +390,6 @@ class WebInterface(xconf.Command):
                 Route('/', endpoint=self.views.index),
                 Route('/indi', endpoint=self.views.indi),
                 Route('/light-path', endpoint=self.views.light_path),
-                Route('/demo', endpoint=self.views.demo),
                 Route('/airmass', endpoint=self.views.airmass),
                 Route('/config', endpoint=self.views.config),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
