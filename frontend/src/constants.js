@@ -1,5 +1,4 @@
 const MAX_LASTUPDATE_DELTA_SEC = 10;
-const CONFIG_URL = "http://127.0.0.1:8000/config";
 // const MAGAOX = "";
 // const SCOOB = "";
 // const DEFAULT_LAYOUT = MAGAOX;
@@ -8,7 +7,6 @@ const CONFIG_URL = "http://127.0.0.1:8000/config";
 
 export default {
     MAX_LASTUPDATE_DELTA_SEC,
-    CONFIG_URL,
     plots: {
         numMinutes: 30,
     },

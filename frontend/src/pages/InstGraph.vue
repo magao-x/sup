@@ -1,16 +1,33 @@
 <template>
-  <div ref="graphContainer" id="graph-container"></div>
+  <div class="resize-sensor" style="height: 100%; overflow: hidden;">
+    <div class="graph-controls" style="overflow: auto; height: 500px;" ref="graphControls">
+      <div class="graph-container" ref="graphContainer"></div>
+      <div class="graph-buttons">
+        <button>+</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.graph-controls {
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+}
+
 .graph-container {
-  width: 100%;
-  height: 500px;
-  border: 1px solid #ccc;
+  flex: 1;
+  overflow: hidden;
+}
+
+.graph-buttons {
+  width: 5em;
 }
 </style>
-
 <script>
+import * as ElementQueries from "css-element-queries";
 import {
   constants,
   DomHelpers,
@@ -20,43 +37,32 @@ import {
   ModelXmlSerializer,
   RubberBandHandler,
 } from '@maxgraph/core';
-import utils2 from "@/utils.js";
+import utils from "@/utils.js";
 
 export default {
   data() {
     return {
-    //   instrumentGraph: null,
+      graph: null,
     };
   },
   props: {
-    xmlData: String, // XML content from draw.io
-  },
-  computed: {
-    insGraphUpdateTime() {
-      return this.$store.state.instGraphUpdateTime;
-    },
-    instGraphFilename() {
-      return this.$store.state.instGraphFilename;
-    },
+    relativeURL: String,
+    // n.b. this can be anything, we just snoop on updates
+    // to know when to re-fetch the graph
+    lastUpdated: {
+      type: String,
+      default: "",
+    }
   },
   watch: {
-    insGraphUpdateTime(newVal) {
-      if (newVal) {
-        console.log("Reloading graph from file:", this.instGraphFilename);
-        this.loadGraph(this.instGraphFilename);
-      }
-    },
-    instGraphFilename(newVal) {
-      if (newVal) {
-        console.log("Reloading graph from file:", this.instGraphFilename);
-        this.loadGraph(this.instGraphFilename);
-      }
+    async lastUpdated(newValue, oldValue) {
+      this.loadGraph();
     }
   },
   methods: {
-    async loadDrawio(file) {
+    async loadDrawio() {
       try {
-        const destURL = utils2.buildBackendUrl(`drawio-files/${file}`);
+        const destURL = utils.buildBackendUrl(`instgraph`);
         const response = await fetch(destURL);
         return response.text();
       } catch (error) {
@@ -64,55 +70,66 @@ export default {
       }
     },
     extractDiagramContent(fileContent) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(fileContent, "text/xml");
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(fileContent, "text/xml");
 
-        // Get <diagram> tags
-        const diagramNodes = xmlDoc.querySelectorAll("diagram");
+      // Get <diagram> tags
+      const diagramNodes = xmlDoc.querySelectorAll("diagram");
 
-        if (diagramNodes.length === 0) {
-            console.error("No <diagram> tag found in the XML.");
-            return;
-        }
+      if (diagramNodes.length === 0) {
+        console.error("No <diagram> tag found in the XML.");
+        return;
+      }
 
-        if (diagramNodes.length > 1) {
-            console.warn(
-                `Multiple <diagram> tags found (${diagramNodes.length}). Using the first one.`
-            );
-        }
+      if (diagramNodes.length > 1) {
+        console.warn(
+          `Multiple <diagram> tags found (${diagramNodes.length}). Using the first one.`
+        );
+      }
 
-        // Default to the first <diagram> tag's content
-        return diagramNodes[0].innerHTML.trim();
+      // Default to the first <diagram> tag's content
+      return diagramNodes[0].innerHTML.trim();
     },
-    async loadGraph(file) {
-        const fileContent = await this.loadDrawio(file);
-        const instrumentGraph = this.extractDiagramContent(fileContent);
+    initializeGraph() {
+      const container = this.$refs.graphContainer;
+      // Disables the built-in context menu
+      InternalEvent.disableContextMenu(container);
 
-        const initializeGraph = (container) => {
-            // Disables the built-in context menu
-            InternalEvent.disableContextMenu(container);
-
-            const graph = new Graph(container, undefined, [
-                ...getDefaultPlugins(),
-                RubberBandHandler, // Enables rubber band selection
-            ]);
-            graph.setPanning(true); // Use mouse right button for panning
-
-            const modelXmlSerializer = new ModelXmlSerializer(graph.model);
-            // modelXmlSerializer.import(xmlWithVerticesAndEdges);
-            modelXmlSerializer.import(instrumentGraph);
-
-            // return graph;
-        };
-
-        // Creates the graph inside the given container
-        const container = document.querySelector('#graph-container');
-        container.innerHTML = "";
-        const graph = initializeGraph(container);
+      // Creates the graph inside the given container
+      this.graph = new Graph(container, undefined, [
+        ...getDefaultPlugins(),
+        RubberBandHandler, // Enables rubber band selection
+      ]);
+      this.graph.setPanning(true); // Use mouse right button for panning
     },
+    async loadGraph() {
+      console.log("loadGraph called");
+      console.log(this.$el.offsetHeight);
+      const fileContent = await this.loadDrawio();
+      const instrumentGraphDocument = this.extractDiagramContent(fileContent);
+      const modelXmlSerializer = new ModelXmlSerializer(this.graph.model);
+      this.graph.view.rendering = false;
+      this.graph.getDataModel().batchUpdate(() => {
+        this.graph.model.clear();
+        modelXmlSerializer.import(instrumentGraphDocument);
+      });
+      this.graph.view.rendering = true;
+      this.graph.fit(0, false, 100);
+      // this.graph.fit(0, false, 100, true, false, true, this.$el.offsetHeight);
+      this.graph.refresh();
+    },
+    fitGraph() {
+      this.graph.fit(0, false, 100);
+      this.graph.refresh();
+    }
   },
   async mounted() {
-    this.loadGraph(this.instGraphFilename);
+    // this.resizeSensor = new ElementQueries.ResizeSensor(this.$el, () => this.fitGraph());
+    this.initializeGraph();
+    this.loadGraph();
   },
+  beforeUnmount: function () {
+    // this.resizeSensor.detach();
+  }
 };
 </script>

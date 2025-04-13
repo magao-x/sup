@@ -16,11 +16,10 @@
 }
 .Alert {
   background-color: $warning;
-  border-color: darken($icon-orange, 15);
+  border-color: color.adjust($icon-orange, $lightness: -15%);
 }
 .Ok {
   background-color: $ok;
-  border-color: darken($ok, 15);
   border-color: color.adjust($ok, $lightness: -15%);
 }
 .Busy {

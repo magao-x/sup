@@ -4,7 +4,7 @@
 @use "@/css/fonts/noto/noto.css" as *;
 
 body {
-  height: 100vh;
+  min-height: 100vh;
 }
 
 #app {

@@ -37,6 +37,9 @@
     mixins: [indi, utils],
     props: {
       indiId: String,
+      device: Object,
+      property: Object,
+      element: Object,
       disabled: Boolean,
       hideCommitButton: {
         type: Boolean,

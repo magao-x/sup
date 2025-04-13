@@ -26,6 +26,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: scroll;
 }
 .devices {
   display: flex;
