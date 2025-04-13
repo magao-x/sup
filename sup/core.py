@@ -14,8 +14,6 @@ import time
 import xconf
 from starlette.endpoints import WebSocketEndpoint
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 import orjson
@@ -92,8 +90,8 @@ class SupViews:
     async def index(self, request):
         return FileResponse((static_path / 'index.html').as_posix())
 
-    async def demo(self, request):
-        return FileResponse((static_path / 'demo.html').as_posix())
+    async def instgraph(self, request):
+        return FileResponse(self.app.instgraph_file_path)
 
     async def config(self, request):
         config = xconf.config_to_dict(self.app)
@@ -396,7 +394,7 @@ class WebInterface(xconf.Command):
                 Route('/airmass', endpoint=self.views.airmass),
                 Route('/config', endpoint=self.views.config),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
-                Mount("/drawio-files", StaticFiles(directory=self._posix_instgraph_file_path.parent), name="drawio-files"),
+                Mount("/instagraph", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],
             on_startup=[self.spawn_tasks],

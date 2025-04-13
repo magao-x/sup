@@ -75,7 +75,6 @@ setup(
         'uvicorn',
         'orjson>=3.6.7',
         'astroplan>=0.8',
-        'matplotlib>=3.5.1',
         'uvloop>=0.16',
         'purepyindi2>=0.0.0',
         'xconf>=0.0.0',
