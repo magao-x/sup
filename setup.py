@@ -82,6 +82,7 @@ setup(
         'websockets>=10.2',
         'blosc>=1.11.1',
         'watchdog>=6.0.0',
+        'psutil>=5.9.8,<6',
     ],
     include_package_data=True,
     package_data={
