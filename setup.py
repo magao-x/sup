@@ -18,36 +18,21 @@ with open(path.join(HERE, PROJECT, 'VERSION'), encoding='utf-8') as f:
     VERSION = f.read().strip()
 
 
-class ParcelBuildCommand(distutils.cmd.Command):
+class NpmBuildCommand(distutils.cmd.Command):
     """Build/update the frontend JS/CSS/HTML files and
     place them in the module tree for install"""
 
     description = 'Build/update the frontend JS/CSS/HTML files'
-    user_options = [
-        # The format is (long option, short option, description).
-        ('node-env=', None, 'Build JS for either "development" or "production" by supplying this option'),
-    ]
-
-    def initialize_options(self):
-        """Set default values for options."""
-        # Each user option must be listed here with their default value.
-        self.node_env = os.environ.get('NODE_ENV', 'development')
-
-    def finalize_options(self):
-        """Post-process options."""
-        if self.node_env not in ('production', 'development'):
-            raise RuntimeError("--node-env= / $NODE_ENV must be 'production' or 'development' for this step")
 
     def run(self):
         """Run command."""
         frontend_dir = path.join(HERE, 'frontend')
         new_env = os.environ.copy()
-        new_env['NODE_ENV'] = self.node_env
-        install_command = ['yarn', 'install']
+        install_command = ['npm', 'install']
         self.announce(f'Running command: {" ".join(install_command)}', level=distutils.log.INFO)
         install_result = subprocess.run(install_command, env=new_env, cwd=frontend_dir)
         install_result.check_returncode()
-        build_command = ['yarn', 'parcel', 'build', '-d', '../sup/static/', 'index.html']
+        build_command = ['npm', 'run', 'build']
         self.announce(f'Running command: {" ".join(build_command)}', level=distutils.log.INFO)
         build_result = subprocess.run(build_command, env=new_env, cwd=frontend_dir)
         build_result.check_returncode()
@@ -56,12 +41,12 @@ class BuildPyCommand(setuptools.command.build_py.build_py):
     """Custom build command."""
 
     def run(self):
-        self.run_command('parcel_build')
+        self.run_command('npm_build')
         setuptools.command.build_py.build_py.run(self)
 
 setup(
     cmdclass={
-        'parcel_build': ParcelBuildCommand,
+        'npm_build': NpmBuildCommand,
         'build_py': BuildPyCommand,
     },
     name=PROJECT,
