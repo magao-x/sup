@@ -70,7 +70,7 @@ class SupViews:
         return OrjsonResponse(light_path_dict)
 
     async def indi(self, request):
-        return OrjsonResponse(request.app.indi.to_serializable()['devices'])
+        return OrjsonResponse(self.app.indi_client.to_serializable()['devices'])
 
     async def catch_all(self, request):
         path = request.path_params['path']
