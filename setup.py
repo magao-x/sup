@@ -85,6 +85,9 @@ setup(
         'watchdog>=6.0.0',
     ],
     include_package_data=True,
+    package_data={
+        PROJECT: ['light_path_ex.toml'],  # Ensure this file is included
+    },
     entry_points={
         'console_scripts': [
             f'{PROJECT}={PROJECT}.core:WebInterface.run',
