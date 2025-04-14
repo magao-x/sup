@@ -64,7 +64,7 @@
   .logo {
     flex: 1;
     text-align: center;
-    background-image: url(~/css/images/magao-x-white.svg);
+    background-image: url("@/css/images/magao-x-white.svg");
     background-position: center center;
     background-repeat: no-repeat;
     text-indent: -9999px;

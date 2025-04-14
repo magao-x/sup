@@ -37,11 +37,11 @@ export default {
         onWebSocketMessage(event) {
           event.data.arrayBuffer().then((buf) => {
             let msg = JSON.parse(textDecoder.decode(buf));
-            if (msg.action == "init") {
+            if (msg.action == "indi_init") {
               this.reinitializeIndiWorld(msg.payload);
-            } else if (msg.action == "batch_update") {
+            } else if (msg.action == "indi_batch_update") {
               this.batchUpdate(msg.payload);
-            } else if (msg.action == "instgraph_updated") {
+            } else if (msg.action == "indi_instgraph_updated") {
               console.log("Receiving instGraph data", msg.payload.file);
               this.$store.dispatch('updateInstGraphUpdateTime');
               this.$store.dispatch('updateInstGraphFilename', msg.payload.file);
