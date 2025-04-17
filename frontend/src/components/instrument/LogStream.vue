@@ -12,7 +12,7 @@
             <td class="timestamp">{{ log.timestamp }}</td>
             <td class="level" :class="log.icon"><material-icon :name="log.icon"></material-icon>&nbsp;{{ log.level }}</td>
             <td class="device">{{ log.device }}</td>
-            <td>{{ log.message }}</td>
+            <td class="msg">{{ log.message }}</td>
           </tr>
         </tbody>
       </table>
@@ -51,7 +51,8 @@
 }
 
 table {
-  width: 100%;
+  width: 2000px;
+  overflow-x: scroll;
 }
 
 tbody {
@@ -60,7 +61,7 @@ tbody {
 }
 
 .timestamp {
-  width: 12em;
+  width: 6em;
 }
 
 .level {
@@ -81,7 +82,9 @@ tbody {
 
 .device {
   color: $alternate-gray;
+  width: 11em;
 }
+
 </style>
 <script>
 import utils from "@/mixins/utils.js";
@@ -122,7 +125,7 @@ export default {
           message: log.message.slice(4),
           icon: iconLookup.hasOwnProperty(msgLevel) ? iconLookup[msgLevel] : "help",
           device: log.device,
-          timestamp: log.timestamp.slice(0, 19),
+          timestamp: log.timestamp.slice(11, 19),
         };
         newLogs.splice(0, 0, newLog);
       }

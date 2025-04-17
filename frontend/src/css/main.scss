@@ -5,88 +5,90 @@
 
 body {
   min-height: 100vh;
+  --btn-active: #{$plasma-blue};
+}
+
+.dark-mode {
+  // background: #{$charcoal-gray};
+  // background: , url("@/css/images/vizzy.svg");
+  background-image: url("@/css/images/vizzy.svg"), linear-gradient(180deg, rgba(49,54,59,1) 0%, rgba(49,55,61,1) 57%, rgba(57,75,109,1) 73%, rgba(149,122,146,1) 86%, rgba(189,130,123,1) 92%, rgba(242,146,90,1) 95%, rgba(254,219,116,1) 97%, rgba(245,115,24,1) 100%);
+  // background-size: cover;
+  background-position: bottom -5px right -5px, 0px 0px;
+  background-size: 50%, cover;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  --btn-bg: #{$charcoal-gray};
+  --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
+  --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{color.adjust($icon-blue, $lightness: -40%)});
+  --btn-commit-bg-gradient: linear-gradient(#{color.adjust($commit, $lightness: 10%)}, #{$commit});
+  --btn-edit-bg-gradient: linear-gradient(#{color.adjust($edit, $lightness: 10%)}, #{$edit});
+  --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{color.adjust($danger-red, $lightness: -40%)});
+  --btn-fg: #{$cardboard-gray};
+  --inset-bg: #{$shade-black};
+  --inset-fg: #{$cardboard-gray};
+  --bg-alternate: #{$icon-gray};
+  --bg-normal: #{$charcoal-gray};
+  
+
+  --deco-focus: #{$plasma-blue};
+  --deco-hover: #{$plasma-blue};
+  --fg-active: #{$plasma-blue};
+  --fg-inactive: #{$coastal-fog};
+  --border: #{$coastal-fog};
+  --fg-link: #{$abyss-blue};
+  --fg-negative: #{$icon-red};
+  --fg-neutral: #{$beware-orange};
+  --fg-normal: #{$cardboard-gray};
+  color: #{$cardboard-gray};
+  --fg-positive: #{$noble-fir};
+  --fg-visited: #{$coastal-fog};
+  .view {
+    --bg-alternate: #{$charcoal-gray};
+    --bg-normal: #{$shade-black};
+    
+    background: color.scale($shade-black, $alpha: -20%);
+    
+    --inset-bg: #{$charcoal-gray};
+    --inset-fg: #{$cardboard-gray};
+    border: 1px solid var(--border);
+  }
+}
+.light-mode {
+  --btn-bg: #{$cardboard-gray};
+  --btn-fg: #{$charcoal-gray};
+  --inset-bg: #{$paper-white};
+  --inset-fg: #{$charcoal-gray};
+  --bg-alternate: #{$alternate-gray};
+  --bg-normal: #{$cardboard-gray};
+  background: #{$cardboard-gray};
+  --deco-focus: #{$plasma-blue};
+  --deco-hover: #{$hover-blue};
+  --fg-active: #{$plasma-blue};
+  --fg-inactive: #{$coastal-fog};
+  --border: #{$alternate-gray};
+  --fg-link: #{$abyss-blue};
+  --fg-negative: #{$icon-red};
+  --fg-neutral: #{$beware-orange};
+  --fg-normal: #{$shade-black};
+  color: #{$shade-black};
+  --fg-positive: #{$noble-fir};
+  --fg-visited: #{$coastal-fog};
+  .view {
+    --bg-alternate: #{$alternate-gray};
+    --bg-normal: #{$paper-white};
+    background: #{$paper-white};
+    color: #{$charcoal-gray};
+    --inset-bg: #{$cardboard-gray};
+    --inset-fg: #{$shade-black};
+    border: 1px solid var(--border);
+  }
 }
 
 #app {
   margin: 0;
   padding: 0;
   height: 100vh;
-  --btn-active: #{$plasma-blue};
-  &.dark {
-    // background: #{$charcoal-gray};
-    // background: , url("@/css/images/vizzy.svg");
-    background-image: url("@/css/images/vizzy.svg"), linear-gradient(180deg, rgba(49,54,59,1) 0%, rgba(49,55,61,1) 57%, rgba(57,75,109,1) 73%, rgba(149,122,146,1) 86%, rgba(189,130,123,1) 92%, rgba(242,146,90,1) 95%, rgba(254,219,116,1) 97%, rgba(245,115,24,1) 100%);
-    // background-size: cover;
-    background-position: bottom -5px right -5px, auto;
-    background-size: 50%, cover;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    --btn-bg: #{$charcoal-gray};
-    --btn-bg-gradient: linear-gradient(#{$charcoal-gray}, #{$shade-black});
-    --btn-active-bg-gradient: linear-gradient(#{$icon-blue}, #{color.adjust($icon-blue, $lightness: -40%)});
-    --btn-commit-bg-gradient: linear-gradient(#{color.adjust($commit, $lightness: 10%)}, #{$commit});
-    --btn-edit-bg-gradient: linear-gradient(#{color.adjust($edit, $lightness: 10%)}, #{$edit});
-    --btn-warn-bg-gradient: linear-gradient(#{$danger-red}, #{color.adjust($danger-red, $lightness: -40%)});
-    --btn-fg: #{$cardboard-gray};
-    --inset-bg: #{$shade-black};
-    --inset-fg: #{$cardboard-gray};
-    --bg-alternate: #{$icon-gray};
-    --bg-normal: #{$charcoal-gray};
-    
-
-    --deco-focus: #{$plasma-blue};
-    --deco-hover: #{$plasma-blue};
-    --fg-active: #{$plasma-blue};
-    --fg-inactive: #{$coastal-fog};
-    --border: #{$coastal-fog};
-    --fg-link: #{$abyss-blue};
-    --fg-negative: #{$icon-red};
-    --fg-neutral: #{$beware-orange};
-    --fg-normal: #{$cardboard-gray};
-    color: #{$cardboard-gray};
-    --fg-positive: #{$noble-fir};
-    --fg-visited: #{$coastal-fog};
-    .view {
-      --bg-alternate: #{$charcoal-gray};
-      --bg-normal: #{$shade-black};
-      
-      background: color.scale($shade-black, $alpha: -20%);
-      
-      --inset-bg: #{$charcoal-gray};
-      --inset-fg: #{$cardboard-gray};
-      border: 1px solid var(--border);
-    }
-  }
-  &.light {
-    --btn-bg: #{$cardboard-gray};
-    --btn-fg: #{$charcoal-gray};
-    --inset-bg: #{$paper-white};
-    --inset-fg: #{$charcoal-gray};
-    --bg-alternate: #{$alternate-gray};
-    --bg-normal: #{$cardboard-gray};
-    background: #{$cardboard-gray};
-    --deco-focus: #{$plasma-blue};
-    --deco-hover: #{$hover-blue};
-    --fg-active: #{$plasma-blue};
-    --fg-inactive: #{$coastal-fog};
-    --border: #{$alternate-gray};
-    --fg-link: #{$abyss-blue};
-    --fg-negative: #{$icon-red};
-    --fg-neutral: #{$beware-orange};
-    --fg-normal: #{$shade-black};
-    color: #{$shade-black};
-    --fg-positive: #{$noble-fir};
-    --fg-visited: #{$coastal-fog};
-    .view {
-      --bg-alternate: #{$alternate-gray};
-      --bg-normal: #{$paper-white};
-      background: #{$paper-white};
-      color: #{$charcoal-gray};
-      --inset-bg: #{$cardboard-gray};
-      --inset-fg: #{$shade-black};
-      border: 1px solid var(--border);
-    }
-  }
+  
 }
 
 body {
@@ -145,7 +147,7 @@ button,
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr;
-  grid-gap: $smgap;
+  grid-gap: $lggap;
   align-items: stretch;
 }
 
@@ -180,31 +182,10 @@ button:enabled,
     border: 1px solid $plasma-blue;
     background-image: var(--btn-active-bg-gradient);
   }
-  // &.commit {
-  //   background: $commit;
-  // }
-  // &.restore {
-  //   background: $restore;
-  // }
 }
-
-// .dark button:enabled, .dark .btn {
-//   background-image: linear-gradient(var(--btn-bg), var(--bg-normal));
-// }
-
-// .light button:enabled, .light .btn {
-//   background-image: linear-gradient(var(--bg-normal), var(--btn-bg));
-// }
 
 button:enabled:hover,
 .btn:hover {
-  // background: lighten($plasma-blue, 15);
-  // &.commit {
-  //   background: lighten($commit, 15);
-  // }
-  // &.restore {
-  //   background: lighten($restore, 15);
-  // }
   border: 1px solid $plasma-blue;
 }
 

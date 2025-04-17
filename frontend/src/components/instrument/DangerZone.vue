@@ -30,7 +30,7 @@
       <div class="name">ADC tracking</div>
       <indi-toggle-switch class="tracking-toggle" indi-id="adctrack.tracking.toggle"
         :ignoreBusyState="true"></indi-toggle-switch>
-      <div class="name">telescope T/T offload</div>
+      <div class="name">tel. T/T offload</div>
       <indi-toggle-switch class="tracking-toggle" indi-id="tcsi.offlTT_enable.toggle"
         :ignoreBusyState="true"></indi-toggle-switch>
       <div class="name">pupil tracking</div>
@@ -41,12 +41,6 @@
 <style lang="scss" scoped>
 @use "sass:color";
 @use "@/css/variables.scss" as *;
-
-.flipacq {
-  .buttons.minigrid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
 
 .prepare, .acquire, .cancel {
   border-radius: 50%;
@@ -66,12 +60,9 @@ button {
 }
 
 .prepare, .cancel {
-  width: 10em;
-  height: 10em;
+  width: 8em;
+  height: 8em;
   padding: 1.5em;
-  position: absolute;
-  top: 0;
-  left: 0;
 }
 
 .cancel {
@@ -90,13 +81,18 @@ button {
   padding-bottom: $unit;
 }
 
-body.dark .danger-zone.view {
+.danger-zone {
   /* display: flex; */
   // text-align: center;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: $unit;
-  background-color: color.scale(color.adjust($danger-red, $lightness: 10%), $alpha: -20%);
+  grid-template-columns: subgrid;
+  // grid-gap: $unit;
+}
+.light-mode .danger-zone {
+  background-color: color.scale(color.adjust($danger-red, $lightness: 80%), $alpha: -20%);
+}
+.dark-mode .danger-zone {
+  background-color: color.change(color.adjust($danger-red, $lightness: -20%), $alpha: 50%);
 }
 
 /* .tracking-toggle {

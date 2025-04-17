@@ -11,9 +11,6 @@
       <indi-switch-multi-element v-if="deviceName.match(/^flip/)" :indi-id="`${deviceName}.presetName`"
         :columns="2"></indi-switch-multi-element>
       <template v-if="deviceName.match(/^stage/)">
-        <indi-momentary-switch v-if="retrieveValueByIndiId(`${deviceName}.fsm.state`) == 'NOTHOMED'"
-          :indi-id="`${deviceName}.home.request`" label="😾"
-          style="line-height: 100%; padding:0; vertical-align: middle"></indi-momentary-switch>
         <indi-switch-dropdown v-if="retrieveByIndiId(`${deviceName}`)"
           :indi-id="`${deviceName}.presetName`"></indi-switch-dropdown>
         (<indi-value :indi-id="`${deviceName}.position.current`"></indi-value>)

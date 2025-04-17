@@ -1,6 +1,6 @@
 <template>
-  <div class="resize-sensor" style="height: 100%; overflow: hidden;">
-    <div class="graph-controls" style="overflow: auto; height: 500px;" ref="graphControls">
+  <div class="graph-wrapper" style="height: 100%">
+    <div class="graph-controls" style="height: 500px;" ref="graphControls">
       <div class="graph-container" ref="graphContainer"></div>
       <div class="graph-buttons">
         <button>+</button>
@@ -103,8 +103,6 @@ export default {
       this.graph.setPanning(true); // Use mouse right button for panning
     },
     async loadGraph() {
-      console.log("loadGraph called");
-      console.log(this.$el.offsetHeight);
       const fileContent = await this.loadDrawio();
       const instrumentGraphDocument = this.extractDiagramContent(fileContent);
       const modelXmlSerializer = new ModelXmlSerializer(this.graph.model);
@@ -114,22 +112,24 @@ export default {
         modelXmlSerializer.import(instrumentGraphDocument);
       });
       this.graph.view.rendering = true;
-      this.graph.fit(0, false, 100);
-      // this.graph.fit(0, false, 100, true, false, true, this.$el.offsetHeight);
+      // this.graph.fit(0, false, 100);
+      this.graph.fit(0, false, 100, true, false, false, this.$el.offsetHeight);
       this.graph.refresh();
     },
     fitGraph() {
-      this.graph.fit(0, false, 100);
+      this.$refs.graphControls.style.height = `${this.$el.offsetHeight}px`;
+      this.graph.fit(0, false, 100, true, false, false, this.$el.offsetHeight);
       this.graph.refresh();
     }
   },
   async mounted() {
-    // this.resizeSensor = new ElementQueries.ResizeSensor(this.$el, () => this.fitGraph());
+    this.resizeSensor = new ElementQueries.ResizeSensor(this.$el, () => this.fitGraph());
     this.initializeGraph();
     this.loadGraph();
+    this.fitGraph();
   },
   beforeUnmount: function () {
-    // this.resizeSensor.detach();
+    this.resizeSensor.detach();
   }
 };
 </script>

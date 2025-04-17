@@ -7,18 +7,6 @@
       :selected="elem.name == selectedSwitch"
     >{{ elem.label ? elem.label : elem.name }}</option>
   </select>
-  <!-- <div>
-    <div class="buttons minigrid" :class="{'vertical': orientation == 'vertical', 'horizontal': orientation == 'horizontal'}">
-        <toggle-button
-          v-for="elem in switchElements" 
-          :key="elem.name"
-          :disabled="disabled"
-          :label="elem.name"
-          :value="elem.value == 'On'"
-          :busy="thisProperty.state == 'Busy'"
-          @input="sendSwitch(elem)"/>
-    </div>
-  </div> -->
 </template>
 <style lang="scss" scoped>
 </style>

@@ -15,18 +15,20 @@
     z-index: 1000;
     width: 100vw;
 }
-#app .view.state-warning {
-    border: none;
+
+.state-warning {
     font-size: 1.75rem;
     padding: $unit;
     flex: 1;
     text-align: center;
     height: 6rem;
     box-sizing: border-box;
-    background: $beware-orange;
     color: var(--fg-normal);
 }
-#app.dark .view.state-warning {
+
+.dark-mode .view.state-warning {
+    background: $beware-orange;
+    border: none;
 }
 </style>
 <script>

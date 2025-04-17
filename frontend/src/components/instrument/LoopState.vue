@@ -42,7 +42,7 @@ export default {
     state: function() {
       if (!(this.thisDevice && this.thisDevice.loop_state)) return "waiting for AO state";
       const clopen = this.loopClosed ? "closed" : "open";
-      return `${this.indiId} ${clopen}`;
+      return clopen;
     },
     gain: function() {
       if (!(this.thisDevice && this.thisDevice.loop_state)) return "?";

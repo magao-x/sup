@@ -1,6 +1,6 @@
 <template>
   <div class="telescope-status" v-if="indiDefined">
-    <div class="date-time gap-bottom">
+    <div class="date-time view padded">
       <div class="full-width">
         <indi-value :indi-id="`${thisDeviceName}.catalog.object`"></indi-value>
       </div>
@@ -20,63 +20,14 @@
         <indi-value :indi-id="`${thisDeviceName}.telpos.ha`" :format-function="decimalHoursToTimeUnsigned"></indi-value>
       </div>
     </div>
-    <div class="view">
-      <div class="super-important">
-        <div class="status-item">
-          <!-- <div class="datum">Object:</div> -->
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.catalog.object`"></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">HA:</div>
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.telpos.ha`"
-              :format-function="decimalHoursToTimeUnsigned"></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">RA:</div>
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.catdata.ra`" :formatFunction="decimalDegreesToTime"></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Dec:</div>
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.catdata.dec`" :formatFunction="decimalDegreesToDMS"></indi-value>
-          </div>
-        </div>
-
-        <div class="status-item">
-          <div class="datum">Airmass:</div>
-          <div class="value">
-            {{ airmass }}
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">PA:</div>
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.teldata.pa`"
-              :formatFunction="(v) => String(Number(v).toFixed(2)) + 'º'"></indi-value>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Alt:</div>
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.telpos.el`"
-              :formatFunction="(v) => String(Number(v).toFixed(4))"></indi-value>º
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="datum">Az:</div>
-          <div class="value">
-            <indi-value :indi-id="`${thisDeviceName}.teldata.az`"
-              :formatFunction="(v) => String(Number(v).toFixed(4))"></indi-value>º
-          </div>
-        </div>
-      </div>
+    <div class="environment view padded">
+      <div class="label">Temp.</div><div class="value">{{ retrieveValueByIndiId('tcsi.environment.temp-amb') }} ºC</div>
+      <div class="label">Dewpoint</div><div class="value">{{ retrieveValueByIndiId('tcsi.environment.dewpoint') }} ºC</div>
+      <div class="label">Humidity</div><div class="value">{{ retrieveValueByIndiId('tcsi.environment.humidity') }}%</div>
+      <div class="label">Wind</div><div class="value">{{ retrieveValueByIndiId('tcsi.environment.wind') }} MPH</div>
+      <div class="label">Wind Dir.</div><div class="value">{{ retrieveValueByIndiId('tcsi.environment.winddir') }}º</div>
     </div>
+    
     <!-- <div class="status-tiles gap-bottom">
         <div class="status-tile view">
           <div>
@@ -119,8 +70,9 @@
             <indi-value indi-id="tcsi.environment.temp-amb"></indi-value>ºC
           </div>
       </div> -->
-    <observability-plots :equatorialCoords="equatorialCoords"
-      :beginObsTimestamp="beginObsTimestamp"></observability-plots>
+
+    <observability-plots class="observability-plots" :equatorialCoords="equatorialCoords"
+      :beginObsTimestamp="beginObsTimestamp" observersDevice="observers"></observability-plots>
   </div>
   <div v-else class="view">Waiting for tcsi...</div>
 </template>
@@ -128,8 +80,15 @@
 @use "@/css/variables.scss" as *;
 
 .telescope-status {
-  display: flex;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
   height: 100%;
+}
+
+.observability-plots {
+  grid-column: 3/11;
+  grid-row: 1/5;
 }
 
 .plots img {
@@ -154,22 +113,28 @@
   text-align: right;
 }
 
-.super-important {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: 0 2 * $unit;
-  font-size: 125%;
-  padding: $unit;
+
+
+.date-time, .environment {
+  grid-column: 1/3;
+}
+
+.environment {
+  grid-row: 3/5;
 }
 
 .date-time {
-  display: grid;
-  grid-template-columns: 1fr 1rem 1fr;
-  grid-gap: 0 2 * $unit;
-  font-size: 32px;
-  padding: 0.125rem;
+  grid-row: 1/3;
+  font-size: 150%;
   font-weight: bold;
   color: var(--fg-neutral);
+}
+
+.date-time, .environment {
+  display: grid;
+  padding: $lggap;
+  grid-template-columns: calc(50% - $unit) 20px calc(50% - 20px - $unit);
+  grid-gap: 0 $unit;
   .full-width {
     grid-column: 1/4;
     text-align: center;
@@ -201,11 +166,17 @@ export default {
   },
   methods: {
     decimalHoursToTime(value) {
+      if (value == 0) {
+        return '00:00:00';
+      }
       let sign = value / Math.abs(value);
       let signMark = sign == -1 ? "-" : "";
       return `${signMark}${this.decimalHoursToTimeUnsigned(value)}`;
     },
     decimalHoursToTimeUnsigned(value) {
+      if (value == 0) {
+        return '00:00:00';
+      }
       let sign = value / Math.abs(value);
       let hours = Math.floor(value / sign);
       let fracHour = (value / sign) - hours;

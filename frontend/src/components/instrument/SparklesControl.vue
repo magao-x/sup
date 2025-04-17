@@ -1,5 +1,5 @@
 <template>
-    <div v-if="indiDefined" class=" view padded gap-bottom">
+    <div v-if="indiDefined" class="view padded">
         <div class="col" style="text-align: center">
             <div style="margin-bottom: 5px;">
                 <finite-state-machine-status

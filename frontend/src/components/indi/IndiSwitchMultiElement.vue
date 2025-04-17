@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="buttons" :style="styleProperties">
+    <div class="buttons minigrid" :style="styleProperties">
       <toggle-button
         v-for="elem in switchElements" 
         :key="elem.name"

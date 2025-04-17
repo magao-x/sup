@@ -1,8 +1,8 @@
 <template>
-  <div class="view padded" v-if="retrieveByIndiId('observers')">
+  <div v-if="retrieveByIndiId('observers')">
     <indi-element indi-id="observers.user_log.message" class="full-width"></indi-element>
   </div>
-  <div class="view padded" v-else>
+  <div v-else>
     Waiting for observers device...
   </div>
 </template>

@@ -6,7 +6,7 @@
 <style lang="scss">
 .axes-container {
   flex: 1;
-  min-width: 300px;
+  min-width: 200px;
   min-height: 200px;
   max-height: 1200px;
   max-width: 1200px;
@@ -297,7 +297,8 @@ export default {
           // .classed("line", true) // Assign a class for styling
           .style("fill", "none")
           .style("stroke-width", 3)
-          .style("filter", "drop-shadow(0px 0px 5px #3daee9)")
+          .style("filter", dataset.glowy ? `drop-shadow(0px 0px 5px ${this.dataColors[idx]})` : "")
+          .attr("class", dataset.class)
           .style("stroke", this.dataColors[idx])
           .attr("d", this.line); // 11. Calls the line generator
 
@@ -358,6 +359,7 @@ export default {
       }
 
       for (let [name, dataset] of Object.entries(this.data)) {
+        console.log(dataset);
         // Draw vertical lines if requested
         if (!dataset.vline) {
           continue;

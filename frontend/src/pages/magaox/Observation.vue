@@ -1,108 +1,100 @@
 <template>
   <div class="observation-controls">
-    <!-- <observer-saving-monitor class="padded"></observer-saving-monitor> -->
     <observer-control class="padded gap-bottom observer-control"></observer-control>
-    <!-- <div class="cols top-level telescope" v-if="!labMode"> -->
-    <div class="cols top-level telescope">
-      <div class="col">
-        <telescope-status indi-id="tcsi"></telescope-status>
-      </div>
-      <!-- <observability-plots :equatorialCoords="equatorialCoords" class="col view"></observability-plots> -->
-      <danger-zone class="padded col view"></danger-zone>
+    <div class="observation-grid" v-if="retrieveValueByIndiId('tcsi.teldata.dome_stat') == 1">
+      <telescope-status class="telescope-status" indi-id="tcsi"></telescope-status>
+      <danger-zone class="danger-zone padded view"></danger-zone>
     </div>
-    <div class="cols cams-and-corons">
-      <div class="col">
-        <div class="status-tile view padded" v-for="deviceName in essentialDevices">
-          <div>
-            <span class="name">{{ deviceName }}</span>
-            <finite-state-machine-status v-if="retrieveByIndiId(deviceName)"
-              :indi-id="deviceName"></finite-state-machine-status>
-            <div v-else>waiting for app</div>
-          </div>
-          <indi-switch-multi-element v-if="deviceName.match(/^fw/)"
-            :indi-id="`${deviceName}.filterName`"></indi-switch-multi-element>
-          <indi-switch-multi-element v-if="deviceName.match(/^flip/) || deviceName.match(/^stage/)"
-            :indi-id="`${deviceName}.presetName`"></indi-switch-multi-element>
-        </div>
+    <div class="observation-grid">
+      <adaptive-optics-loop class="padded view ao-loop holoop" device="holoop" gainCtrlDevice="hogainctrl"
+        plotColor="rgb(241, 81, 255)" wfs="camwfs"></adaptive-optics-loop>
+      
+      <div class="cams-and-corons">
+        <table class="status-table view">
+          <thead>
+            <tr>
+              <th></th>
+              <th>channel</th>
+              <th>camera</th>
+              <th>ND</th>
+              <th>filter</th>
+              <th>exptime/FPS</th>
+              <th>gain</th>
+              <th>mode</th>
+              <th>shutter</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="camName in camNames" :key="camName">
+              <td>
+                <a v-if="camName != 'visx'" :href="`/video#cam${camName}`" target="_blank">
+                  <MaterialIcon name="open_in_new"></MaterialIcon>
+                </a>
+              </td>
+              <td>{{ camName }}</td>
+              <td>
+                <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)"
+                  :indi-id="`cam${camName}`"></finite-state-machine-status>
+              </td>
+              <td>
+                <indi-switch-dropdown v-if="(camName == 'sci1' || camName == 'sci2') && retrieveByIndiId(`fwscind`)"
+                  :indi-id="`fwscind.filterName`"></indi-switch-dropdown>
+              </td>
+              <td v-if="retrieveByIndiId(`fw${camName}`)">
+                <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
+                  :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
+              </td>
+              <td v-else-if="camName == 'flowfs' && retrieveByIndiId(`fwlowfs`)">
+                <indi-switch-dropdown v-if="retrieveByIndiId(`fwlowfs`)"
+                  :indi-id="`fwlowfs.filterName`"></indi-switch-dropdown>
+              </td>
+              <td v-else-if="retrieveByIndiId(`cam${camName}.current_exposure`)">
+                <progress :value="100 - retrieveValueByIndiId(`cam${camName}.current_exposure.remaining_pct`)"
+                  max="100"></progress>
+              </td>
+              <td v-else></td>
+              <td v-if="retrieveValueByIndiId(`cam${camName}.fps.current`) > 1">
+                <indi-current-target :indi-id="`cam${camName}.fps`" format="%1.3f" style="display: inline-block"
+                  width="8rem" suffix="FPS"></indi-current-target>
+              </td>
+              <td v-else-if="retrieveByIndiId(`cam${camName}.exptime`)">
+                <indi-current-target :indi-id="`cam${camName}.exptime`" format="%1.3f" style="display: inline-block"
+                  width="8rem" suffix="sec"></indi-current-target>
+              </td>
+              <td v-if="retrieveByIndiId(`cam${camName}.expose.request`)">
+                <indi-momentary-switch :indi-id="`cam${camName}.expose.request`"
+                  label="begin exposuring"></indi-momentary-switch>
+              </td>
+              <td v-else-if="retrieveByIndiId(`cam${camName}.emgain`)">
+                <indi-current-target :indi-id="`cam${camName}.emgain`"></indi-current-target>
+              </td>
+              <td v-else></td>
+              <td>
+                <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)"
+                  :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
+              </td>
+              <td>
+                <indi-toggle-switch v-if="retrieveByIndiId(`cam${camName}.shutter`)"
+                  :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut"
+                  :disabled="!shutterAvailable(camName)" :prompt="true"></indi-toggle-switch>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <table class="status-table view gap-bottom">
-        <thead>
-          <tr>
-            <th></th>
-            <th>channel</th>
-            <th>camera</th>
-            <th>ND</th>
-            <th>filter</th>
-            <th>exptime</th>
-            <th>gain</th>
-            <th>mode</th>
-            <th>shutter</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="camName in camNames" :key="camName">
-            <td>
-              <a v-if="camName != 'visx'" :href="`/video#cam${camName}`" target="_blank">
-                <MaterialIcon name="open_in_new"></MaterialIcon>
-              </a>
-            </td>
-            <td>{{ camName }}</td>
-            <td>
-              <finite-state-machine-status v-if="retrieveByIndiId(`cam${camName}`)"
-                :indi-id="`cam${camName}`"></finite-state-machine-status>
-            </td>
-            <td>
-              <indi-switch-dropdown v-if="(camName == 'sci1' || camName == 'sci2') && retrieveByIndiId(`fwscind`)"
-                :indi-id="`fwscind.filterName`"></indi-switch-dropdown>
-            </td>
-            <td v-if="retrieveByIndiId(`fw${camName}`)">
-              <indi-switch-dropdown v-if="retrieveByIndiId(`fw${camName}`)"
-              :indi-id="`fw${camName}.filterName`"></indi-switch-dropdown>
-            </td>
-            <td v-else-if="camName == 'flowfs' && retrieveByIndiId(`fwlowfs`)">
-              <indi-switch-dropdown v-if="retrieveByIndiId(`fwlowfs`)"
-              :indi-id="`fwlowfs.filterName`"></indi-switch-dropdown>
-            </td>
-            <td v-else-if="retrieveByIndiId(`cam${camName}.current_exposure`)">
-              <progress
-                :value="100 - retrieveValueByIndiId(`cam${camName}.current_exposure.remaining_pct`)"
-                max="100"></progress>
-            </td>
-            <td v-else></td>
-            <td>
-              <indi-current-target :indi-id="`cam${camName}.exptime`" format="%1.3f"
-                style="display: inline-block" width="8rem"
-                suffix="sec"></indi-current-target>
-            </td>
-            <td v-if="retrieveByIndiId(`cam${camName}.expose.request`)">
-              <indi-momentary-switch
-                :indi-id="`cam${camName}.expose.request`" label="begin exposuring"></indi-momentary-switch>
-            </td>
-            <td v-else-if="retrieveByIndiId(`cam${camName}.emgain`)">
-              <indi-current-target
-                :indi-id="`cam${camName}.emgain`"></indi-current-target>
-            </td>
-            <td v-else></td>
-            <td>
-              <indi-switch-dropdown v-if="retrieveByIndiId(`cam${camName}.readout_speed`)"
-                :indi-id="`cam${camName}.readout_speed`"></indi-switch-dropdown>
-            </td>
-            <td>
-              <indi-toggle-switch v-if="retrieveByIndiId(`cam${camName}.shutter`)"
-                :indi-id="`cam${camName}.shutter.toggle`" label-off="open" label-on="shut"
-                :disabled="!shutterAvailable(camName)" :prompt="true"></indi-toggle-switch>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="col">
-        <div class="view">
-          <indi-toggle-switch indi-id="holoop.loop_state.toggle" :read-only="true" :glowy-read-only="true" label-on="high-order" label-off="open"></indi-toggle-switch>
-          <indi-toggle-switch indi-id="loloop.loop_state.toggle" :read-only="true" :glowy-read-only="true" label-on="low-order" label-off="open"></indi-toggle-switch>
-        </div>
-        <sparkles-control class="view" indi-id="tweeterSpeck"></sparkles-control>
+      <sparkles-control class="view sparkles" indi-id="tweeterSpeck"></sparkles-control>
+      <div class="padded view maggie">
+        <maggie-o-x></maggie-o-x>
       </div>
+      <div class="padded view logs">
+        <observer-logs class="logs"></observer-logs>
+        <log-stream>
+        </log-stream>
+      </div>
+      <adaptive-optics-loop class="padded view ao-loop loloop" device="loloop" gainCtrlDevice="logainctrl"
+        plotColor="#f39c1f" wfs="camflowfs"></adaptive-optics-loop>
     </div>
+
     <div class="cols top-level">
       <div class="col">
 
@@ -155,8 +147,8 @@
             / <indi-value :indi-id="`temprack.temperature.upper`"></indi-value>ºC U
           </div>
         </div>
-        <div class="padded view gap-bottom">
-          <maggie-o-x></maggie-o-x>
+        <!-- <div class="padded view gap-bottom"> -->
+          <!-- <maggie-o-x></maggie-o-x> -->
           <!-- <div>
           purepyindi_example.uptime.uptime_sec: <indi-value indi-id="purepyindi_example.uptime.uptime_sec"></indi-value>
         </div>
@@ -164,12 +156,8 @@
           Toggle example: <IndiToggleSwitch indi-id="purepyindi_example.obs_on.toggle"></IndiToggleSwitch>
         </div>
         <MaterialIcon name="help"></MaterialIcon> -->
-        </div>
-        <observer-logs></observer-logs>
-        <div class="padded view">
-          <log-stream>
-          </log-stream>
-        </div>
+        <!-- </div> -->
+
       </div>
     </div>
   </div>
@@ -178,8 +166,27 @@
 @use "@/css/variables.scss" as *;
 
 .cams-and-corons {
-  padding: 0.5rem;
-  grid-template-columns: 1fr 3fr 1fr;
+  // padding: 0.5rem;
+  // grid-template-columns: 1fr 3fr 1fr;
+  grid-column: 4/13;
+}
+
+.ao-loop {
+  &.holoop {
+    grid-column: 1/4;
+  }
+
+  &.loloop {
+    grid-column: 1/4;
+  }
+}
+
+.sparkles {
+  grid-column: 1/4;
+}
+
+.maggie {
+  grid-column: 4/8;
 }
 
 .status-table {
@@ -205,20 +212,42 @@
   }
 }
 
-// .observation-controls {
-//   transition: background 1s;
-//   .observer-control {
-//     background: $icon-gray;
-//   }
-//   &.active {
-//       background: $plasma-blue;
-//       color: var(--fg-normal);
-//   }
-  
-//   .status-tiles {
-//     grid-template-columns: 1fr 1fr 1fr 1fr;
-//   }
-// }
+.observation-controls {
+  .observation-grid {
+    grid-template-columns: repeat(12, calc(1/12 * 100% - $lggap));
+    gap: $lggap;
+    padding: $lggap;
+    display: grid;
+
+    .telescope-status {
+      grid-column: 1/11;
+    }
+
+    .danger-zone {
+      grid-column: 11/13;
+    }
+
+    .telescope-status,
+    .danger-zone {
+      grid-row: 1/5;
+    }
+  }
+
+  //   transition: background 1s;
+  .observer-control {
+    background: $icon-gray;
+    padding: $lggap;
+  }
+
+
+  //   &.active {
+  //       background: $plasma-blue;
+  //       color: var(--fg-normal);
+  //   }
+
+  //   .status-tiles {
+  //   }
+}
 
 .telescope-controls {
   display: grid;
@@ -229,6 +258,10 @@
 .telescope.cols {
   grid-template-columns: 4fr 1fr;
   align-items: stretch;
+}
+
+.logs {
+  grid-column: 8/13;
 }
 </style>
 <script>
@@ -252,6 +285,7 @@ import FiniteStateMachineStatus from '@/components/instrument/FiniteStateMachine
 import IndiMomentarySwitch from '@/components/indi/IndiMomentarySwitch.vue';
 import MaggieOX from "@/components/instrument/MaggieOX.vue";
 import SparklesControl from "@/components/instrument/SparklesControl.vue";
+import AdaptiveOpticsLoop from "@/components/instrument/AdaptiveOpticsLoop.vue";
 import ObservabilityPlots from '@/components/plots/ObservabilityPlots.vue';
 export default {
   mixins: [utils],
@@ -272,8 +306,12 @@ export default {
       flipNames: ['fliptip', 'flipwfsf'],
       essentialDevices: ['fwfpm', 'stagescibs', 'fwlyot'],
       lightPathDevices: {
-        "entrance": [
+        "entrance-lab": [
           "fwtelsim",
+          "stagepickoff",
+          "stagebs",
+        ],
+        "entrance-tel": [
           "stagepickoff",
           "stagek",
           "flipacq",
@@ -345,6 +383,7 @@ export default {
     }
   },
   components: {
+    AdaptiveOpticsLoop,
     ObserverControl,
     ObserverLogs,
     IndiValue,

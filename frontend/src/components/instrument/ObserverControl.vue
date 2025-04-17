@@ -1,12 +1,22 @@
 <template>
   <div class="observer-control" :class="{ 'active': isObserving }" v-if="indiDefined">
     <div class="metadata">
-      <span>Current observer:</span>
-      <indi-switch-dropdown indi-id="observers.observers"></indi-switch-dropdown>
-      <span class="spaced">Target Name:</span>
-      <indi-current-target indi-id="observers.target" width="20em"></indi-current-target>
-      <span class="spaced">Observation Name:</span>
-      <indi-current-target indi-id="observers.obs_name" width="20em"></indi-current-target>
+      <div>
+        <span>Operator:</span>
+        <indi-switch-dropdown indi-id="observers.operators"></indi-switch-dropdown>
+      </div>
+      <div>
+        <span class="spaced">Observer:</span>
+        <indi-switch-dropdown indi-id="observers.observers"></indi-switch-dropdown>
+      </div>
+      <div>
+        <span class="spaced">Target:</span>
+        <span style="display: inline-flex;"><indi-current-target indi-id="observers.target"></indi-current-target><sync-button @sync="requestTargetReset"></sync-button></span>
+      </div>
+      <div>
+        <span class="spaced">Name:</span>
+        <indi-current-target indi-id="observers.obs_name"></indi-current-target>
+      </div>
     </div>
     <div style="display: flex;">
       
@@ -16,17 +26,6 @@
       <div class="section dates">
         <div class="value">{{ readableDateTimeUTC }}</div><div class="zone">UTC</div>
         <div class="value">{{ readableDateTimeChile }}</div><div class="zone">Chile</div>
-      </div>
-      <div class="section totals">
-        <span class="group-label">
-          total
-        </span>
-        <div class="totals-grid">
-          <div :class="{ glowy: isObserving }">{{ observationTimeTotal }}</div>
-          <div :class="{ glowy: isObserving }">{{ observationDeltaParang }}º</div>
-          <div>{{ targetTimeTotal }}</div>
-          <div>{{ targetDeltaParang }}º</div>
-        </div>
       </div>
       <div class="all-toggles">
         <div v-for="(names, group) in streamNames" class="toggles section labeled">
@@ -55,8 +54,22 @@
 
 .observer-control {
   background: var(--bg-alternate);
+  // .spaced {
+  //   margin-left: 1em;
+  // }
   .metadata {
+    max-width: 100em;
     margin-bottom: $lggap;
+    font-size: 125%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-gap: $lggap;
+    align-items: stretch;
+    div {
+      input {
+        flex: 1;
+      }
+    }
   }
   .dates {
     // vertical-align: middle;
@@ -65,7 +78,7 @@
     grid-template-columns: 10em 3em;
     grid-gap: 0 $unit;
     font-weight: bold;
-    font-size: 125%;
+    font-size: 150%;
     // margin-right: $unit;
     min-width: 13em;
     .value {
@@ -169,6 +182,7 @@
 <script>
 import indi from "@/mixins/indi.js";
 import utils from "@/mixins/utils.js";
+import SyncButton from "@/components/basic/SyncButton.vue";
 import IndiValue from "@/components/indi/IndiValue.vue";
 import IndiSwitchMultiElement from "@/components/indi/IndiSwitchMultiElement.vue";
 import IndiSwitchDropdown from "@/components/indi/IndiSwitchDropdown.vue";
@@ -269,6 +283,11 @@ export default {
     },
   },
   mixins: [indi, utils],
+  methods: {
+    requestTargetReset() {
+      this.indi.sendIndiNewByNames(this.thisDeviceName, 'target_reset', 'request', 'On'); 
+    }
+  },
   components: {
     IndiValue,
     IndiSwitchMultiElement,
@@ -278,7 +297,8 @@ export default {
     IndiProperty,
     IndiCurrentTarget,
     AlternateIndiToggleSwitch,
-    MaterialIcon
+    MaterialIcon,
+    SyncButton
   },
 };
 </script>

@@ -111,7 +111,6 @@ export default {
       return ts.toFormat("yyyy") + semester;
     },
     formatSeconds(secs) {
-      console.log(secs);
       let out = [];
       const hours = Math.floor(secs / (60 * 60));
       let minutes = Math.floor((secs - 60 * 60 * hours) / 60);
@@ -130,10 +129,8 @@ export default {
       out.push(`${seconds}s`);
       out.reverse();
       let outStr = out.pop();
-      console.log(out, hours, minutes, seconds);
       for (let part of out) {
         outStr += " " + part;
-        console.log(outStr);
       }
       return outStr;
     },

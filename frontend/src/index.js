@@ -15,7 +15,6 @@ async function fetchConfigData() {
     const destURL = utils.buildBackendUrl('config');
     const res = await fetch(destURL);
     if (!res.ok) {
-      console.log("not ok");
       const message = `An error has occured: ${res.status} - ${res.statusText}`;
       console.error(message);
     }
@@ -36,10 +35,6 @@ async function initApp() {
   if (map[configData.layout] && map[configData.layout]['routes']) {
     var routes = map[configData.layout]['routes'];
   }
-
-  // const router = new VueRouter({
-  //   routes
-  // });
 
   const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),

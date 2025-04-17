@@ -1,11 +1,9 @@
 <template>
-  <div id="app" :class="{'light': isLightMode, 'dark': !isLightMode}">
+  <div id="app" :class="{'light-mode': isLightMode, 'dark-mode': !isLightMode}">
     <flames :active="showFlames"></flames>
     <div class="status">
       <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
       <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
-      <loop-state indi-id="holoop"></loop-state>
-      <loop-state indi-id="loloop"></loop-state>
       <indi-toggle-switch indi-id="tcsi.labMode.toggle" label-on="lab" label-off="tcs"></indi-toggle-switch>
       <div style="flex: 1"></div>
       <button class="btn square" @click="toggleLightMode">+</button>
