@@ -163,7 +163,7 @@ export default {
     triggerOffset() {
       this.focusCooldown = 6;
       setTimeout(this.focusCooldownTick, 1000);
-      this.indi.sendIndiNewByNames("tcsi", "pyrNudge", "z", 1400);
+      this.indi.sendIndiNewByNames("tcsi", "pyrNudge", "z", 1700);
     },
   },
   computed: {

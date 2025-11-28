@@ -288,7 +288,7 @@ class WebInterface(xconf.Command):
     layout : InstrumentLayouts = xconf.field(default=InstrumentLayouts.MAGAOX)
     bind_host : str = xconf.field(default="127.0.0.1", help="Listening address (0.0.0.0 for all)")
     bind_port : int = xconf.field(default=9191, help="Listening TCP port")
-    indi : IndiConfig = xconf.field(default=IndiConfig())
+    indi : IndiConfig = xconf.field(default_factory=IndiConfig)
     potemkin : bool = xconf.field(
         default=False,
         help="Whether to load a system snapshot for testing (disables connection to INDI server)"

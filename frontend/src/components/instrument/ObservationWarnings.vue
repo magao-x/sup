@@ -47,8 +47,8 @@ export default {
             const loopClosed = this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'On';
             const anyPIAA = (
                 (this.retrieveValueByIndiId("fwfpm.filterName.cmc") == "On") ||
-                (this.retrieveValueByIndiId("stagepiaa.presetName.out") !== "On") ||
-                (this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On")
+                ((this.retrieveValueByIndiId("stagepiaa.fsm.state") == "READY") && (this.retrieveValueByIndiId("stagepiaa.presetName.out") !== "On")) ||
+                ((this.retrieveValueByIndiId("stageipiaa.fsm.state") == "READY") && (this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On"))
             );
             const allPIAA = (
                 (this.retrieveValueByIndiId("fwfpm.filterName.cmc") === "On") &&
