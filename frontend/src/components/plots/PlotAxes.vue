@@ -359,7 +359,6 @@ export default {
       }
 
       for (let [name, dataset] of Object.entries(this.data)) {
-        console.log(dataset);
         // Draw vertical lines if requested
         if (!dataset.vline) {
           continue;

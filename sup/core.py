@@ -68,7 +68,7 @@ class SupViews:
         light_path_config = INSTRUMENT_CONFIG_ROOT / 'light_path.toml'
         if not light_path_config.exists():
             light_path_config = Path(__file__).parent / 'light_path_ex.toml'
-        
+
         with open(light_path_config) as fh:
             light_path_dict = toml.loads(fh.read())
         return OrjsonResponse(light_path_dict)
@@ -107,7 +107,7 @@ class SupViews:
         sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
         altitude = LCO_SITE.altaz(sample_times, target).alt
         p_angle = LCO_SITE.parallactic_angle(sample_times, target)
-        
+
         payload = {
             'parallactic_angles': [
                 {'x': ts.to_value('iso'), 'y': angle}
@@ -263,13 +263,13 @@ class FileChangeHandler(FileSystemEventHandler):
         if current_time - self._last_modified_time < self.debouncing_interval_sec:
             return
 
-        self._last_modified_time = current_time 
+        self._last_modified_time = current_time
 
         log.debug(f"Update noticed on file {event.src_path}")
         if os.path.realpath(event.src_path) == os.path.realpath(self.file_path_to_watch):
             log.debug(f"Update noticed on target file {event.src_path}")
             asyncio.run_coroutine_threadsafe(
-                self.web_interface.emit_instgraph_update(), 
+                self.web_interface.emit_instgraph_update(),
                 self.loop
             )
 

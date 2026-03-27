@@ -1,33 +1,57 @@
 <template>
-<div class="warnings">
-    <div class="view state-warning" v-for="warning in warnings" :key="warning.message">
-        <material-icon name="warning"></material-icon> {{ warning.message }}
+    <div class="warnings">
+        <div class="warnings-scroll-content" :style="scrollStyle">
+            <div
+                class="view state-warning"
+                v-for="warning in warnings"
+                :key="warning.message"
+            >
+                <material-icon name="warning"></material-icon>
+                {{ warning.message }}
+            </div>
+            <div
+                class="view state-warning"
+                v-for="warning in warnings"
+                :key="warning.message"
+            >
+                <material-icon name="warning"></material-icon>
+                {{ warning.message }}
+            </div>
+        </div>
     </div>
-</div>
 </template>
 <style lang="scss">
-@use '@/css/variables.scss' as *;
+@use "@/css/variables.scss" as *;
 .warnings {
+    background: $beware-orange;
+    position: relative;
+    /*    width: 100vw;
+    overflow-x: scroll;
+    overflow-y: hidden;*/
+}
+
+.warnings-scroll-content {
+    width: 200vw;
+    position: relative;
+    overflow-x: scroll;
+    /*
+    overflow-y: hidden;
+    scrollbar-width: none; */
     display: flex;
-    // position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 1000;
-    width: 100vw;
+    flex-direction: row;
 }
 
 .state-warning {
+    width: 100vw;
     font-size: 1.75rem;
     padding: $unit;
-    flex: 1;
     text-align: center;
-    height: 6rem;
     box-sizing: border-box;
     color: var(--fg-normal);
 }
 
 .dark-mode .view.state-warning {
-    background: $beware-orange;
+    background: transparent;
     border: none;
 }
 </style>
@@ -35,119 +59,244 @@
 import utils from "@/mixins/utils.js";
 import indi from "@/mixins/indi.js";
 import MaterialIcon from "@/components/basic/MaterialIcon.vue";
+
+const millisecondsPerPeriod = 20_000;
+
 export default {
     mixins: [utils, indi],
     components: {
-        MaterialIcon
+        MaterialIcon,
     },
     inject: ["indi"],
+    mounted() {
+        this.timer = requestAnimationFrame(this.updateScroll);
+    },
+    unmounted() {
+        cancelAnimationFrame(this.timer);
+    },
+    methods: {
+        updateScroll(dt) {
+            if (this.$el) {
+                this.totalWidth = this.$el.offsetWidth;
+                // range from left: -totalWidth to +totalWidth;
+                this.scrollPhase =
+                    ((this.scrollPhase + dt) % millisecondsPerPeriod) /
+                    millisecondsPerPeriod;
+                this.scrollPositionPx =
+                    this.scrollPhase * this.totalWidth - this.totalWidth;
+            }
+            this.timer = requestAnimationFrame(this.updateScroll);
+        },
+    },
+    data() {
+        return {
+            timer: null,
+            totalWidth: 0,
+            scrollPhase: 0,
+            scrollPositionPx: 0,
+        };
+    },
     computed: {
+        scrollStyle() {
+            return {
+                left: `${this.scrollPositionPx}px`,
+            };
+        },
         warnings() {
-            const labMode = this.retrieveValueByIndiId('tcsi.labMode.toggle') == 'On' || this.retrieveValueByIndiId('stagepickoff.presetName.tel') == 'Off';
-            const loopClosed = this.retrieveValueByIndiId('holoop.loop_state.toggle') == 'On';
-            const anyPIAA = (
-                (this.retrieveValueByIndiId("fwfpm.filterName.cmc") == "On") ||
-                ((this.retrieveValueByIndiId("stagepiaa.fsm.state") == "READY") && (this.retrieveValueByIndiId("stagepiaa.presetName.out") !== "On")) ||
-                ((this.retrieveValueByIndiId("stageipiaa.fsm.state") == "READY") && (this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On"))
+            const labMode =
+                this.retrieveValueByIndiId("tcsi.labMode.toggle") == "On" ||
+                this.retrieveValueByIndiId("stagepickoff.presetName.tel") ==
+                    "Off";
+            const loopClosed =
+                this.retrieveValueByIndiId("holoop.loop_state.toggle") == "On";
+            let coronShortName = null;
+            if (
+                this.retrieveValueByIndiId("fwfpm.filterName.knifemask") ==
+                    "On" ||
+                this.retrieveValueByIndiId("fwfpm.filterName.knifemaskZ") ==
+                    "On" ||
+                this.retrieveValueByIndiId("fwfpm.filterName.open") == "On"
+            ) {
+                coronShortName = "knifemask";
+            } else if (
+                this.retrieveValueByIndiId("fwfpm.filterName.lyotlg") == "On" ||
+                this.retrieveValueByIndiId("fwlyot.filterName.LyotLg1") == "On"
+            ) {
+                coronShortName = "lyotlg";
+            } else if (
+                this.retrieveValueByIndiId("fwfpm.filterName.lyotsm") == "On" ||
+                this.retrieveValueByIndiId("fwlyot.filterName.LyotSm") == "On"
+            ) {
+                coronShortName = "lyotsm";
+            }
+
+            let scibsShortName = null;
+            if (
+                this.retrieveValueByIndiId("stagescibs.presetName.out") == "On"
+            ) {
+                scibsShortName = "out";
+            } else if (
+                this.retrieveValueByIndiId("stagescibs.presetName.ri") == "On"
+            ) {
+                scibsShortName = "ri";
+            } else if (
+                this.retrieveValueByIndiId("stagescibs.presetName.pol") == "On"
+            ) {
+                scibsShortName = "pol";
+            }
+            const anyPIAA =(
+                this.retrieveValueByIndiId("stagepiaa.fsm.state") == "READY" &&
+                this.retrieveValueByIndiId("stagepiaa.presetName.out") !== "On"
+            ) || (
+                this.retrieveValueByIndiId("stageipiaa.fsm.state") == "READY" &&
+                this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On"
             );
             const allPIAA = (
-                (this.retrieveValueByIndiId("fwfpm.filterName.cmc") === "On") &&
-                (this.retrieveValueByIndiId("stagepiaa.presetName.vispiaa") === "On") &&
-                (this.retrieveValueByIndiId("stageipiaa.presetName.vispiaa") === "On")
+                this.retrieveValueByIndiId("fwfpm.filterName.cmc") === "On" ||
+                this.retrieveValueByIndiId("fwfpm.filterName.cmc2") === "On"
             );
             const unfilteredWarnings = [
                 {
                     message: "calibration source is on",
-                    condition: !labMode && this.retrieveValueByIndiId('pdu0.source.state') == 'On'
+                    condition:
+                        !labMode &&
+                        this.retrieveValueByIndiId("pdu0.source.state") == "On",
                 },
                 {
                     message: "flipacq is in the beam",
-                    condition: this.retrieveValueByIndiId('flipacq.presetName.in') == 'On'
+                    condition:
+                        this.retrieveValueByIndiId("flipacq.presetName.in") ==
+                        "On",
                 },
                 {
                     message: "fwscind is in the beam",
-                    condition: !labMode && !(
-                        this.retrieveValueByIndiId('fwscind.filterName.open') == 'On' ||
-                        this.retrieveValueByIndiId('fwscind.filterName.open2') == 'On'
-                    )
+                    condition:
+                        !labMode &&
+                        !(
+                            this.retrieveValueByIndiId(
+                                "fwscind.filterName.open",
+                            ) == "On" ||
+                            this.retrieveValueByIndiId(
+                                "fwscind.filterName.open2",
+                            ) == "On"
+                        ),
                 },
                 {
                     message: "flipwfsf is in the beam",
-                    condition: !labMode && this.retrieveValueByIndiId('flipwfsf.position.in') == 'On'
+                    condition:
+                        !labMode &&
+                        this.retrieveValueByIndiId("flipwfsf.position.in") ==
+                            "On",
                 },
                 {
                     message: "loop closed without tracking and offloading",
-                    condition: (
-                        loopClosed && !labMode &&
+                    condition:
+                        loopClosed &&
+                        !labMode &&
                         !(
-                          this.retrieveValueByIndiId('ktrack.tracking.toggle') == 'On' &&
-                          this.retrieveValueByIndiId('adctrack.tracking.toggle') == 'On' &&
-                          this.retrieveValueByIndiId('tcsi.offlTT_enable.toggle') == 'On'
-                        )
-                    )
+                            this.retrieveValueByIndiId(
+                                "ktrack.tracking.toggle",
+                            ) == "On" &&
+                            this.retrieveValueByIndiId(
+                                "adctrack.tracking.toggle",
+                            ) == "On" &&
+                            this.retrieveValueByIndiId(
+                                "tcsi.offlTT_enable.toggle",
+                            ) == "On"
+                        ),
                 },
                 {
                     message: "loop closed without camwfs alignment loop active",
-                    condition: (
-                        loopClosed && !labMode &&
+                    condition:
+                        loopClosed &&
+                        !labMode &&
                         !(
-                          this.retrieveValueByIndiId('camwfs-align.loop_state.toggle') == 'On'
-                        )
-                    )
+                            this.retrieveValueByIndiId(
+                                "camwfs-align.loop_state.toggle",
+                            ) == "On"
+                        ),
                 },
                 {
                     message: "recording, but camsci1 is not writing",
-                    condition: !labMode && (
-                        this.retrieveValueByIndiId('observers.obs_on.toggle') == 'On' &&
-                        !(this.retrieveValueByIndiId('camsci1-sw.writing.toggle') == 'On')
-                    )
+                    condition:
+                        !labMode &&
+                        this.retrieveValueByIndiId("observers.obs_on.toggle") ==
+                            "On" &&
+                        !(
+                            this.retrieveValueByIndiId(
+                                "camsci1-sw.writing.toggle",
+                            ) == "On"
+                        ),
                 },
                 {
                     message: "recording, but camsci2 is not writing",
-                    condition: !labMode && (
-                        this.retrieveValueByIndiId('observers.obs_on.toggle') == 'On' &&
-                        !(this.retrieveValueByIndiId('camsci2-sw.writing.toggle') == 'On') &&
-                        !(this.retrieveValueByIndiId('stagescibs.presetName.out') == 'On')
-                    )
+                    condition:
+                        !labMode &&
+                        this.retrieveValueByIndiId("observers.obs_on.toggle") ==
+                            "On" &&
+                        !(
+                            this.retrieveValueByIndiId(
+                                "camsci2-sw.writing.toggle",
+                            ) == "On"
+                        ) &&
+                        !(
+                            this.retrieveValueByIndiId(
+                                "stagescibs.presetName.out",
+                            ) == "On"
+                        ),
                 },
                 {
                     message: "camsci1 is not operating",
-                    condition: (
-                        this.retrieveValueByIndiId("camsci1.fsm.state") !== "POWEROFF"
-                        && 
-                        this.retrieveValueByIndiId("camsci1.fsm.state") !== "OPERATING"
-                    )
+                    condition:
+                        this.retrieveValueByIndiId("camsci1.fsm.state") !==
+                            "POWEROFF" &&
+                        this.retrieveValueByIndiId("camsci1.fsm.state") !==
+                            "OPERATING",
                 },
                 {
                     message: "camsci2 is not operating",
-                    condition: (
-                        this.retrieveValueByIndiId("camsci2.fsm.state") !== "POWEROFF"
-                        && 
-                        this.retrieveValueByIndiId("camsci2.fsm.state") !== "OPERATING"
-                    )
+                    condition:
+                        this.retrieveValueByIndiId("camsci2.fsm.state") !==
+                            "POWEROFF" &&
+                        this.retrieveValueByIndiId("camsci2.fsm.state") !==
+                            "OPERATING",
                 },
                 {
                     message: "stagesci1 is not focused",
-                    condition: (
-                            (this.retrieveValueByIndiId("stagesci1.presetName.fpm") !== "On") &&
-                            (this.retrieveValueByIndiId("camsci1.shutter.toggle") !== "On")
-                        )
+                    condition:
+                        !anyPIAA && (
+                            this.retrieveValueByIndiId(
+                                `stagesci1.presetName.${coronShortName}-${scibsShortName}`,
+                            ) !== "On" &&
+                            this.retrieveValueByIndiId("camsci1.shutter.toggle") !==
+                                "On" &&
+                            this.retrieveValueByIndiId("camsci1.fsm.state") ===
+                                "OPERATING"
+                        ),
                 },
-                
+
                 {
                     message: "stagesci2 is not focused",
-                    condition: (
-                            (this.retrieveValueByIndiId("stagesci2.presetName.fpm") !== "On") &&
-                            (this.retrieveValueByIndiId("camsci2.shutter.toggle") !== "On")
-                        )
+                    condition:
+                        !anyPIAA && (
+                            this.retrieveValueByIndiId(
+                                `stagesci2.presetName.${coronShortName}-${scibsShortName}`,
+                            ) !== "On" &&
+                            this.retrieveValueByIndiId("camsci2.shutter.toggle") !==
+                                "On" &&
+                            this.retrieveValueByIndiId("camsci2.fsm.state") ===
+                                "OPERATING"
+                        ),
                 },
                 {
                     message: "PIAA is only partly configured",
-                    condition: (anyPIAA && !allPIAA),
+                    condition: anyPIAA && !allPIAA,
                 },
             ];
-            return unfilteredWarnings.filter((elem) => (elem.condition && this.indi.indiIsConnected));
-        }
-    }
-}
+            return unfilteredWarnings.filter(
+                (elem) => elem.condition && this.indi.indiIsConnected,
+            );
+        },
+    },
+};
 </script>

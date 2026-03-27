@@ -1,6 +1,6 @@
 .PHONY: all buildjs servejs
 
-INSTALLED_PATH ?= /opt/conda/envs/sup/lib/python3.10/site-packages/sup/
+INSTALLED_PATH ?= /opt/conda/envs/sup/lib/python3.14/site-packages/sup/
 
 all:
 	cd frontend/ && /opt/conda/envs/sup/bin/npm install

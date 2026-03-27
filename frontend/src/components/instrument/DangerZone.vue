@@ -4,12 +4,12 @@
       <!-- indi-id="tcsi.acqFromGuider.request"  -->
       <button v-if="readyToAcquire" class="cancel" @click="cancelAcquire">cancel</button>
       <button v-else class="prepare red" :disabled="!goodToAcquire" @click="prepareToAcquire">{{ prepareButtonLabel }}</button>
-      <button v-if="readyToAcquire" 
+      <button v-if="readyToAcquire"
         class="red acquire" :disabled="!goodToAcquire" @click="triggerAcquire">acquire</button>
     </div>
     <div>
       <div v-if="indiIdExists('flipacq.presetName')" class="control">
-        
+
       </div>
       <div v-else class="control">
         Waiting for flipacq...
@@ -46,7 +46,7 @@
   border-radius: 50%;
 }
 
-button { 
+button {
   text-align: center;
 }
 
@@ -181,7 +181,7 @@ export default {
     },
     goodToAcquire() {
       return (
-        this.retrieveValueByIndiId('flipacq.presetName.in') == 'On' 
+        this.retrieveValueByIndiId('flipacq.presetName.in') == 'On'
         &&
         this.acquireCooldown == 0
       );

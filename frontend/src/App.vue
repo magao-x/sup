@@ -143,7 +143,7 @@ export default Vue.extend({
     return {
       toggleFlames: this.toggleFlames,
     };
-  },  
+  },
   methods: {
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;
@@ -185,5 +185,3 @@ export default Vue.extend({
   }
 });
 </script>
-
-
