@@ -1,10 +1,9 @@
-.PHONY: all buildjs servejs
 
-INSTALLED_PATH ?= /opt/conda/envs/sup/lib/python3.14/site-packages/sup/
+INSTALLED_PATH ?= "$(shell /opt/conda/envs/sup/bin/python -c 'import site;print(site.getsitepackages()[0])')/sup"
 
 all:
 	cd frontend/ && /opt/conda/envs/sup/bin/npm install
-	sudo /opt/conda/envs/sup/bin/pip install .
+	sudo /opt/conda/envs/sup/bin/pip install --no-cache-dir .
 	sudo chown -R $(USER):magaox-dev ./
 	sudo chmod -R g+rwX ./
 
