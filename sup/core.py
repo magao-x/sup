@@ -1,3 +1,4 @@
+import contextlib
 from functools import partial
 import pathlib
 import traceback
@@ -201,19 +202,19 @@ class INDIUpdateBatcher:
 class AppWebSocketEndpoint(WebSocketEndpoint):
     """Add a leading 'app' argument to let methods reference a containing app
     """
-    def __init__(self, app : 'WebInterface', *args, **kwargs) -> None:
+    def __init__(self, cli : 'WebInterface', *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.app = app
+        self.cli = cli
 
 class SupWebSocket(AppWebSocketEndpoint):
     encoding = "bytes"
     async def on_connect(self, websocket):
-        self.app._connected_clients.append(websocket)
+        self.cli._connected_clients.append(websocket)
         await websocket.accept()
         log.debug("Sending indi init payload")
         await websocket.send_bytes(orjson.dumps({
             'action': 'indi_init',
-            'payload': self.app.indi_client.to_serializable()['devices'],
+            'payload': self.cli.indi_client.to_serializable()['devices'],
         }))
         log.debug("Sending instgraph init payload")
         # await websocket.send_bytes(orjson.dumps({
@@ -232,7 +233,7 @@ class SupWebSocket(AppWebSocketEndpoint):
             return
         try:
             value = constants.parse_string_into_any_indi_value(payload['value'])
-            self.app.indi_client[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
+            self.cli.indi_client[f"{payload['device']}.{payload['property']}.{payload['element']}"] = value
         except Exception as e:
             log.exception(f"Swallowed exception: Couldn't set INDI value from {payload}")
 
@@ -247,8 +248,8 @@ class SupWebSocket(AppWebSocketEndpoint):
 
     async def on_disconnect(self, websocket, close_code):
         try:
-            idx = self.app._connected_clients.index(websocket)
-            self.app._connected_clients.pop(idx)
+            idx = self.cli._connected_clients.index(websocket)
+            self.cli._connected_clients.pop(idx)
         except ValueError:
             pass
 
@@ -367,22 +368,21 @@ class WebInterface(xconf.Command):
             log.debug(f"Trigger get properties: {message}")
             self.indi_client.get_properties()
 
-    async def spawn_tasks(self):
-        loop = asyncio.get_event_loop()
+    async def spawn_tasks(self, app: Starlette, task_group: asyncio.TaskGroup):
         conn = purepyindi2.AsyncIndiTcpConnection(host=self.indi.hostname, port=self.indi.port)
         self.indi_client = purepyindi2.IndiClient(conn)
-        loop.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.connection, self.trigger_get_properties))
+        self._running_tasks.add(task_group.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.connection, self.trigger_get_properties)))
 
         self.indi_batcher = INDIUpdateBatcher(self.indi_client)
-        loop.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.inbound, self.indi_batcher.process_update))
+        self._running_tasks.add(task_group.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.inbound, self.indi_batcher.process_update)))
 
-        loop.create_task(self.start_file_watcher())
+        self._running_tasks.add(task_group.create_task(self.start_file_watcher()))
 
         indi_coro = self.indi_client.connection.run(reconnect_automatically=True)
-        self._running_tasks.add(loop.create_task(indi_coro))
+        self._running_tasks.add(task_group.create_task(indi_coro))
 
         emit_indi_updates_coro = self.emit_indi_updates()
-        self._running_tasks.add(loop.create_task(emit_indi_updates_coro))
+        self._running_tasks.add(task_group.create_task(emit_indi_updates_coro))
 
     async def cancel_tasks(self):
         await self.indi_client.connection.stop()
@@ -391,6 +391,14 @@ class WebInterface(xconf.Command):
             task.cancel()
 
     def main(self):
+        @contextlib.asynccontextmanager
+        async def lifespan(app: Starlette):
+            async with asyncio.TaskGroup() as tg:
+                await self.spawn_tasks(app, tg)
+                log.info("Started background tasks")
+                yield
+                log.info("Stopping background tasks...")
+                await self.cancel_tasks()
         self.views = SupViews(self)
         self.app = Starlette(
             debug=self.debug_mode,
@@ -404,8 +412,7 @@ class WebInterface(xconf.Command):
                 Route("/instgraph", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],
-            on_startup=[self.spawn_tasks],
-            on_shutdown=[self.cancel_tasks],
+            lifespan=lifespan,
             middleware=[
                 Middleware(GZipMiddleware),
                 Middleware(CORSMiddleware, allow_origins=['*'])
