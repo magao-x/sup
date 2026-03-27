@@ -1,5 +1,13 @@
 <template>
   <div class="observability-plot-container">
+      <div class="drawer" :class="{ 'open': drawerOpen }">
+          <button @click="toggleDrawer">{{ drawerOpen? "<<" : ">>" }}</button>
+          <div class="view padded">
+            <input type="text" v-model="targetQuery">
+            <input type="submit" value="lookup" @click="submitLookup">
+            <input type="reset" value="reset" @click="resetLookup">
+          </div>
+      </div>
     <div class="plot-and-title altitude">
       <div class="plot-title">altitude: <indi-value class="value" :indi-id="`tcsi.telpos.el`" :format-function="(v) => applyFormatString('%1.4fº', v)"></indi-value></div>
       <plot-component v-if="altitudes !== null" :data="altitudePlotData" :timeSeries="true" :showNowUTC="true"
@@ -29,11 +37,25 @@
 <style lang="scss" scoped>
 @use "@/css/variables.scss" as *;
 
+.drawer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index:1;
+    .view {
+        display: none;
+    }
+    &.open .view {
+        display: inherit;
+    }
+}
+
 .value {
   color: var(--fg-active);
 }
 
 .observability-plot-container {
+  position: relative;
   display: grid;
   grid-template-columns: subgrid;
   grid-template-rows: subgrid;
@@ -122,6 +144,9 @@ export default {
     return {
       parallactic_angles: null,
       altitudes: null,
+      drawerOpen: false,
+      targetQuery: "",
+      submittedQuery: "",
     }
   },
   components: { PlotComponent, IndiValue },
@@ -135,8 +160,8 @@ export default {
     altitudePlotData() {
       return {
         "altitude": { points: this.altitudes, class: "glowy" },
-        "moonrise": { vline: this.solar_system.moon.rise, dashed: true, color: "#4d4d4d" },
-        "moonset": { vline: this.solar_system.moon.set, dashed: true, color: "#4d4d4d" },
+        "moonrise": { vline: this.solar_system.moon.rise, dashed: true, color: "#cacaca" },
+        "moonset": { vline: this.solar_system.moon.set, dashed: true, color: "#cacaca" },
         "sunrise": { vline: this.solar_system.sun.rise, dashed: true, color: "#fdbc4b" },
         "sunset": { vline: this.solar_system.sun.set, dashed: true, color: "#fdbc4b" },
       };
@@ -169,9 +194,27 @@ export default {
     },
   },
   methods: {
-    async loadPlotData(ra, dec) {
+    async submitLookup() {
+        console.log("targetName", this.targetQuery);
+        this.submittedQuery = this.targetQuery;
+        let data = await this.loadPlotData(this.equatorialCoords.ra, this.equatorialCoords.dec, this.submittedQuery);
+        if (!data) {
+            console.log("no data returned");
+          return;
+        }
+        await this.setPlotData(data);
+        console.log("submitted lookup");
+    },
+    toggleDrawer() {
+        this.drawerOpen = !this.drawerOpen;
+    },
+    async loadPlotData(ra, dec, targetName) {
       try {
-        const destURL = utils2.buildBackendUrl(`airmass?ra=${ra}&dec=${dec}`);
+        let urlPart = `airmass?ra=${ra}&dec=${dec}`;
+        if (targetName && targetName.trim()){
+            urlPart += `&comparison_target=${encodeURI(targetName)}`;
+        }
+        const destURL = utils2.buildBackendUrl(urlPart);
         const res = await fetch(destURL);
 
         if (!res.ok) {
