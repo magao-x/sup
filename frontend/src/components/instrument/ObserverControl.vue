@@ -1,22 +1,15 @@
 <template>
   <div class="observer-control" :class="{ 'active': isObserving }" v-if="indiDefined">
     <div class="metadata">
-      <div>
-        <span>Operator:</span>
+        <div class="label">operator:</div>
+        <div class="label">observer:</div>
+        <div class="label">target:</div>
+        <div class="label">name:</div>
         <indi-switch-dropdown indi-id="observers.operators"></indi-switch-dropdown>
-      </div>
-      <div>
-        <span class="spaced">Observer:</span>
         <indi-switch-dropdown indi-id="observers.observers"></indi-switch-dropdown>
-      </div>
-      <div>
-        <span class="spaced">Target:</span>
         <span style="display: inline-flex;"><indi-current-target indi-id="observers.target"></indi-current-target><sync-button @sync="requestTargetReset"></sync-button></span>
-      </div>
-      <div>
-        <span class="spaced">Name:</span>
         <indi-current-target indi-id="observers.obs_name"></indi-current-target>
-      </div>
+      
     </div>
     <div style="display: flex;">
       
@@ -65,6 +58,11 @@
     grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-gap: $lggap;
     align-items: stretch;
+    .label {
+      font-variant: small-caps;
+      font-size: 0.75em;
+      letter-spacing: 0.1em;
+    }
     div {
       input {
         flex: 1;
@@ -202,10 +200,16 @@ export default {
       type: String,
       default: "observers",
     },
+    wfsCamNames: {
+      type: Array,
+      default: () => [
+        "camwfs", "camflowfs", "camllowfs",
+      ],
+    },
     scienceCamNames: {
       type: Array,
       default: () => [
-        "camsci1", "camsci2"
+        "camsci1", "camsci2", "camdurham"
       ],
     },
     isObserving: {
@@ -267,13 +271,17 @@ export default {
       if (writers) {
         let names = Object.keys(writers._elements);
         const isSci = (val) => this.scienceCamNames.indexOf(val) > -1;
+        const isWfs = (val) => this.wfsCamNames.indexOf(val) > -1;
         const isDm = (val) => val.startsWith('dm');
         let sci = names.filter((val) => isSci(val));
         names = names.filter((val) => !isSci(val));
+        let wfs = names.filter((val) => isWfs(val));
+        names = names.filter((val) => !isWfs(val));
         let dm = names.filter((val) => isDm(val));
         let aux = names.filter((val) => !isDm(val));
         return {
           sci,
+          wfs,
           aux,
           dm,
         }
@@ -285,7 +293,7 @@ export default {
   mixins: [indi, utils],
   methods: {
     requestTargetReset() {
-      this.indi.sendIndiNewByNames(this.thisDeviceName, 'target_reset', 'request', 'On'); 
+      this.indi.sendIndiNewByNames(this.thisDeviceName, 'target_load_from_tcs', 'request', 'On'); 
     }
   },
   components: {

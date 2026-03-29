@@ -230,6 +230,7 @@ export default {
     },
     async setPlotData(data) {
       console.log("Setting plot data on component");
+      console.log(data);
       this.parallactic_angles = data.parallactic_angles;
       this.altitudes = data.altitudes;
       this.solar_system = data.solar_system;

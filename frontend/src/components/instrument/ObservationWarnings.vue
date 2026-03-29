@@ -1,19 +1,11 @@
 <template>
     <div class="warnings">
         <div class="warnings-scroll-content" :style="scrollStyle">
-            <div
-                class="view state-warning"
-                v-for="warning in warnings"
-                :key="warning.message"
-            >
+            <div class="view state-warning" v-for="warning in warnings" :key="warning.message">
                 <material-icon name="warning"></material-icon>
                 {{ warning.message }}
             </div>
-            <div
-                class="view state-warning"
-                v-for="warning in warnings"
-                :key="warning.message"
-            >
+            <div class="view state-warning" v-for="warning in warnings" :key="warning.message">
                 <material-icon name="warning"></material-icon>
                 {{ warning.message }}
             </div>
@@ -22,6 +14,7 @@
 </template>
 <style lang="scss">
 @use "@/css/variables.scss" as *;
+
 .warnings {
     background: $beware-orange;
     position: relative;
@@ -106,15 +99,15 @@ export default {
             const labMode =
                 this.retrieveValueByIndiId("tcsi.labMode.toggle") == "On" ||
                 this.retrieveValueByIndiId("stagepickoff.presetName.tel") ==
-                    "Off";
+                "Off";
             const loopClosed =
                 this.retrieveValueByIndiId("holoop.loop_state.toggle") == "On";
             let coronShortName = null;
             if (
                 this.retrieveValueByIndiId("fwfpm.filterName.knifemask") ==
-                    "On" ||
+                "On" ||
                 this.retrieveValueByIndiId("fwfpm.filterName.knifemaskZ") ==
-                    "On" ||
+                "On" ||
                 this.retrieveValueByIndiId("fwfpm.filterName.open") == "On"
             ) {
                 coronShortName = "knifemask";
@@ -144,17 +137,22 @@ export default {
             ) {
                 scibsShortName = "pol";
             }
-            const anyPIAA =(
+            const anyPIAA = (
                 this.retrieveValueByIndiId("stagepiaa.fsm.state") == "READY" &&
                 this.retrieveValueByIndiId("stagepiaa.presetName.out") !== "On"
             ) || (
-                this.retrieveValueByIndiId("stageipiaa.fsm.state") == "READY" &&
-                this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On"
-            );
+                    this.retrieveValueByIndiId("stageipiaa.fsm.state") == "READY" &&
+                    this.retrieveValueByIndiId("stageipiaa.presetName.out") !== "On"
+                );
             const allPIAA = (
                 this.retrieveValueByIndiId("fwfpm.filterName.cmc") === "On" ||
                 this.retrieveValueByIndiId("fwfpm.filterName.cmc2") === "On"
             );
+            const observersElems = this.retrieveByIndiId("observers.writers")?._elements;
+            let writableStreams = [];
+            if (observersElems) {
+                writableStreams = Object.keys(observersElems);
+            }
             const unfilteredWarnings = [
                 {
                     message: "calibration source is on",
@@ -186,7 +184,7 @@ export default {
                     condition:
                         !labMode &&
                         this.retrieveValueByIndiId("flipwfsf.position.in") ==
-                            "On",
+                        "On",
                 },
                 {
                     message: "loop closed without tracking and offloading",
@@ -221,7 +219,7 @@ export default {
                     condition:
                         !labMode &&
                         this.retrieveValueByIndiId("observers.obs_on.toggle") ==
-                            "On" &&
+                        "On" &&
                         !(
                             this.retrieveValueByIndiId(
                                 "camsci1-sw.writing.toggle",
@@ -233,7 +231,7 @@ export default {
                     condition:
                         !labMode &&
                         this.retrieveValueByIndiId("observers.obs_on.toggle") ==
-                            "On" &&
+                        "On" &&
                         !(
                             this.retrieveValueByIndiId(
                                 "camsci2-sw.writing.toggle",
@@ -249,17 +247,17 @@ export default {
                     message: "camsci1 is not operating",
                     condition:
                         this.retrieveValueByIndiId("camsci1.fsm.state") !==
-                            "POWEROFF" &&
+                        "POWEROFF" &&
                         this.retrieveValueByIndiId("camsci1.fsm.state") !==
-                            "OPERATING",
+                        "OPERATING",
                 },
                 {
                     message: "camsci2 is not operating",
                     condition:
                         this.retrieveValueByIndiId("camsci2.fsm.state") !==
-                            "POWEROFF" &&
+                        "POWEROFF" &&
                         this.retrieveValueByIndiId("camsci2.fsm.state") !==
-                            "OPERATING",
+                        "OPERATING",
                 },
                 {
                     message: "stagesci1 is not focused",
@@ -269,9 +267,9 @@ export default {
                                 `stagesci1.presetName.${coronShortName}-${scibsShortName}`,
                             ) !== "On" &&
                             this.retrieveValueByIndiId("camsci1.shutter.toggle") !==
-                                "On" &&
+                            "On" &&
                             this.retrieveValueByIndiId("camsci1.fsm.state") ===
-                                "OPERATING"
+                            "OPERATING"
                         ),
                 },
 
@@ -283,9 +281,9 @@ export default {
                                 `stagesci2.presetName.${coronShortName}-${scibsShortName}`,
                             ) !== "On" &&
                             this.retrieveValueByIndiId("camsci2.shutter.toggle") !==
-                                "On" &&
+                            "On" &&
                             this.retrieveValueByIndiId("camsci2.fsm.state") ===
-                                "OPERATING"
+                            "OPERATING"
                         ),
                 },
                 {
@@ -293,6 +291,16 @@ export default {
                     condition: anyPIAA && !allPIAA,
                 },
             ];
+            for (let streamName of writableStreams) {
+                unfilteredWarnings.push({
+                    message: `${streamName} not writing`,
+                    condition: writableStreams[streamName]?._value == "On" && !(
+                        this.retrieveValueByIndiId(
+                            `${streamName}-sw.writing.toggle`,
+                        ) == "On"
+                    ),
+                })
+            }
             return unfilteredWarnings.filter(
                 (elem) => elem.condition && this.indi.indiIsConnected,
             );

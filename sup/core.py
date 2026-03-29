@@ -103,12 +103,13 @@ class SupViews:
         ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
         if ra_str is None or dec_str is None:
             raise HTTPException(400)
-        target_str = request.query_params.get('comparison_target', None)
-        comparison_target = FixedTarget.from_name(target_str)
         coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
         target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
         current_time = Time(utc_now())
         sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
+
+        target_str = request.query_params.get('comparison_target', None)
+        comparison_target = FixedTarget.from_name(target_str) if target_str else None
 
         payload = {
             'solar_system': {
@@ -123,6 +124,8 @@ class SupViews:
             },
         }
         for key, target_obj in zip(('target', 'comparison_target'), [target, comparison_target]):
+            if target_obj is None:
+                continue
             altitude = LCO_SITE.altaz(sample_times, target_obj).alt
             p_angle = LCO_SITE.parallactic_angle(sample_times, target_obj)
             target_payload = {

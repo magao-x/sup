@@ -120,6 +120,7 @@ export default {
   inject: ["time"],
   methods: {
     computeDomain(accessor) {
+      console.log(this.data);
       let dataEntries = Object.entries(this.data);
       if (dataEntries.length < 1 || !dataEntries[0][1].points.length) return [0, 1];
 
@@ -155,6 +156,8 @@ export default {
       return hash;
     },
     updatePlot() {
+      console.log("In PlotAxes updatePlot");
+      return;
       // Calculate plot dimensions in screen coords from margins
       // and element dimensions in screen coords
       var margin = { top: 10, right: 30, bottom: 50, left: 50 };
