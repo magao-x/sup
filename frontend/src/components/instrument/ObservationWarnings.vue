@@ -153,6 +153,7 @@ export default {
             if (observersElems) {
                 writableStreams = Object.keys(observersElems);
             }
+            const isRecording = this.retrieveValueByIndiId("observers.obs_on.toggle") == "On";
             const unfilteredWarnings = [
                 {
                     message: "calibration source is on",
@@ -218,8 +219,7 @@ export default {
                     message: "recording, but camsci1 is not writing",
                     condition:
                         !labMode &&
-                        this.retrieveValueByIndiId("observers.obs_on.toggle") ==
-                        "On" &&
+                        isRecording &&
                         !(
                             this.retrieveValueByIndiId(
                                 "camsci1-sw.writing.toggle",
@@ -230,8 +230,7 @@ export default {
                     message: "recording, but camsci2 is not writing",
                     condition:
                         !labMode &&
-                        this.retrieveValueByIndiId("observers.obs_on.toggle") ==
-                        "On" &&
+                        isRecording &&
                         !(
                             this.retrieveValueByIndiId(
                                 "camsci2-sw.writing.toggle",
@@ -260,44 +259,21 @@ export default {
                         "OPERATING",
                 },
                 {
-                    message: "stagesci1 is not focused",
-                    condition:
-                        !anyPIAA && (
-                            this.retrieveValueByIndiId(
-                                `stagesci1.presetName.${coronShortName}-${scibsShortName}`,
-                            ) !== "On" &&
-                            this.retrieveValueByIndiId("camsci1.shutter.toggle") !==
-                            "On" &&
-                            this.retrieveValueByIndiId("camsci1.fsm.state") ===
-                            "OPERATING"
-                        ),
-                },
-
-                {
-                    message: "stagesci2 is not focused",
-                    condition:
-                        !anyPIAA && (
-                            this.retrieveValueByIndiId(
-                                `stagesci2.presetName.${coronShortName}-${scibsShortName}`,
-                            ) !== "On" &&
-                            this.retrieveValueByIndiId("camsci2.shutter.toggle") !==
-                            "On" &&
-                            this.retrieveValueByIndiId("camsci2.fsm.state") ===
-                            "OPERATING"
-                        ),
-                },
-                {
                     message: "PIAA is only partly configured",
                     condition: anyPIAA && !allPIAA,
                 },
             ];
             for (let streamName of writableStreams) {
+                const thisStreamWriterToggle = this.retrieveValueByIndiId(`${streamName}-sw.writing.toggle`);
+                const thisStreamWriterFsm = this.retrieveValueByIndiId(`${streamName}-sw.fsm.state`);
+
                 unfilteredWarnings.push({
-                    message: `${streamName} not writing`,
-                    condition: writableStreams[streamName]?._value == "On" && !(
-                        this.retrieveValueByIndiId(
-                            `${streamName}-sw.writing.toggle`,
-                        ) == "On"
+                    message: `recording, but ${streamName} not writing`,
+                    condition: (
+                        isRecording &&
+                        observersElems[streamName]?._value == "On" &&
+                        (!(thisStreamWriterToggle == "On") ||
+                        !(thisStreamWriterFsm == "OPERATING"))
                     ),
                 })
             }
