@@ -32,12 +32,12 @@ export const map =
             ],
         "tabs": {
             "observation": {"icon": "visibility", "path": "/", "label": "observation"},
-            "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
-            "ao": {"icon": "blur_on", "path": "/ao", "label": "AO"},
-            "dashboard": {"icon": "speed", "path": "/dashboard", "label": "dashboard"},
+            "quicklook": {"icon": "folder_open", "path": "/files", "label": "files"},
+            // "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
+            // "ao": {"icon": "blur_on", "path": "/ao", "label": "AO"},
+            // "dashboard": {"icon": "speed", "path": "/dashboard", "label": "dashboard"},
             "state": {"icon": "power_settings_new", "path": "/instgraph", "label": "instgraph"},
-            "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
-            "files": {"icon": "folder_open", "path": "/files", "label": "files"},
+            // "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
         }
     },
     'scoob': {
