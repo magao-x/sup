@@ -7,9 +7,8 @@
         <div class="label">name:</div>
         <indi-switch-dropdown indi-id="observers.operators"></indi-switch-dropdown>
         <indi-switch-dropdown indi-id="observers.observers"></indi-switch-dropdown>
-        <span style="display: inline-flex;"><indi-current-target indi-id="observers.target"></indi-current-target><sync-button @sync="requestTargetReset"></sync-button></span>
+        <span style="display: inline-flex;"><indi-current-target indi-id="observers.target" style="flex: 1;"></indi-current-target><sync-button @sync="requestTargetReset"></sync-button></span>
         <indi-current-target indi-id="observers.obs_name"></indi-current-target>
-      
     </div>
     <div style="display: flex;">
       
@@ -293,7 +292,7 @@ export default {
   mixins: [indi, utils],
   methods: {
     requestTargetReset() {
-      this.indi.sendIndiNewByNames(this.thisDeviceName, 'target_load_from_tcs', 'request', 'On'); 
+      this.indi.sendIndiNewByNames('observers', 'target_load_from_tcs', 'request', 'On');
     }
   },
   components: {
