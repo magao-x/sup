@@ -9,6 +9,7 @@ import AdaptiveOptics from "@/pages/magaox/AdaptiveOptics.vue";
 import Power from "@/pages/magaox/Power.vue";
 import PlantStatus from "@/pages/magaox/PlantStatus.vue";
 import InstGraph from "@/pages/InstGraph.vue";
+import FileBrowser from "@/pages/FileBrowser.vue";
 
 // SCOOB
 import ScoobObservation from "@/pages/scoob/Observation.vue";
@@ -27,6 +28,7 @@ export const map =
                 { path: '/dashboard', component: Dashboard },
                 { path: '/plant-status', component: PlantStatus},
                 { path: '/instgraph', component: InstGraph},
+                { path: '/files', component: FileBrowser},
             ],
         "tabs": {
             "observation": {"icon": "visibility", "path": "/", "label": "observation"},
@@ -35,6 +37,7 @@ export const map =
             "dashboard": {"icon": "speed", "path": "/dashboard", "label": "dashboard"},
             "state": {"icon": "power_settings_new", "path": "/instgraph", "label": "instgraph"},
             "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
+            "files": {"icon": "folder_open", "path": "/files", "label": "files"},
         }
     },
     'scoob': {
@@ -43,11 +46,13 @@ export const map =
                 { path: '/', component: ScoobObservation},
                 { path: '/cameras', component: Cameras},
                 { path: '/power', component: Power},
+                { path: '/files', component: FileBrowser},
             ],
         "tabs": {
             "observation": {"icon": "visibility", "path": "/", "label": "observation"},
             "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
             "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
+            "files": {"icon": "folder_open", "path": "/files", "label": "files"},
         }
     }
 }

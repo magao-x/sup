@@ -1,6 +1,7 @@
 import contextlib
 from functools import partial
 import pathlib
+import shutil
 import traceback
 import asyncio
 import datetime
@@ -39,7 +40,7 @@ from watchdog.events import FileSystemEventHandler
 
 from .constants import (
     INSTRUMENT_CONFIG_ROOT, InstrumentLayouts, SITE_LOCATION,
-    CONFIG_FILENAME, INSTGRAPH_FILE_PATH
+    CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT
 )
 from .utils import OrjsonResponse
 
@@ -97,6 +98,158 @@ class SupViews:
     async def config(self, request):
         config = xconf.config_to_dict(self.app)
         return OrjsonResponse(config)
+
+    async def obs_list(self, request):
+        """Paginated directory listing under the obs root.
+
+        Query params:
+            path  - relative path within obs root (default: '')
+            offset - pagination offset (default: 0)
+            limit  - max entries to return (default: 200)
+        """
+        import stat as stat_mod
+        rel = request.query_params.get('path', '')
+        offset = int(request.query_params.get('offset', '0'))
+        limit = min(int(request.query_params.get('limit', '200')), 1000)
+
+        obs_root = Path(self.app.obs_root).resolve()
+        target = (obs_root / rel).resolve()
+
+        # prevent traversal outside obs_root
+        if obs_root not in target.parents and target != obs_root:
+            raise NotFound('Invalid path')
+        if not target.is_dir():
+            raise NotFound('Not a directory')
+
+        entries = []
+        total = 0
+        try:
+            with os.scandir(target) as scanner:
+                # Collect lightweight tuples: (is_dir, name_lower, name, full_path)
+                # DirEntry.is_dir() is cached from scandir, no extra syscall
+                all_entries = [(not e.is_dir(), e.name.lower(), e.name, e.path, e.is_dir()) for e in scanner]
+            all_entries.sort()
+            total = len(all_entries)
+            for _, _, name, full_path, is_dir in all_entries[offset:offset + limit]:
+                try:
+                    st = os.stat(full_path)
+                    entries.append({
+                        'name': name,
+                        'is_dir': is_dir,
+                        'size': st.st_size if not is_dir else None,
+                        'mtime': st.st_mtime,
+                    })
+                except OSError:
+                    continue
+        except PermissionError:
+            raise HTTPException(403, detail='Permission denied')
+
+        return OrjsonResponse({
+            'path': rel,
+            'entries': entries,
+            'total': total,
+            'offset': offset,
+            'limit': limit,
+        })
+
+    async def obs_file(self, request):
+        """Serve raw FITS image data as binary (float32 buffer + dimensions)."""
+        from astropy.io import fits as astropy_fits
+        rel = request.query_params.get('path', '')
+        obs_root = Path(self.app.obs_root).resolve()
+        target = (obs_root / rel).resolve()
+
+        if obs_root not in target.parents and target != obs_root:
+            raise NotFound('Invalid path')
+        if not target.is_file():
+            raise NotFound('Not a file')
+
+        try:
+            with astropy_fits.open(str(target)) as hdul:
+                # find the first ImageHDU with data
+                data = None
+                for hdu in hdul:
+                    if hdu.data is not None and hdu.data.ndim >= 2:
+                        data = hdu.data
+                        break
+                if data is None:
+                    raise HTTPException(400, detail='No image data found in FITS file')
+
+                # flatten to 2D if needed (take first 2D slice)
+                while data.ndim > 2:
+                    data = data[0]
+
+                height, width = data.shape
+                arr = np.ascontiguousarray(data, dtype=np.float32)
+                buf = arr.tobytes()
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise
+            log.error(f'Error reading FITS file {target}: {e}')
+            raise HTTPException(500, detail='Error reading FITS file')
+
+        from starlette.responses import Response
+        import struct
+        # header: width (u32) + height (u32) then float32 pixels
+        header = struct.pack('<II', width, height)
+        return Response(
+            content=header + buf,
+            media_type='application/octet-stream',
+            headers={'X-Image-Width': str(width), 'X-Image-Height': str(height)},
+        )
+
+    async def obs_header(self, request):
+        """Return the FITS header as JSON key-value pairs."""
+        from astropy.io import fits as astropy_fits
+        rel = request.query_params.get('path', '')
+        obs_root = Path(self.app.obs_root).resolve()
+        target = (obs_root / rel).resolve()
+
+        if obs_root not in target.parents and target != obs_root:
+            raise NotFound('Invalid path')
+        if not target.is_file():
+            raise NotFound('Not a file')
+
+        try:
+            with astropy_fits.open(str(target)) as hdul:
+                cards = []
+                for hdu_idx, hdu in enumerate(hdul):
+                    hdu_cards = []
+                    for card in hdu.header.cards:
+                        keyword = card.keyword
+                        value = card.value
+                        comment = card.comment
+                        # convert non-serializable values to strings
+                        if not isinstance(value, (str, int, float, bool, type(None))):
+                            value = str(value)
+                        hdu_cards.append({
+                            'keyword': keyword,
+                            'value': value,
+                            'comment': comment,
+                        })
+                    cards.append({'hdu': hdu_idx, 'name': hdu.name, 'cards': hdu_cards})
+        except Exception as e:
+            log.error(f'Error reading FITS header {target}: {e}')
+            raise HTTPException(500, detail='Error reading FITS file')
+
+        return OrjsonResponse(cards)
+
+    async def obs_download(self, request):
+        """Serve the raw FITS file for download."""
+        rel = request.query_params.get('path', '')
+        obs_root = Path(self.app.obs_root).resolve()
+        target = (obs_root / rel).resolve()
+
+        if obs_root not in target.parents and target != obs_root:
+            raise NotFound('Invalid path')
+        if not target.is_file():
+            raise NotFound('Not a file')
+
+        return FileResponse(
+            str(target),
+            filename=target.name,
+            media_type='application/octet-stream',
+        )
 
     async def sun_and_moon(self, request):
         current_time = Time(utc_now())
@@ -255,6 +408,66 @@ class SupWebSocket(AppWebSocketEndpoint):
         except ValueError:
             pass
 
+class LogStreamWebSocket(AppWebSocketEndpoint):
+    encoding = "bytes"
+
+    async def on_connect(self, websocket):
+        await websocket.accept()
+        unit = self.cli.log_unit
+        use_journalctl = unit and shutil.which("journalctl") is not None
+        if use_journalctl:
+            self._proc = await asyncio.create_subprocess_exec(
+                "journalctl", "-f", "-u", unit, "--no-pager", "-o", "short",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            self._task = asyncio.create_task(self._stream_lines(websocket, self._proc.stdout))
+        else:
+            self._proc = None
+            self._task = asyncio.create_task(self._stream_demo(websocket))
+
+    async def _stream_lines(self, websocket, stream):
+        try:
+            async for line in stream:
+                await websocket.send_bytes(line.rstrip(b"\n"))
+        except Exception:
+            pass
+
+    async def _stream_demo(self, websocket):
+        import random
+        demo_messages = [
+            "lookyloo[1234]: Processing target HD 12345",
+            "lookyloo[1234]: Exposure 30.0s band=z",
+            "lookyloo[1234]: Writing /home/guestobs/obs/2025-01-15/hd12345_z_0001.fits",
+            "lookyloo[1234]: Slewing to RA=12:34:56 DEC=+12:34:56",
+            "lookyloo[1234]: AO loop closed, Strehl=0.42",
+            "lookyloo[1234]: Pipeline quicklook ready",
+            "lookyloo[1234]: ADC correction applied: PA=127.3",
+            "lookyloo[1234]: Coronagraph insert: lyot_05",
+            "lookyloo[1234]: DM flat set: dmflat_20250115",
+            "lookyloo[1234]: Sky subtraction complete",
+        ]
+        try:
+            while True:
+                ts = datetime.datetime.now().strftime("%b %d %H:%M:%S")
+                msg = random.choice(demo_messages)
+                await websocket.send_bytes(f"{ts} exao2 {msg}".encode())
+                await asyncio.sleep(random.uniform(0.5, 3.0))
+        except Exception:
+            pass
+
+    async def on_receive(self, websocket, data):
+        pass
+
+    async def on_disconnect(self, websocket, close_code):
+        if hasattr(self, "_task"):
+            self._task.cancel()
+        if hasattr(self, "_proc") and self._proc is not None:
+            try:
+                self._proc.terminate()
+            except ProcessLookupError:
+                pass
+
 class FileChangeHandler(FileSystemEventHandler):
     def __init__(self, web_interface, file_path_to_watch, debouncing_interval_sec, loop):
         self.web_interface = web_interface
@@ -314,6 +527,8 @@ class WebInterface(xconf.Command):
         help="How long to wait before sending a message over the websocket that the instGraph file has updated"
     )
     instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
+    obs_root : str = xconf.field(default=OBS_ROOT, help="Root directory for observation file browsing")
+    log_unit : str = xconf.field(default="lookyloo", help="systemd unit name whose journal to stream (empty to disable)")
 
     def __post_init__(self):
         self._running_tasks = set()
@@ -411,7 +626,12 @@ class WebInterface(xconf.Command):
                 Route('/sun-moon', endpoint=self.views.sun_and_moon),
                 Route('/observability-curves', endpoint=self.views.observability_curves),
                 Route('/config', endpoint=self.views.config),
+                Route('/obs/list', endpoint=self.views.obs_list),
+                Route('/obs/file', endpoint=self.views.obs_file),
+                Route('/obs/header', endpoint=self.views.obs_header),
+                Route('/obs/download', endpoint=self.views.obs_download),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
+                WebSocketRoute('/ws/logs', endpoint=partial(LogStreamWebSocket, self)),
                 Route("/instgraph", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],

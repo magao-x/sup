@@ -8,6 +8,7 @@ CONFIG_FILENAME = "gui_sup.conf"
 INSTGRAPH_FILE_PATH = "/tmp/magaox.drawio"
 
 SITE_LOCATION = "Las Campanas Observatory"
+OBS_ROOT = "/home/guestobs/obs"
 BATCH_UPDATE_INTERVAL = 0.2 # seconds
 
 class InstrumentLayouts(Enum):
