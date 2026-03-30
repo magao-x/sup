@@ -122,11 +122,18 @@ export default {
     computeDomain(accessor) {
       console.log(this.data);
       let dataEntries = Object.entries(this.data);
-      if (dataEntries.length < 1 || !dataEntries[0][1].points.length) return [0, 1];
+      let goodDatum = null;
+      for (let v of Object.values(this.data)) {
+        if (v.points && v.points.length) {
+          goodDatum = v;
+          break;
+        }
+      }
+      if (!goodDatum) return [0, 1];
 
       // take first point of first line as initial min/max vals
-      let valMin = accessor(dataEntries[0][1].points[0]),
-        valMax = accessor(dataEntries[0][1].points[0]);
+      let valMin = accessor(goodDatum.points[0]),
+        valMax = accessor(goodDatum.points[0]);
 
       // loop over points in all lines
       for (let [name, lineData] of dataEntries) {
@@ -156,8 +163,6 @@ export default {
       return hash;
     },
     updatePlot() {
-      console.log("In PlotAxes updatePlot");
-      return;
       // Calculate plot dimensions in screen coords from margins
       // and element dimensions in screen coords
       var margin = { top: 10, right: 30, bottom: 50, left: 50 };

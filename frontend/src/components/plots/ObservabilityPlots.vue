@@ -10,7 +10,7 @@
       </div>
     <div class="plot-and-title altitude">
       <div class="plot-title">altitude: <indi-value class="value" :indi-id="`tcsi.telpos.el`" :format-function="(v) => applyFormatString('%1.4fº', v)"></indi-value></div>
-      <plot-component v-if="altitudes !== null" :data="altitudePlotData" :timeSeries="true" :showNowUTC="true"
+      <plot-component v-if="targetData !== null" :data="altitudePlotData" :timeSeries="true" :showNowUTC="true"
         :fixedYDomain="[0, 90]" :fixedYTicks="[0, 30, 45, 60, 90]" :legend="false"
         class="observability-plot"></plot-component>
       <div class="totals-grid">
@@ -22,7 +22,7 @@
     </div>
     <div class="plot-and-title parang">
       <div class="plot-title">parallactic angle: <indi-value class="value" :indi-id="`tcsi.teldata.pa`" :format-function="(v) => applyFormatString('%1.4fº', v)"></indi-value></div>
-      <plot-component v-if="parallactic_angles !== null" :data="parallacticAnglePlotData" :timeSeries="true"
+      <plot-component v-if="targetData !== null" :data="parallacticAnglePlotData" :timeSeries="true"
       :showNowUTC="true" :fixedYDomain="[-180, 180]" :fixedYTicks="[-180, -90, 0, 90, 180]" :legend="false"
       class="observability-plot"></plot-component>
       <div class="totals-grid">
@@ -142,8 +142,11 @@ export default {
   inject: ["indi"],
   data: function () {
     return {
-      parallactic_angles: null,
-      altitudes: null,
+      altitudePlotData: null,
+      parallacticAnglePlotData: null,
+      solarSystemData: null,
+      targetData: null,
+      comparisonTargetData: null,
       drawerOpen: false,
       targetQuery: "",
       submittedQuery: "",
@@ -158,17 +161,21 @@ export default {
       return this.equatorialCoords?.dec;
     },
     altitudePlotData() {
-      return {
-        "altitude": { points: this.altitudes, class: "glowy" },
-        "moonrise": { vline: this.solar_system.moon.rise, dashed: true, color: "#cacaca" },
-        "moonset": { vline: this.solar_system.moon.set, dashed: true, color: "#cacaca" },
-        "sunrise": { vline: this.solar_system.sun.rise, dashed: true, color: "#fdbc4b" },
-        "sunset": { vline: this.solar_system.sun.set, dashed: true, color: "#fdbc4b" },
+      const payload = {
+        target: {points: this.targetData?.altitudes, class: "glowy"},
+        moonrise: { vline: this.solarSystemData?.moon.rise, dashed: true, color: "#cacaca" },
+        moonset: { vline: this.solarSystemData?.moon.set, dashed: true, color: "#cacaca" },
+        sunrise: { vline: this.solarSystemData?.sun.rise, dashed: true, color: "#fdbc4b" },
+        sunset: { vline: this.solarSystemData?.sun.set, dashed: true, color: "#fdbc4b" },
       };
+      if (this.comparisonTargetData) {
+        payload[this.submittedQuery] = {points: this.comparisonTargetData.altitudes, class: "glowy"};
+      }
+      return payload;
     },
     parallacticAnglePlotData() {
       let parangData = {
-        "parallactic angle": { points: this.parallactic_angles, class: "glowy" },
+        "parallactic angle": { points: this.targetData?.parallactic_angles, class: "glowy" },
       };
       let obsStart = this.retrieveValueByIndiId(`${this.observersDevice}.obs_start.observation`);
       let tgtStart = this.retrieveValueByIndiId(`${this.observersDevice}.obs_start.target`);
@@ -177,6 +184,9 @@ export default {
       }
       if (tgtStart) {
         parangData["tgt start"] = { vspan: { from: tgtStart, to: this.time.currentTime.toISO() }, dashed: true };
+      }
+      if (this.comparisonTargetData) {
+        parangData[this.submittedQuery] = {points: this.comparisonTargetData.parallactic_angles, class: "glowy"};
       }
       return parangData;
     },
@@ -197,22 +207,45 @@ export default {
     async submitLookup() {
         console.log("targetName", this.targetQuery);
         this.submittedQuery = this.targetQuery;
-        let data = await this.loadPlotData(this.equatorialCoords.ra, this.equatorialCoords.dec, this.submittedQuery);
+        let data = await this.loadObservabilityData({name: this.submittedQuery});
         if (!data) {
-            console.log("no data returned");
+          console.log("no data returned");
           return;
         }
-        await this.setPlotData(data);
+        this.comparisonTargetData = data;
         console.log("submitted lookup");
     },
     toggleDrawer() {
         this.drawerOpen = !this.drawerOpen;
     },
-    async loadPlotData(ra, dec, targetName) {
+    async loadSunMoonData() {
+      const destURL = utils2.buildBackendUrl("sun-moon");
       try {
-        let urlPart = `airmass?ra=${ra}&dec=${dec}`;
-        if (targetName && targetName.trim()){
-            urlPart += `&comparison_target=${encodeURI(targetName)}`;
+        const res = await fetch(destURL);
+        if (!res.ok) {
+          const message = `An error has occured: ${res.status} - ${res.statusText}`;
+          console.error(message);
+          return {};
+        }
+        const data = await res.json();
+        if (data.solar_system) {
+          return data.solar_system;
+        } else {
+          console.error(data);
+          return {};
+        }
+      } catch (err) {
+         console.error("Error in retrieving sun and moon rise/set times:", err);
+      }
+    },
+    async loadObservabilityData(targetSpec) {
+      console.log("foo");
+      try {
+        let urlPart = `observability-curves?`
+        if (targetSpec.ra && targetSpec.dec) {
+          urlPart += `ra=${targetSpec.ra}&dec=${targetSpec.dec}`;
+        } else if (targetSpec.name && targetSpec.name.trim()) {
+            urlPart += `&target_name=${encodeURI(targetSpec.name)}`;
         }
         const destURL = utils2.buildBackendUrl(urlPart);
         const res = await fetch(destURL);
@@ -227,33 +260,25 @@ export default {
       } catch (err) {
         console.error("Error in retrieving altitude/parang:", err);
       }
-    },
-    async setPlotData(data) {
-      console.log("Setting plot data on component");
-      console.log(data);
-      this.parallactic_angles = data.parallactic_angles;
-      this.altitudes = data.altitudes;
-      this.solar_system = data.solar_system;
-      console.log("Done setting plot data");
     }
   },
   async mounted() {
     if (this.ra == null || this.dec == null) return;
     console.log("loading plot data from mounted");
-    const data = await this.loadPlotData(this.ra, this.dec);
+    this.targetData = await this.loadObservabilityData({ra: this.ra, dec: this.dec});
+    this.solarSystemData = await this.loadSunMoonData();
     console.log("Loaded plot data after mount");
-    await this.setPlotData(data);
   },
   watch: {
     async equatorialCoords(newCoords, oldCoords) {
       if (newCoords && newCoords.ra && newCoords.dec
         //  && (oldCoords.ra !== newCoords.ra || oldCoords.dec !== newCoords.dec)
       ) {
-        let data = await this.loadPlotData(newCoords.ra, newCoords.dec);
+        let data = await this.loadObservabilityData({ra: newCoords.ra, dec: newCoords.dec});
         if (!data) {
           return;
         }
-        await this.setPlotData(data);
+        this.targetData = data;
         console.log("updated plot");
       }
     }

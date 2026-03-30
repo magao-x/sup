@@ -98,19 +98,8 @@ class SupViews:
         config = xconf.config_to_dict(self.app)
         return OrjsonResponse(config)
 
-
-    async def airmass(self, request):
-        ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
-        if ra_str is None or dec_str is None:
-            raise HTTPException(400)
-        coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
-        target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
+    async def sun_and_moon(self, request):
         current_time = Time(utc_now())
-        sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
-
-        target_str = request.query_params.get('comparison_target', None)
-        comparison_target = FixedTarget.from_name(target_str) if target_str else None
-
         payload = {
             'solar_system': {
                 'moon': {
@@ -121,24 +110,34 @@ class SupViews:
                     'rise': LCO_SITE.sun_rise_time(current_time).to_value('iso'),
                     'set': LCO_SITE.sun_set_time(current_time).to_value('iso'),
                 },
-            },
+            }}
+        return OrjsonResponse(payload)
+
+    async def observability_curves(self, request):
+        ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
+        target_name = request.query_params.get('target_name', None)
+
+        if (ra_str is None or dec_str is None) and (target_name is None):
+            raise HTTPException(400)
+        if ra_str is None and dec_str is None:
+            target = FixedTarget.from_name(target_name)
+        else:
+            coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
+            target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
+        current_time = Time(utc_now())
+        sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
+        altitude = LCO_SITE.altaz(sample_times, target).alt
+        p_angle = LCO_SITE.parallactic_angle(sample_times, target)
+        payload = {
+            'parallactic_angles': [
+                {'x': ts.to_value('iso'), 'y': angle}
+                for (ts, angle) in zip(sample_times, p_angle.to(u.degree).value)
+            ],
+            'altitudes': [
+                {'x': ts.to_value('iso'), 'y': angle}
+                for (ts, angle) in zip(sample_times, altitude.to(u.degree).value)
+            ],
         }
-        for key, target_obj in zip(('target', 'comparison_target'), [target, comparison_target]):
-            if target_obj is None:
-                continue
-            altitude = LCO_SITE.altaz(sample_times, target_obj).alt
-            p_angle = LCO_SITE.parallactic_angle(sample_times, target_obj)
-            target_payload = {
-                'parallactic_angles': [
-                    {'x': ts.to_value('iso'), 'y': angle}
-                    for (ts, angle) in zip(sample_times, p_angle.to(u.degree).value)
-                ],
-                'altitudes': [
-                    {'x': ts.to_value('iso'), 'y': angle}
-                    for (ts, angle) in zip(sample_times, altitude.to(u.degree).value)
-                ]
-            }
-            payload[key] = target_payload
 
         try:
             serialized = OrjsonResponse(payload)
@@ -409,7 +408,8 @@ class WebInterface(xconf.Command):
                 Route('/', endpoint=self.views.index),
                 Route('/indi', endpoint=self.views.indi),
                 Route('/light-path', endpoint=self.views.light_path),
-                Route('/airmass', endpoint=self.views.airmass),
+                Route('/sun-moon', endpoint=self.views.sun_and_moon),
+                Route('/observability-curves', endpoint=self.views.observability_curves),
                 Route('/config', endpoint=self.views.config),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
                 Route("/instgraph", endpoint=self.views.instgraph),
