@@ -21,7 +21,7 @@
 @use "@/css/variables.scss" as *;
 #app {
   margin: 0 auto;
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -36,7 +36,6 @@
 .content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
 
 .status {
