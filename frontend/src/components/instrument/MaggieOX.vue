@@ -13,9 +13,16 @@
       <indi-momentary-switch indi-id="maggieo_x.speak.request"
         label="speak"></indi-momentary-switch>
     </div>
-    <indi-switch-multi-element indi-id="maggieo_x.soundboard" :columns="6"></indi-switch-multi-element>
+    <indi-switch-multi-element indi-id="maggieo_x.soundboard" id="soundboard"></indi-switch-multi-element>
   </div>
 </template>
+<style>
+@media (min-width: 1711px) {
+  #soundboard .minigrid {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  }
+}
+</style>
 <script>
 import utils from "@/mixins/utils.js";
 import IndiElement from "@/components/indi/IndiElement.vue";
