@@ -21,6 +21,7 @@ export default createStore({
       config: constants.DEFAULT_CONFIG,
       instGraphUpdateTime: null,
       instGraphFilename: null,
+      instGraphRev: null,
     }
   },
   mutations: {
@@ -77,12 +78,10 @@ export default createStore({
     setConfig(state, new_config) {
       state.config = new_config;
     },
-    setInstGraphUpdateTime(state) {
+    setInstGraph(state, payload) {
       state.instGraphUpdateTime = Date.now();
-    },
-    setInstGraphFilename(state, filename) {
-      console.log("Setting instGraph filename",filename)
-      state.instGraphFilename = filename;
+      state.instGraphFilename = payload.file;
+      state.instGraphRev = payload.rev;
     }
   },
   actions: {
@@ -119,11 +118,8 @@ export default createStore({
     fetchConfig({ commit }, config) {
       commit('setConfig', config);
     },
-    updateInstGraphUpdateTime({ commit }) {
-      commit('setInstGraphUpdateTime');
-    },
-    updateInstGraphFilename({ commit }, filename) {
-      commit('setInstGraphFilename', filename);
+    updateInstGraph({ commit }, payload) {
+      commit('setInstGraph', payload);
     }
   }
 });

@@ -41,10 +41,8 @@ export default {
               this.reinitializeIndiWorld(msg.payload);
             } else if (msg.action == "indi_batch_update") {
               this.batchUpdate(msg.payload);
-            } else if (msg.action == "indi_instgraph_updated") {
-              console.log("Receiving instGraph data", msg.payload.file);
-              this.$store.dispatch('updateInstGraphUpdateTime');
-              this.$store.dispatch('updateInstGraphFilename', msg.payload.file);
+            } else if (msg.action == "instgraph_updated") {
+              this.instgraphUpdate(msg.payload);
             }
           });
         },
@@ -107,9 +105,8 @@ export default {
           }
         },
         instgraphUpdate(payload) {
-          console.log("instGraph updated ", msg.payload.file);
-          this.$store.dispatch('updateInstGraphUpdateTime');
-          this.$store.dispatch('updateInstGraphFielname', payload.file);
+          console.log("instGraph updated", payload.file, payload.rev);
+          this.$store.dispatch('updateInstGraph', payload);
         },
         singlePropertyDelete(deviceName, propertyName) {
           Vue.delete(this.indiWorld[deviceName], propertyName);

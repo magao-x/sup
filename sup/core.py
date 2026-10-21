@@ -11,7 +11,6 @@ import os.path
 import sys
 from pathlib import Path
 import multiprocessing
-import time
 
 import xconf
 from starlette.endpoints import WebSocketEndpoint
@@ -93,7 +92,18 @@ class SupViews:
         return FileResponse((static_path / 'index.html').as_posix())
 
     async def instgraph(self, request):
-        return FileResponse(self.app.instgraph_file_path)
+        graph_path = Path(self.app.instgraph_file_path)
+        if not graph_path.is_file():
+            raise NotFound(f"No instrument state graph at {graph_path}")
+        # The file is replaced in-place by the writer, so a cached copy is
+        # always a stale copy. Clients also cache-bust with ?rev=, but belt
+        # and braces: intermediate proxies don't see the query string as
+        # meaningful unless we say so.
+        return FileResponse(graph_path.as_posix(), headers={
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+        })
 
     async def config(self, request):
         config = xconf.config_to_dict(self.app)
@@ -372,10 +382,10 @@ class SupWebSocket(AppWebSocketEndpoint):
             'payload': self.cli.indi_client.to_serializable()['devices'],
         }))
         log.debug("Sending instgraph init payload")
-        # await websocket.send_bytes(orjson.dumps({
-        #     'action': 'instgraph_updated',
-        #     'payload': {'file': INSTGRAPH_FILE_PATH.name},
-        # }))
+        await websocket.send_bytes(orjson.dumps({
+            'action': 'instgraph_updated',
+            'payload': self.cli.instgraph_state(),
+        }))
 
     async def on_indi_new(self, websocket, payload):
         if not (
@@ -469,33 +479,70 @@ class LogStreamWebSocket(AppWebSocketEndpoint):
                 pass
 
 class FileChangeHandler(FileSystemEventHandler):
+    """Watch the *directory* containing a single file and report changes to it.
+
+    Watching the directory rather than the file itself is what makes atomic
+    writes visible: a writer that does write-to-temp-then-rename never
+    generates a modify event for the destination path, only a move (or a
+    create, if the temp file lived elsewhere). An inode-level watch on the
+    original file would also go deaf after the first replacement, since the
+    inode it was watching is no longer the one at that path.
+
+    Bursts are collapsed on the *trailing* edge: a rename is often preceded
+    by create/modify events for the temp file, and the last event in a burst
+    is the one that reflects the final contents.
+    """
     def __init__(self, web_interface, file_path_to_watch, debouncing_interval_sec, loop):
         self.web_interface = web_interface
         self.file_path_to_watch = file_path_to_watch
         self.debouncing_interval_sec = debouncing_interval_sec
         self.loop = loop
-        self._last_modified_time = 0
+        self._real_path_to_watch = os.path.realpath(file_path_to_watch)
+        self._event_seq = 0
 
-    def on_modified(self, event):
-        """Trigger only if the specific file is modified."""
+    def _paths_for(self, event):
+        paths = [event.src_path]
+        # Moves carry the destination separately; for an atomic replace that
+        # destination is the only path that matches the file we care about.
+        dest = getattr(event, 'dest_path', None)
+        if dest:
+            paths.append(dest)
+        return paths
+
+    def _matches(self, event):
+        for path in self._paths_for(event):
+            if isinstance(path, bytes):
+                path = os.fsdecode(path)
+            if os.path.realpath(path) == self._real_path_to_watch:
+                return True
+        return False
+
+    def on_any_event(self, event):
         if event.is_directory:
             return
-
-        current_time = time.time()
-
-        # Check if enough time has passed since the last update
-        if current_time - self._last_modified_time < self.debouncing_interval_sec:
+        if event.event_type not in ('created', 'modified', 'moved', 'closed'):
+            return
+        if not self._matches(event):
             return
 
-        self._last_modified_time = current_time
+        self._event_seq += 1
+        log.debug(f"Update noticed on target file ({event.event_type}): {event.src_path}")
+        asyncio.run_coroutine_threadsafe(
+            self._debounced_emit(self._event_seq),
+            self.loop
+        )
 
-        log.debug(f"Update noticed on file {event.src_path}")
-        if os.path.realpath(event.src_path) == os.path.realpath(self.file_path_to_watch):
-            log.debug(f"Update noticed on target file {event.src_path}")
-            asyncio.run_coroutine_threadsafe(
-                self.web_interface.emit_instgraph_update(),
-                self.loop
-            )
+    async def _debounced_emit(self, seq):
+        """Emit only if no further event arrived during the quiet interval."""
+        try:
+            await asyncio.sleep(self.debouncing_interval_sec)
+            if seq != self._event_seq:
+                return  # superseded by a later event in the same burst
+            await self.web_interface.emit_instgraph_update()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning(f"Exception in _debounced_emit(): {type(e)=} {e}")
 
 @xconf.config
 class IndiConfig:
@@ -524,7 +571,11 @@ class WebInterface(xconf.Command):
     )
     debouncing_interval_sec : float = xconf.field(
         default=0.2,
-        help="How long to wait before sending a message over the websocket that the instGraph file has updated"
+        help="How long the instGraph file must be quiet before telling clients over the websocket that it updated"
+    )
+    watch_retry_interval_sec : float = xconf.field(
+        default=5.0,
+        help="How long to wait before retrying when the directory holding the instGraph file does not exist yet"
     )
     instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
     obs_root : str = xconf.field(default=OBS_ROOT, help="Root directory for observation file browsing")
@@ -535,6 +586,7 @@ class WebInterface(xconf.Command):
         self._connected_clients = []
         self._last_instgraph_update = 0
         self._posix_instgraph_file_path = pathlib.Path(self.instgraph_file_path)
+        self._last_instgraph_rev = None
 
     async def emit_indi_updates(self):
         while True:
@@ -550,35 +602,69 @@ class WebInterface(xconf.Command):
                 traceback.print_exc(file=sys.stdout)
             await asyncio.sleep(self.batch_update_interval_sec)
 
+    def instgraph_state(self):
+        """Identify the current contents of the instrument state graph file.
+
+        The revision combines mtime, size, and inode. The inode matters:
+        an atomic replace swaps in a different inode, so the revision changes
+        even in the pathological case where the new file has the same size
+        and a timestamp the filesystem can't distinguish from the old one.
+        """
+        rev = None
+        try:
+            st = self._posix_instgraph_file_path.stat()
+            rev = f"{st.st_mtime_ns}-{st.st_size}-{st.st_ino}"
+        except OSError as e:
+            log.debug(f"Could not stat {self._posix_instgraph_file_path}: {e}")
+        return {'file': self._posix_instgraph_file_path.name, 'rev': rev}
+
     async def emit_instgraph_update(self):
         """Send file update notification via WebSocket."""
-        try:
-            for websocket in self._connected_clients:
-                try:
-                    log.debug(f"Sending instgraph udpate trigger for file {self._posix_instgraph_file_path.name}")
-                    await websocket.send_bytes(orjson.dumps({'action': 'instgraph_updated', 'payload': {'file': self._posix_instgraph_file_path.name}}))
-                except Exception as e:
-                    log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
-        except Exception as e:
-            log.warning(f"Exception in emit_instgraph_updated(): {type(e)=} {e}")
-            traceback.print_exc(file=sys.stdout)
-        await asyncio.sleep(self.batch_update_interval_sec)
+        payload = self.instgraph_state()
+        if payload['rev'] is None:
+            log.debug("instgraph file is not readable, not notifying clients")
+            return
+        if payload['rev'] == self._last_instgraph_rev:
+            log.debug(f"instgraph rev {payload['rev']} unchanged, not notifying clients")
+            return
+        self._last_instgraph_rev = payload['rev']
+        log.debug(f"Sending instgraph update trigger for {payload['file']} rev {payload['rev']}")
+        for websocket in self._connected_clients:
+            try:
+                await websocket.send_bytes(orjson.dumps({'action': 'instgraph_updated', 'payload': payload}))
+            except Exception as e:
+                log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
 
     async def start_file_watcher(self, file_path_to_watch=None):
         """Run the watchdog observer as an async background task."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
-        file_path_to_watch = file_path_to_watch or self._posix_instgraph_file_path
+        file_path_to_watch = pathlib.Path(file_path_to_watch or self._posix_instgraph_file_path)
+        watch_dir = file_path_to_watch.parent
+
+        # The containing directory has to exist before we can watch it, and it
+        # may well not at startup. Wait for it rather than taking down the
+        # whole task group (and with it the INDI client) on a bad path.
+        while not watch_dir.is_dir():
+            log.warning(f"Cannot watch {file_path_to_watch}: {watch_dir} does not exist, retrying")
+            await asyncio.sleep(self.watch_retry_interval_sec)
+
+        # Record the starting revision before the observer is live, so a
+        # change landing during startup is still seen as a change rather than
+        # being swallowed as the baseline.
+        self._last_instgraph_rev = self.instgraph_state()['rev']
+
         event_handler = FileChangeHandler(self, file_path_to_watch, self.debouncing_interval_sec, loop)
         observer = observers.Observer()
-        observer.schedule(event_handler, file_path_to_watch.parent, recursive=False)
+        observer.schedule(event_handler, watch_dir.as_posix(), recursive=False)
         observer.start()
+        log.info(f"Watching {watch_dir} for changes to {file_path_to_watch.name}")
 
         try:
-            await asyncio.to_thread(observer.join)  # Run observer in a separate thread
+            await asyncio.Event().wait()  # until cancelled at shutdown
         finally:
             observer.stop()
-            observer.join()
+            await asyncio.to_thread(observer.join)
 
     async def trigger_get_properties(self, message):
         if message is constants.ConnectionStatus.CONNECTED:
