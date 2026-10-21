@@ -66,7 +66,7 @@ export default {
         // The file is replaced wholesale, so the URL alone doesn't identify
         // its contents; tag the request with the revision to defeat caching.
         const rev = this.instGraphRev || Date.now();
-        const destURL = utils.buildBackendUrl(`instgraph?rev=${encodeURIComponent(rev)}`);
+        const destURL = utils.buildBackendUrl(`instgraph.drawio?rev=${encodeURIComponent(rev)}`);
         const response = await fetch(destURL, { cache: "no-store" });
         if (!response.ok) {
           console.error("Error loading instrument state graph:", response.status, response.statusText);

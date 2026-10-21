@@ -54,6 +54,9 @@ LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc)
 
+# Both the URL the graph is served at and the name a browser saves it under.
+INSTGRAPH_DOWNLOAD_NAME = "instgraph.drawio"
+
 static_folder_name = "static"
 static_path = (Path(__file__).parent / static_folder_name).resolve()
 
@@ -82,8 +85,17 @@ class SupViews:
         real_path = (static_path / path).resolve()
 
         if static_path in real_path.parents:  # prevent traversal vulnerability
-            if real_path.exists():
+            if real_path.is_file():
                 return FileResponse(real_path.as_posix())
+            # Nothing on disk, so this is either a client-side route or a
+            # genuinely missing asset. The router uses history mode, meaning
+            # a reload or a bookmark of e.g. /instgraph arrives here as a
+            # real request; hand back the app and let the router resolve the
+            # path. A request carrying a file extension is an asset request,
+            # though, and answering those with HTML would turn a missing
+            # script into a baffling MIME type error instead of a 404.
+            if not real_path.suffix:
+                return await self.index(request)
         else:
             log.warning(f'Attempted directory traversal with path {path}')
         raise NotFound("No route or file at this URL")
@@ -92,6 +104,12 @@ class SupViews:
         return FileResponse((static_path / 'index.html').as_posix())
 
     async def instgraph(self, request):
+        """Serve the instrument state graph.
+
+        Named for the file it returns rather than for the tab that shows it,
+        so it doesn't collide with the client-side /instgraph route and so a
+        browser pointed straight at it saves something sensibly named.
+        """
         graph_path = Path(self.app.instgraph_file_path)
         if not graph_path.is_file():
             raise NotFound(f"No instrument state graph at {graph_path}")
@@ -99,7 +117,7 @@ class SupViews:
         # always a stale copy. Clients also cache-bust with ?rev=, but belt
         # and braces: intermediate proxies don't see the query string as
         # meaningful unless we say so.
-        return FileResponse(graph_path.as_posix(), headers={
+        return FileResponse(graph_path.as_posix(), filename=INSTGRAPH_DOWNLOAD_NAME, headers={
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
@@ -718,7 +736,7 @@ class WebInterface(xconf.Command):
                 Route('/obs/download', endpoint=self.views.obs_download),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
                 WebSocketRoute('/ws/logs', endpoint=partial(LogStreamWebSocket, self)),
-                Route("/instgraph", endpoint=self.views.instgraph),
+                Route(f"/{INSTGRAPH_DOWNLOAD_NAME}", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],
             lifespan=lifespan,
