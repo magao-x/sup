@@ -1,14 +1,30 @@
 # sup
 
-The MagAO-X web user interface in [Vue.js 2](https://v2.vuejs.org/) and async Python with [Starlette](https://www.starlette.io/). Built with [PurePyINDI2](https://github.com/xwcl/purepyindi2/).
+The MagAO-X web user interface in [Vue 3](https://vuejs.org/) (running in Vue 2 compatibility mode via `@vue/compat`) and async Python with [Starlette](https://www.starlette.io/). Built with [PurePyINDI2](https://github.com/xwcl/purepyindi2/).
 
 ![MagAO-X web UI in use](./doc/magao-x_web_ui_working.png)
 
-This application uses the Parcel bundler (v. 1.x). There is of course a version 2.0 that has all-new bugs, and we'll transition some day, maybe.
+The frontend is bundled with [Vite](https://vite.dev/), and the FITS/array viewer is [viewarr](https://github.com/joseph-long/viewarr), a Rust/WebAssembly module vendored as a git submodule.
 
 ## Development
 
-There is a Makefile that provides `init`, `justjs`, and `servejs` targets (among others). A typical workflow would start with using `make init` to install the Python portion of sup in editable mode (`pip install -e ...`) and the JavaScript dependencies with `yarn install` from the `frontend/` directory.
+Prerequisites: [uv](https://docs.astral.sh/uv/), node/npm, and a Rust toolchain with [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/).
+
+```bash
+git clone --recurse-submodules git@github.com:magao-x/sup.git
+cd sup
+uv sync
+```
+
+`uv sync` installs sup in editable mode and runs the full frontend build: wasm-pack for `viewarr/pkg/`, then `npm install` and `vite build` into `sup/static/`. (If you cloned without `--recurse-submodules`, run `git submodule update --init` first.)
+
+Useful variations:
+
+- `uv run sup` — start the server without activating the venv.
+- `uv build` — build a wheel and sdist into `dist/`.
+- `SUP_SKIP_NPM_BUILD=1 uv sync` — skip the frontend build and reuse whatever is already in `sup/static/`.
+
+The Makefile's `justjs` and `servejs` targets rebuild and live-serve just the JavaScript.
 
 ### Python
 
@@ -29,9 +45,9 @@ ExecStart=/opt/conda/envs/sup/bin/sup
 WantedBy=default.target
 ```
 
-(Note that for MagAO-X there's a `sup` env created in `/opt/conda` used by this app.)
+(Note that for MagAO-X there's a `sup` env created in `/opt/conda` used by this app, currently on Python 3.13.)
 
-The entry-point is a console command `sup` installed by `pip install`. It invokes the `WebInterface.run` class method in `core.py`, which invokes `WebInterface.main`, which calls `uvicorn.run`.
+The entry-point is a console command `sup` installed from `pyproject.toml`. It invokes the `WebInterface.run` class method in `core.py`, which invokes `WebInterface.main`, which calls `uvicorn.run`.
 
 The config is read from `/opt/MagAOX/config/gui_sup.conf`, a TOML file. The effective config is shown with `sup --dump-config`:
 
@@ -105,6 +121,6 @@ Visual Studio Code with the official Vue extension improves development consider
 
 If you use `make servejs`, you launch the bundler in live-reload mode, which saves time. The "live" part of live-reloading is not an easy thing to do in general, so you probably need to reload the page on changes. You will *also* need the Python server process running on port 8000 for the connection to MagAO-X to work. (You can use the `sup` command to launch it, and port 8000 is default.)
 
-The entry point is the `index.html` file, which loads `index.js`, which displays `App.vue` as its root component.
+The entry point is the `index.html` file, which loads `src/index.js`, which displays `App.vue` as its root component. There is a second entry point, `viewer.html`/`src/viewer.js`, for the standalone FITS viewer.
 
 WebSocket connection / reconnection is kind of hard to find, but it's in the `mounted` hook for the `common.js` mixin used in `index.js`. (It is common *not* to all components, but to all *top-level* components, of which there is currently one non-trivial example.)
