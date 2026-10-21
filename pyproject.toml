@@ -47,10 +47,16 @@ pattern = "^(?P<version>.+)$"
 packages = ["sup"]
 
 [tool.hatch.build.targets.sdist]
-# Ship the frontend sources so a wheel can be built from the sdist.
-include = ["sup", "frontend", "viewarr", "README.md", "LICENSE", "hatch_build.py"]
-# Nested build dirs: hatchling only honours the top-level .gitignore.
-exclude = ["viewarr/target", "viewarr/pkg", "**/node_modules"]
+# The viewarr submodule is deliberately absent: the workspace reaches its
+# library through symlinks, which the build machinery resolves to a single
+# real directory and records only under a symlinked path, so what landed in
+# the sdist depended on walk order. Instead the sdist ships the built
+# sup/static/ (see artifacts above) and the build hook reuses it, which is
+# all a wheel actually needs.
+include = ["sup", "frontend", "README.md", "LICENSE", "hatch_build.py"]
+# The readme/license patterns above match at any depth, which otherwise
+# drags a handful of stray files out of the submodule.
+exclude = ["**/node_modules", "viewarr-workspace"]
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"

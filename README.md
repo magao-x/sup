@@ -4,7 +4,7 @@ The MagAO-X web user interface in [Vue 3](https://vuejs.org/) (running in Vue 2 
 
 ![MagAO-X web UI in use](./doc/magao-x_web_ui_working.png)
 
-The frontend is bundled with [Vite](https://vite.dev/), and the FITS/array viewer is [viewarr](https://github.com/joseph-long/viewarr), a Rust/WebAssembly module vendored as a git submodule.
+The frontend is bundled with [Vite](https://vite.dev/), and the FITS/array viewer is [viewarr](https://github.com/joseph-long/viewarr-workspace), a Rust/WebAssembly module vendored as a git submodule. The submodule is the viewarr *workspace* — the library plus its other downstream consumers — and sup builds against the `viewarr/` library directory inside it.
 
 ## Development
 
@@ -16,12 +16,12 @@ cd sup
 uv sync
 ```
 
-`uv sync` installs sup in editable mode and runs the full frontend build: wasm-pack for `viewarr/pkg/`, then `npm install` and `vite build` into `sup/static/`. (If you cloned without `--recurse-submodules`, run `git submodule update --init` first.)
+`uv sync` installs sup in editable mode and runs the full frontend build: wasm-pack for `viewarr-workspace/viewarr/pkg/`, then `npm install` and `vite build` into `sup/static/`. (If you cloned without `--recurse-submodules`, run `git submodule update --init` first.)
 
 Useful variations:
 
 - `uv run sup` — start the server without activating the venv.
-- `uv build` — build a wheel and sdist into `dist/`.
+- `uv build` — build a wheel and sdist into `dist/`. The sdist carries the built `sup/static/` rather than the viewarr submodule, so a wheel built from it reuses those assets instead of rebuilding the frontend; rebuilding needs a git checkout with submodules.
 - `SUP_SKIP_NPM_BUILD=1 uv sync` — skip the frontend build and reuse whatever is already in `sup/static/`.
 
 The Makefile's `justjs` and `servejs` targets rebuild and live-serve just the JavaScript.
