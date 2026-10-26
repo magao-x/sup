@@ -3,6 +3,38 @@ import { createStore } from 'vuex'
 import { DateTime } from "luxon";
 import constants from "./constants.js";
 
+const AUDIBLE_ALERTS_STORAGE_KEY = "sup.audibleAlerts";
+const DEFAULT_ALERT_VOLUME = 0.8;
+
+function loadAudibleAlertsPreferences() {
+  // Volume persists; `enabled` deliberately does not. Browsers only allow
+  // playback after a user gesture, so a player that switched itself on at load
+  // would fail silently until someone happened to click something. Requiring
+  // the click each session also means a tab left open overnight cannot start
+  // talking on its own.
+  const preferences = { enabled: false, volume: DEFAULT_ALERT_VOLUME, blocked: false };
+  try {
+    const stored = window.localStorage.getItem(AUDIBLE_ALERTS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (typeof parsed.volume === "number" && parsed.volume >= 0 && parsed.volume <= 1) {
+        preferences.volume = parsed.volume;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not read saved audible alert preferences", err);
+  }
+  return preferences;
+}
+
+function saveAudibleAlertsPreferences(state) {
+  try {
+    window.localStorage.setItem(AUDIBLE_ALERTS_STORAGE_KEY, JSON.stringify({ volume: state.volume }));
+  } catch (err) {
+    console.warn("Could not save audible alert preferences", err);
+  }
+}
+
 export default createStore({
   state() {
     return {
@@ -22,6 +54,7 @@ export default createStore({
       instGraphUpdateTime: null,
       instGraphFilename: null,
       instGraphRev: null,
+      audibleAlerts: loadAudibleAlertsPreferences(),
     }
   },
   mutations: {
@@ -77,6 +110,20 @@ export default createStore({
     },
     setConfig(state, new_config) {
       state.config = new_config;
+    },
+    setAudibleAlertsEnabled(state, enabled) {
+      state.audibleAlerts.enabled = enabled;
+    },
+    setAudibleAlertsVolume(state, volume) {
+      const parsed = parseFloat(volume);
+      if (Number.isNaN(parsed)) {
+        return;
+      }
+      state.audibleAlerts.volume = Math.min(1, Math.max(0, parsed));
+      saveAudibleAlertsPreferences(state.audibleAlerts);
+    },
+    setAudibleAlertsBlocked(state, blocked) {
+      state.audibleAlerts.blocked = blocked;
     },
     setInstGraph(state, payload) {
       state.instGraphUpdateTime = Date.now();

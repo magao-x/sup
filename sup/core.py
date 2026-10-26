@@ -30,7 +30,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Route, WebSocketRoute, Mount
 from starlette.staticfiles import StaticFiles
 
@@ -39,7 +39,9 @@ from watchdog.events import FileSystemEventHandler
 
 from .constants import (
     INSTRUMENT_CONFIG_ROOT, InstrumentLayouts, SITE_LOCATION,
-    CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT
+    CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT,
+    AUDIBLE_ALERTS_DEVICE, AUDIBLE_ALERTS_CACHE_ROOT,
+    AUDIBLE_ALERTS_TEMP_SUBDIR, AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC,
 )
 from .utils import OrjsonResponse
 
@@ -278,6 +280,59 @@ class SupViews:
             filename=target.name,
             media_type='application/octet-stream',
         )
+
+    async def audible_alerts_clip(self, request):
+        """Serve one audio clip for the browser-side audible alerts player.
+
+        The audibleAlerts device names clips by content: synthesized speech is
+        named for a hash of its text and voice, and recordings are copied into
+        the cache under their own names. A given URL therefore always means the
+        same audio, so browsers can keep clips indefinitely --- which is most of
+        the point, since random utterances, soundboard buttons, and walkups
+        repeat constantly, and a cached clip plays with no fetch latency.
+
+        The exception is the temp/ subdirectory, which holds speech whose text
+        was substituted at playback time. Those are one-offs, and the device
+        empties the directory when it restarts, so they get a short lifetime
+        instead of an immutable one.
+        """
+        rel = request.path_params['path']
+        cache_root = Path(self.app.audible_alerts_cache_root).resolve()
+        target = (cache_root / rel).resolve()
+
+        if cache_root not in target.parents:  # prevent traversal vulnerability
+            log.warning(f'Attempted directory traversal with path {rel}')
+            raise NotFound('No audio clip at this URL')
+        if not target.is_file():
+            raise NotFound('No audio clip at this URL')
+
+        if (cache_root / AUDIBLE_ALERTS_TEMP_SUBDIR) in target.parents:
+            cache_control = 'public, max-age=300'
+        else:
+            cache_control = f'public, max-age={AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC}, immutable'
+
+        # Passing stat_result gets the ETag onto the response at construction
+        # time, where we can compare it. Starlette computes one but leaves
+        # conditional requests to StaticFiles, and 'immutable' means this
+        # rarely fires --- but a browser that evicted the body while keeping
+        # the validator shouldn't have to re-download the audio.
+        stat_result = target.stat()
+        # Named explicitly rather than guessed: the platform mimetypes table
+        # calls .wav audio/x-wav, which Safari is fussier about than audio/wav.
+        media_type = 'audio/wav' if target.suffix.lower() == '.wav' else None
+        response = FileResponse(
+            target.as_posix(),
+            stat_result=stat_result,
+            media_type=media_type,
+            headers={'Cache-Control': cache_control},
+        )
+        etag = response.headers.get('etag')
+        if etag is not None and request.headers.get('if-none-match') == etag:
+            return Response(status_code=304, headers={
+                'Cache-Control': cache_control,
+                'ETag': etag,
+            })
+        return response
 
     async def sun_and_moon(self, request):
         current_time = Time(utc_now())
@@ -598,6 +653,14 @@ class WebInterface(xconf.Command):
     instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
     obs_root : str = xconf.field(default=OBS_ROOT, help="Root directory for observation file browsing")
     log_unit : str = xconf.field(default="lookyloo", help="systemd unit name whose journal to stream (empty to disable)")
+    audible_alerts_device : str = xconf.field(
+        default=AUDIBLE_ALERTS_DEVICE,
+        help="INDI device whose playback events drive audible alerts in the browser (empty to disable)"
+    )
+    audible_alerts_cache_root : str = xconf.field(
+        default=AUDIBLE_ALERTS_CACHE_ROOT,
+        help="Directory the audible alerts device writes playback audio into"
+    )
 
     def __post_init__(self):
         self._running_tasks = set()
@@ -734,6 +797,7 @@ class WebInterface(xconf.Command):
                 Route('/obs/file', endpoint=self.views.obs_file),
                 Route('/obs/header', endpoint=self.views.obs_header),
                 Route('/obs/download', endpoint=self.views.obs_download),
+                Route('/audible-alerts/clip/{path:path}', endpoint=self.views.audible_alerts_clip),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
                 WebSocketRoute('/ws/logs', endpoint=partial(LogStreamWebSocket, self)),
                 Route(f"/{INSTGRAPH_DOWNLOAD_NAME}", endpoint=self.views.instgraph),

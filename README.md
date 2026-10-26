@@ -113,6 +113,31 @@ configuration keys:
     connected clients (default: 0.2)
 ```
 
+#### Audible alerts
+
+Web UI users can opt in to hearing the alerts that the `audibleAlerts` xApp
+(INDI device `maggieo_x`) plays in the control room. The device copies or
+synthesizes every clip into `/tmp/audibleAlerts_cache` and publishes the path
+relative to that directory as `maggieo_x.playback.file`; the browser notices
+the property update over the existing INDI websocket and fetches the clip from
+`/audible-alerts/clip/<file>`, so sup needs no speech synthesis of its own.
+This does require sup to run on the same host as `audibleAlerts`, as the
+service user (`xsup`) reading the device's cache directory.
+
+Clips are content-addressed --- synthesized speech is named for a hash of its
+text and voice --- so they are served `immutable` and a repeated utterance
+plays straight from the browser cache. The `temp/` subdirectory, which holds
+speech whose text was substituted at playback time, gets a short lifetime
+instead.
+
+Playback is off until a user turns it on with the speaker control in the status
+bar (also on the Maggie-o X panel, with a volume slider). The opt-in is
+per-browser and resets each page load: browsers only allow audio after a user
+gesture, so the enabling click is what earns playback permission for the
+session. The player only listens --- muting `maggieo_x` silences the browser
+along with everything else, but a web listener can never unmute the control
+room.
+
 ### JavaScript
 
 Most interesting stuff is in `*.vue` single-file component files, which combine HTML with JavaScript and stylesheet information.
