@@ -31,7 +31,10 @@ let playing = false;
 // Server-clock timestamps, used only to order and de-duplicate updates against
 // each other, never against the browser clock.
 let lastSeenPlaybackMs = null;
-let chimeObjectUrl = null;
+let objectUrls = {};
+// Set once a play() has actually resolved. Until then the element may be one
+// the browser will refuse to play, and the gesture handlers rebuild it.
+let unlocked = false;
 
 function clipUrl(file) {
   const encoded = file.split('/').map(encodeURIComponent).join('/');
@@ -51,11 +54,11 @@ function elementValue(property, name) {
  * the gesture that unlocks playback. It doubles as a way to check that the
  * right output device is selected before relying on alerts.
  */
-function chimeUrl() {
-  if (chimeObjectUrl !== null) {
-    return chimeObjectUrl;
+function toneUrl(key, { durationSec, freqHz, amplitude }) {
+  if (objectUrls[key] !== undefined) {
+    return objectUrls[key];
   }
-  const sampleRate = 22050, durationSec = 0.18, freqHz = 660;
+  const sampleRate = 22050;
   const frames = Math.floor(durationSec * sampleRate);
   const buffer = new ArrayBuffer(44 + frames * 2);
   const view = new DataView(buffer);
@@ -81,14 +84,35 @@ function chimeUrl() {
     const t = i / sampleRate;
     // Taper both ends, or the discontinuity reads as a click.
     const envelope = Math.min(1, t / 0.01, (durationSec - t) / 0.03);
-    const sample = Math.sin(2 * Math.PI * freqHz * t) * envelope * 0.25;
+    const sample = Math.sin(2 * Math.PI * freqHz * t) * envelope * amplitude;
     view.setInt16(44 + i * 2, sample * 0x7fff, true);
   }
-  chimeObjectUrl = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
-  return chimeObjectUrl;
+  objectUrls[key] = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+  return objectUrls[key];
 }
 
-function ensureAudioElement() {
+function chimeUrl() {
+  return toneUrl('chime', { durationSec: 0.18, freqHz: 660, amplitude: 0.25 });
+}
+
+// Digital silence, for asking the browser whether it would allow playback
+// without anybody hearing the question. Deliberately not a muted element: the
+// autoplay policy treats muted playback as always permitted, so a muted probe
+// would answer yes even where audible playback is refused.
+function silenceUrl() {
+  return toneUrl('silence', { durationSec: 0.05, freqHz: 440, amplitude: 0 });
+}
+
+function ensureAudioElement({ rebuild = false } = {}) {
+  if (audioElement !== null && rebuild && !unlocked) {
+    // iOS Safari grants playback to the element that existed during the
+    // gesture and will not extend it to one built earlier, so an element that
+    // has never successfully played gets replaced rather than retried.
+    audioElement.removeEventListener('ended', onClipFinished);
+    audioElement.removeEventListener('error', onClipFinished);
+    audioElement.pause();
+    audioElement = null;
+  }
   if (audioElement === null) {
     audioElement = new Audio();
     audioElement.addEventListener('ended', onClipFinished);
@@ -117,16 +141,21 @@ function onPlaybackRejected(err) {
   playNext();
 }
 
-function start(url) {
-  const element = ensureAudioElement();
+function start(url, options = {}) {
+  const element = ensureAudioElement(options);
   playing = true;
   element.volume = store.state.audibleAlerts.volume;
   element.src = url;
   const started = element.play();
   // Older browsers return undefined instead of a promise.
   if (started !== undefined) {
-    started.catch(onPlaybackRejected);
+    return started.then(() => {
+      unlocked = true;
+      store.commit('setAudibleAlertsBlocked', false);
+    }).catch(onPlaybackRejected);
   }
+  unlocked = true;
+  return Promise.resolve();
 }
 
 function playNext() {
@@ -195,7 +224,6 @@ export function observePlayback(property) {
  * earns the browser's permission to play audio for the rest of the session.
  */
 export function enable() {
-  ensureAudioElement();
   store.commit('setAudibleAlertsBlocked', false);
   store.commit('setAudibleAlertsEnabled', true);
   playChime();
@@ -210,10 +238,54 @@ export function disable() {
   store.commit('setAudibleAlertsEnabled', false);
 }
 
-/** Play the confirmation tone, to check the output device. */
+/**
+ * Play the confirmation tone, to check the output device. Call from a user
+ * gesture: it doubles as the way to recover from a browser that is refusing
+ * playback, which only a gesture (or a site permission) can lift.
+ */
 export function playChime() {
   store.commit('setAudibleAlertsBlocked', false);
-  start(chimeUrl());
+  return start(chimeUrl(), { rebuild: true });
+}
+
+/**
+ * Re-arm playback on page load for someone who had alerts on last time.
+ *
+ * Autoplay permission is not ours to ask for: it is a site permission the user
+ * grants in browser settings (Chrome calls it Sound, Firefox Autoplay, Safari
+ * Auto-Play), and Chrome additionally grants it on its own to sites where the
+ * user plays audio often. Where it has been granted, alerts should simply
+ * resume across reloads without anybody clicking anything. Where it has not,
+ * we find out here --- quietly, before an alert is riding on the answer ---
+ * and the control shows that it needs a click.
+ */
+export function restoreSession() {
+  if (!store.state.audibleAlerts.enabled) {
+    return Promise.resolve(false);
+  }
+  // Browsers that implement it will just tell us.
+  if (typeof navigator !== 'undefined' && typeof navigator.getAutoplayPolicy === 'function') {
+    try {
+      const policy = navigator.getAutoplayPolicy('mediaelement');
+      if (policy !== 'allowed') {
+        store.commit('setAudibleAlertsBlocked', true);
+        return Promise.resolve(false);
+      }
+      ensureAudioElement();
+      unlocked = true;
+      return Promise.resolve(true);
+    } catch (err) {
+      console.debug('getAutoplayPolicy unavailable for mediaelement', err);
+    }
+  }
+  // Otherwise ask the only way there is: try to play something inaudible.
+  return start(silenceUrl()).then(() => {
+    playing = false;
+    if (audioElement !== null) {
+      audioElement.pause();
+    }
+    return !store.state.audibleAlerts.blocked;
+  });
 }
 
 export function setVolume(volume) {
@@ -223,4 +295,4 @@ export function setVolume(volume) {
   }
 }
 
-export default { observePlayback, enable, disable, playChime, setVolume };
+export default { observePlayback, enable, disable, playChime, setVolume, restoreSession };

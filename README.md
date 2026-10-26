@@ -132,11 +132,52 @@ instead.
 
 Playback is off until a user turns it on with the speaker control in the status
 bar (also on the Maggie-o X panel, with a volume slider). The opt-in is
-per-browser and resets each page load: browsers only allow audio after a user
-gesture, so the enabling click is what earns playback permission for the
-session. The player only listens --- muting `maggieo_x` silences the browser
-along with everything else, but a web listener can never unmute the control
-room.
+per-browser and is remembered, but whether the browser will *play* anything is
+a separate permission that no page can ask for: audio is allowed only after a
+user interacts with the page, unless the user has allowed audio for the site in
+their browser settings (Chrome calls it Sound, Firefox Autoplay, Safari
+Auto-Play; Chrome also grants it on its own to sites where you play audio
+often). On load, the player checks quietly --- with `navigator.getAutoplayPolicy`
+where available, otherwise by trying to play silence --- so that someone whose
+browser is withholding audio sees the speaker button marked rather than losing
+the first alert. Clicking it starts playback for that session.
+
+The player only listens: muting `maggieo_x` silences browsers along with
+everything else, and a web listener can never unmute the control room.
+
+One limit worth knowing: sup coalesces INDI updates into batches
+(`batch_update_interval_sec`, 0.2 s by default) and sends each property's
+current state rather than every value it passed through, so two utterances
+announced inside one batch window would reach the browser as one. The device
+sleeps for the length of each clip before announcing the next, so this does not
+arise in practice.
+
+### Tests
+
+`make test` runs both suites; each can be run on its own.
+
+`uv run pytest` covers the clip endpoint --- cache lifetimes, revalidation, and
+the refusal to serve anything outside the cache directory.
+
+`cd frontend && npx playwright test` drives the whole stack in a real browser:
+it starts `sup` and `tests/fake_audible_alerts_device.py` (a stand-in for the
+`audibleAlerts` xApp that publishes `maggieo_x.playback` and generates clips to
+serve), then checks that alerts stay silent until enabled, play when the device
+announces them, come from cache when repeated, queue when they overlap, and
+survive a reload. It runs twice: once in a browser that allows audio only after
+an interaction, and once in one that allows it outright, which is how the two
+halves of the permission story above get covered. The frontend must be built
+first (`npm run build`, or use `make test-browser`).
+
+That fake device is useful outside the tests too --- `make fake-audible-alerts`
+runs it standalone, so the web UI's alert playback can be exercised without a
+MagAO-X instrument:
+
+```bash
+make fake-audible-alerts   # INDI on 17624, control on 17625
+uv run sup indi.port=17624 audible_alerts_cache_root=/tmp/sup-fake-audible-alerts
+curl -X POST 'http://127.0.0.1:17625/emit?file=a1b2c3d4e5.wav'
+```
 
 ### JavaScript
 

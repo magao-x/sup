@@ -149,6 +149,11 @@ export default Vue.extend({
       toggleFlames: this.toggleFlames,
     };
   },
+  mounted() {
+    // Someone who left alerts on should get them back without a click, where
+    // the browser's site permissions allow it.
+    audibleAlerts.restoreSession();
+  },
   methods: {
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;

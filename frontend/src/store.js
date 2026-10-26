@@ -7,16 +7,18 @@ const AUDIBLE_ALERTS_STORAGE_KEY = "sup.audibleAlerts";
 const DEFAULT_ALERT_VOLUME = 0.8;
 
 function loadAudibleAlertsPreferences() {
-  // Volume persists; `enabled` deliberately does not. Browsers only allow
-  // playback after a user gesture, so a player that switched itself on at load
-  // would fail silently until someone happened to click something. Requiring
-  // the click each session also means a tab left open overnight cannot start
-  // talking on its own.
+  // Both the opt-in and the volume persist, so someone who turned alerts on
+  // does not have to turn them on again after every reload. Whether the
+  // browser will actually *play* anything is a separate question --- see
+  // restoreSession() in audibleAlerts.js --- and it is answered at startup
+  // rather than assumed here. Anything unreadable or unrecognized reads as
+  // off, so a corrupt value can never switch alerts on by accident.
   const preferences = { enabled: false, volume: DEFAULT_ALERT_VOLUME, blocked: false };
   try {
     const stored = window.localStorage.getItem(AUDIBLE_ALERTS_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
+      preferences.enabled = parsed.enabled === true;
       if (typeof parsed.volume === "number" && parsed.volume >= 0 && parsed.volume <= 1) {
         preferences.volume = parsed.volume;
       }
@@ -29,7 +31,10 @@ function loadAudibleAlertsPreferences() {
 
 function saveAudibleAlertsPreferences(state) {
   try {
-    window.localStorage.setItem(AUDIBLE_ALERTS_STORAGE_KEY, JSON.stringify({ volume: state.volume }));
+    window.localStorage.setItem(
+      AUDIBLE_ALERTS_STORAGE_KEY,
+      JSON.stringify({ enabled: state.enabled, volume: state.volume })
+    );
   } catch (err) {
     console.warn("Could not save audible alert preferences", err);
   }
@@ -113,6 +118,7 @@ export default createStore({
     },
     setAudibleAlertsEnabled(state, enabled) {
       state.audibleAlerts.enabled = enabled;
+      saveAudibleAlertsPreferences(state.audibleAlerts);
     },
     setAudibleAlertsVolume(state, volume) {
       const parsed = parseFloat(volume);

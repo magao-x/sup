@@ -15,3 +15,15 @@ justjs:
 
 servejs:
 	cd frontend/ && npx vite dev --host 0.0.0.0
+
+test:
+	uv run pytest
+	cd frontend/ && npx playwright test
+
+test-browser:
+	cd frontend/ && npm run build && npx playwright test
+
+fake-audible-alerts:
+	uv run python tests/fake_audible_alerts_device.py
+
+.PHONY: test test-browser fake-audible-alerts

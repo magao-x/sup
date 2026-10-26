@@ -11,7 +11,9 @@
     "dev": "vite",
     "build": "vite build --emptyOutDir --outDir ../sup/static/",
     "preview": "vite preview",
-    "lint": "eslint . --fix"
+    "lint": "eslint . --fix",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
   },
   "dependencies": {
     "@maxgraph/core": "^0.15.1",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@playwright/test": "^1.62.1",
     "@vitejs/plugin-vue": "^5.2.3",
     "eslint": "^9.22.0",
     "eslint-plugin-vue": "~10.0.0",

@@ -84,7 +84,12 @@ export default {
     },
     buttonTitle() {
       if (this.blocked) {
-        return "This browser blocked audio playback; click to allow it";
+        return (
+          "This browser is blocking playback until you interact with the page. " +
+          "Click to start alerts now. To have them resume by themselves after a " +
+          "reload, allow audio for this site in your browser settings (Chrome: " +
+          "Sound, Firefox: Autoplay, Safari: Auto-Play)."
+        );
       }
       return "Play a test tone in this browser";
     },

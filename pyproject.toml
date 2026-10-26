@@ -26,6 +26,15 @@ dependencies = [
     "psutil>=5.9.8,<6",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "httpx2",  # for starlette's TestClient
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [project.scripts]
 sup = "sup.core:WebInterface.run"
 
