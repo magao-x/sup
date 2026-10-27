@@ -14,8 +14,16 @@ all:
 viewarr:
 	cd viewarr-workspace/viewarr/ && npm run build
 
+# Build the frontend into sup/static/ in this checkout. Needs no root, and
+# touches nothing outside the working tree -- enough on its own when sup runs
+# from the checkout (an editable install) rather than from site-packages.
 justjs: viewarr
 	cd frontend/ && npx vite build --emptyOutDir --outDir ../sup/static/
+
+# Publish that build over the installed copy. Separate because it is the only
+# part that needs root, and because INSTALLED_PATH only resolves where sup is
+# installed into the conda env.
+installjs: justjs
 	sudo chown -R $(USER):magaox-dev $(INSTALLED_PATH)/static/
 	sudo chmod -R g+rwX $(INSTALLED_PATH)/static/
 	cp -R sup/static/* $(INSTALLED_PATH)/static/
@@ -33,4 +41,4 @@ test-browser:
 fake-audible-alerts:
 	uv run python tests/fake_audible_alerts_device.py
 
-.PHONY: viewarr test test-browser fake-audible-alerts
+.PHONY: viewarr justjs installjs test test-browser fake-audible-alerts
