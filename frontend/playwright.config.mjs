@@ -15,6 +15,9 @@ export const ports = { INDI_PORT, CONTROL_PORT, SUP_PORT };
 
 export default defineConfig({
   testDir: './tests',
+  // sup serves built assets, so the build has to be current or the suite
+  // quietly tests stale code.
+  globalSetup: './tests/global-setup.mjs',
   // Playback is inherently about elapsed time, and these tests share one sup
   // and one fake device, so they run one at a time.
   workers: 1,

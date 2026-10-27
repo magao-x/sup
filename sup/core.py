@@ -9,6 +9,7 @@ import logging
 import os
 import os.path
 import sys
+import time
 from pathlib import Path
 import multiprocessing
 
@@ -431,6 +432,10 @@ class INDIUpdateBatcher:
             'deletions': deletions,
             'connected': self.client_instance.status == constants.ConnectionStatus.CONNECTED,
             'logs': self.logs,
+            # Stamped so a client can separate how long a batch took to arrive
+            # from how far apart the two clocks are: the offset itself is
+            # unknowable, but its *variation* is exactly the delivery delay.
+            'sent_at': utc_now(),
         }
         self.properties_to_delete = set()
         self.properties_to_update = set()
@@ -653,6 +658,10 @@ class WebInterface(xconf.Command):
     instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
     obs_root : str = xconf.field(default=OBS_ROOT, help="Root directory for observation file browsing")
     log_unit : str = xconf.field(default="lookyloo", help="systemd unit name whose journal to stream (empty to disable)")
+    slow_send_warning_sec : float = xconf.field(
+        default=1.0,
+        help="Log a warning when sending one batch to one websocket client takes longer than this"
+    )
     audible_alerts_device : str = xconf.field(
         default=AUDIBLE_ALERTS_DEVICE,
         help="INDI device whose playback events drive audible alerts in the browser (empty to disable)"
@@ -673,11 +682,31 @@ class WebInterface(xconf.Command):
         while True:
             try:
                 batch = await self.indi_batcher.generate_batch()
+                # Serialized once rather than per client: the result is
+                # identical for everyone, and a busy instrument's batch is not
+                # cheap to encode.
+                payload = orjson.dumps({'action': 'indi_batch_update', 'payload': batch})
                 for websocket in self._connected_clients:
+                    started_at = time.monotonic()
                     try:
-                        await websocket.send_bytes(orjson.dumps({'action': 'indi_batch_update', 'payload': batch}))
+                        await websocket.send_bytes(payload)
                     except Exception as e:
                         log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
+                        continue
+                    # These sends are awaited one after another, so a client
+                    # whose connection has stopped draining holds up delivery
+                    # to everyone else and delays the next batch too. That is
+                    # worth knowing about when someone reports the web UI
+                    # lagging, so say which client and how long.
+                    elapsed = time.monotonic() - started_at
+                    if elapsed > self.slow_send_warning_sec:
+                        client = getattr(websocket, 'client', None)
+                        where = f"{client.host}:{client.port}" if client is not None else "unknown client"
+                        log.warning(
+                            f"Slow websocket send: {elapsed:.2f}s to {where} for "
+                            f"{len(payload)} bytes ({len(batch['updates'])} properties). "
+                            f"Delivery to other clients waits on this."
+                        )
             except Exception as e:
                 log.warning(f"Exception in emit_indi_updates(): {type(e)=} {e}")
                 traceback.print_exc(file=sys.stdout)

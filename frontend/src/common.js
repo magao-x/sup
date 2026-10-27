@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import { DateTime } from "luxon";
 import utils from '@/utils.js';
+import latency from '@/latency.js';
 
 // Vue.use(VueVirtualScroller)
 
@@ -37,6 +38,11 @@ export default {
         onWebSocketMessage(event) {
           event.data.arrayBuffer().then((buf) => {
             let msg = JSON.parse(textDecoder.decode(buf));
+            if (msg.action == "indi_batch_update" && msg.payload) {
+              // Noted the moment it lands, before any of it is applied, so the
+              // measurement is of delivery rather than of our own rendering.
+              latency.noteBatchArrival(msg.payload.sent_at, buf.byteLength);
+            }
             if (msg.action == "indi_init") {
               this.reinitializeIndiWorld(msg.payload);
             } else if (msg.action == "indi_batch_update") {

@@ -12,6 +12,7 @@
 // playback updates at all.
 import store from '@/store.js';
 import utils from '@/utils.js';
+import latency from '@/latency.js';
 
 // Queued clips are dropped once they have waited this long. Alerts are about
 // what the instrument is doing *now*; a laptop coming back from sleep should
@@ -35,6 +36,16 @@ let objectUrls = {};
 // Set once a play() has actually resolved. Until then the element may be one
 // the browser will refuse to play, and the gesture handlers rebuild it.
 let unlocked = false;
+// The alert currently on the audio element, and a short history of the ones
+// before it. Observers report latency that is hard to reproduce --- Chile to
+// Europe is a long way --- so every alert accounts for where its time went.
+let currentPlayback = null;
+const playbackHistory = [];
+const MAX_HISTORY = 50;
+// Clips this page has played before. A cached play can leave no Resource
+// Timing entry behind, so knowing we have played it already is what separates
+// "came out of the cache" from "cannot tell".
+const previouslyPlayed = new Set();
 
 function clipUrl(file) {
   const encoded = file.split('/').map(encodeURIComponent).join('/');
@@ -108,6 +119,7 @@ function ensureAudioElement({ rebuild = false } = {}) {
     // iOS Safari grants playback to the element that existed during the
     // gesture and will not extend it to one built earlier, so an element that
     // has never successfully played gets replaced rather than retried.
+    audioElement.removeEventListener('playing', onClipStarted);
     audioElement.removeEventListener('ended', onClipFinished);
     audioElement.removeEventListener('error', onClipFinished);
     audioElement.pause();
@@ -115,14 +127,73 @@ function ensureAudioElement({ rebuild = false } = {}) {
   }
   if (audioElement === null) {
     audioElement = new Audio();
+    audioElement.addEventListener('playing', onClipStarted);
     audioElement.addEventListener('ended', onClipFinished);
     audioElement.addEventListener('error', onClipFinished);
   }
   return audioElement;
 }
 
+function describeClipSource(record) {
+  const fetched = latency.describeFetch(record.url, record.requestedAtPerfMs);
+  if (fetched === null) {
+    // No fetch happened for this play. If the clip has played before, the
+    // audio came out of the cache; otherwise the browser is simply not telling
+    // us, and guessing would defeat the purpose.
+    return record.playedBefore
+      ? { text: 'clip from browser cache (no fetch)', detail: { cached: true } }
+      : { text: 'clip source unknown', detail: null };
+  }
+  if (fetched.cached) {
+    return { text: 'clip from browser cache', detail: fetched };
+  }
+  return {
+    text: `clip fetched in ${(fetched.durationMs / 1000).toFixed(2)}s `
+      + `(${Math.round(fetched.transferredBytes / 1024)} kB over the network)`,
+    detail: fetched,
+  };
+}
+
+/**
+ * Report where an alert's delay went, once it is actually making sound.
+ *
+ * The four places time can go are each measured separately, because they call
+ * for different fixes: getting the update here, waiting behind another clip,
+ * fetching the audio, and the browser starting playback.
+ */
+function reportPlayback(record) {
+  record.startedAtMs = Date.now();
+  record.sinceArrivalMs = record.startedAtMs - record.receivedAtMs;
+  const source = describeClipSource(record);
+  record.clipSource = source.detail;
+
+  const parts = [
+    record.file,
+    `announced ${record.announcedAtIso}`,
+    record.batchLatenessMs === null
+      ? 'delivery delay unknown'
+      : `delivery +${(record.batchLatenessMs / 1000).toFixed(2)}s over this connection's best`,
+    `queued ${(record.queuedMs / 1000).toFixed(2)}s`,
+    source.text,
+    `playing ${(record.sinceArrivalMs / 1000).toFixed(2)}s after the update arrived`,
+  ];
+  console.log(`[audible-alerts] ${parts.join(' | ')}`, record);
+
+  playbackHistory.push(record);
+  if (playbackHistory.length > MAX_HISTORY) {
+    playbackHistory.shift();
+  }
+}
+
+function onClipStarted() {
+  if (currentPlayback !== null && currentPlayback.startedAtMs === null) {
+    reportPlayback(currentPlayback);
+  }
+}
+
 function onClipFinished() {
   playing = false;
+  currentPlayback = null;
   playNext();
 }
 
@@ -165,10 +236,18 @@ function playNext() {
   while (queue.length > 0) {
     const next = queue.shift();
     if (Date.now() - next.receivedAtMs > MAX_QUEUE_AGE_SEC * 1000) {
-      console.debug('Dropping stale audible alert', next.file);
+      console.warn(
+        `[audible-alerts] dropped ${next.file}: it waited `
+        + `${((Date.now() - next.receivedAtMs) / 1000).toFixed(1)}s, longer than an alert stays useful`
+      );
       continue;
     }
-    start(clipUrl(next.file));
+    next.queuedMs = Date.now() - next.receivedAtMs;
+    next.playedBefore = previouslyPlayed.has(next.url);
+    next.requestedAtPerfMs = performance.now();
+    previouslyPlayed.add(next.url);
+    currentPlayback = next;
+    start(next.url);
     return;
   }
 }
@@ -206,12 +285,21 @@ export function observePlayback(property) {
   if (!file) {
     return;
   }
+  const batch = latency.lastBatchArrival();
   queue.push({
     file,
+    url: clipUrl(file),
     speech: elementValue(property, 'speech'),
+    announcedAtIso: property.timestamp,
     // Our own clock, so staleness never depends on agreement between this
     // browser and the host running the device.
     receivedAtMs: Date.now(),
+    // How late the batch carrying this alert was, relative to the fastest
+    // delivery this connection has managed.
+    batchLatenessMs: batch ? batch.latenessMs : null,
+    batchBytes: batch ? batch.byteLength : null,
+    queuedMs: null,
+    startedAtMs: null,
   });
   if (queue.length > MAX_QUEUE_LENGTH) {
     queue.splice(0, queue.length - MAX_QUEUE_LENGTH);
@@ -295,4 +383,38 @@ export function setVolume(volume) {
   }
 }
 
-export default { observePlayback, enable, disable, playChime, setVolume, restoreSession };
+/**
+ * What the player has been doing, for an observer to copy out of the console.
+ *
+ * Exposed on `window` so that diagnosing a latency report needs no more
+ * instruction than "open the console and run supAudibleAlerts.report()".
+ */
+export function report() {
+  return {
+    enabled: store.state.audibleAlerts.enabled,
+    blocked: store.state.audibleAlerts.blocked,
+    queueDepth: queue.length,
+    delivery: latency.transitSummary(),
+    playbacks: playbackHistory.map((record) => ({
+      file: record.file,
+      announced: record.announcedAtIso,
+      deliveryLatenessMs: record.batchLatenessMs,
+      batchBytes: record.batchBytes,
+      queuedMs: record.queuedMs,
+      msFromArrivalToSound: record.sinceArrivalMs,
+      clip: record.clipSource,
+    })),
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.supAudibleAlerts = {
+    report,
+    // Pre-formatted, because the usual request is "paste what it says".
+    text: () => JSON.stringify(report(), null, 2),
+  };
+}
+
+export default {
+  observePlayback, enable, disable, playChime, setVolume, restoreSession, report,
+};

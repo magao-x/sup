@@ -152,6 +152,42 @@ announced inside one batch window would reach the browser as one. The device
 sleeps for the length of each clip before announcing the next, so this does not
 arise in practice.
 
+#### Diagnosing alert latency
+
+Every alert logs where its time went, so a report of "sometimes it lags" can be
+answered with numbers. In the browser console:
+
+```
+[audible-alerts] a1b2c3d4e5.wav | announced 2026-10-27T17:38:04.717Z | delivery +0.03s over
+this connection's best | queued 0.00s | clip fetched in 1.84s (182 kB over the network) |
+playing 1.91s after the update arrived
+```
+
+The four measurements separate the four places time can go, because they have
+different fixes:
+
+- **delivery** --- how much later this update arrived than the fastest one this
+  connection has managed. The server stamps each batch with its own clock, and
+  while the offset between that clock and the browser's is unknown, it is
+  constant, so growth in the difference is delay rather than skew. Large values
+  mean updates are queueing between Chile and the browser.
+- **queued** --- time spent waiting for an earlier clip to finish. Expected
+  when alerts come in bursts, and not a fault.
+- **clip** --- whether the audio came off the network or out of the browser
+  cache, and how long it took. A first hearing of an utterance crosses the
+  Atlantic; every later one should say `from browser cache`.
+- **playing ... after the update arrived** --- the total, end to end.
+
+`supAudibleAlerts.report()` in the console returns the last 50 of these plus a
+delivery summary, and `supAudibleAlerts.text()` gives it as JSON to paste back.
+A batch arriving more than a second late also logs a warning on its own, so a
+slow connection is visible even when no alert is playing.
+
+On the server side, `sup` logs a warning when sending one batch to one client
+takes longer than `slow_send_warning_sec` (1 s by default). This is worth
+watching: batches are sent to clients one after another, so a single client on
+a slow link delays delivery to everyone else and holds up the next batch too.
+
 ### Tests
 
 `make test` runs both suites; each can be run on its own.

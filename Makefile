@@ -21,7 +21,7 @@ test:
 	cd frontend/ && npx playwright test
 
 test-browser:
-	cd frontend/ && npm run build && npx playwright test
+	cd frontend/ && npx playwright test
 
 fake-audible-alerts:
 	uv run python tests/fake_audible_alerts_device.py

@@ -175,6 +175,76 @@ test('a fresh page does not blurt out the utterance already in the property', as
   expect(clipRequests).toEqual([]);
 });
 
+test.describe('latency diagnostics', () => {
+  // Observers report alerts arriving late, sometimes by a lot, and the causes
+  // (slow delivery, queueing, fetching the clip across an ocean, the browser
+  // itself) need telling apart from a console log pasted back to us.
+  const alertLogLines = (page) => {
+    const lines = [];
+    page.on('console', (m) => {
+      if (m.text().startsWith('[audible-alerts]')) {
+        lines.push(m.text());
+      }
+    });
+    return lines;
+  };
+
+  test('each alert accounts for where its time went', async ({ page, request }) => {
+    const lines = alertLogLines(page);
+    await instrument(page);
+    await page.goto('/');
+    await control(page).locator('.toggle').click();
+    await page.waitForTimeout(400);
+
+    const emitted = await emit(request, STATIC_CLIP);
+    await expect.poll(() => lines.length).toBeGreaterThan(0);
+
+    const line = lines.find((l) => l.includes(STATIC_CLIP));
+    expect(line).toBeTruthy();
+    const announced = line.match(/announced (\S+)/)[1];
+    expect(Date.parse(announced)).toBe(Date.parse(emitted.timestamp));
+    expect(line).toMatch(/delivery \+\d+\.\d\ds over this connection's best/);
+    expect(line).toMatch(/queued \d+\.\d\ds/);
+    expect(line).toMatch(/playing \d+\.\d\ds after the update arrived/);
+  });
+
+  test('a clip off the network is told apart from one out of the cache', async ({ page, request }) => {
+    // This is the distinction that confirms or kills the leading theory for
+    // the reported lag, so it has to be reported correctly.
+    const lines = alertLogLines(page);
+    await instrument(page);
+    await page.goto('/');
+    await control(page).locator('.toggle').click();
+    await page.waitForTimeout(400);
+
+    await emit(request, OTHER_CLIP);
+    await expect.poll(() => lines.length).toBe(1);
+    expect(lines[0]).toContain('over the network');
+
+    await page.waitForTimeout(900);
+    await emit(request, OTHER_CLIP);
+    await expect.poll(() => lines.length).toBe(2);
+    expect(lines[1]).toContain('clip from browser cache');
+  });
+
+  test('a report can be copied out of the console', async ({ page, request }) => {
+    await instrument(page);
+    await page.goto('/');
+    await control(page).locator('.toggle').click();
+    await page.waitForTimeout(400);
+    await emit(request, STATIC_CLIP);
+    await expect.poll(() => playedClips(page)).toEqual([STATIC_CLIP]);
+
+    const report = await page.evaluate(() => window.supAudibleAlerts.report());
+    expect(report.enabled).toBe(true);
+    expect(report.playbacks).toHaveLength(1);
+    expect(report.playbacks[0]).toMatchObject({ file: STATIC_CLIP });
+    expect(report.playbacks[0].msFromArrivalToSound).toBeGreaterThanOrEqual(0);
+    expect(report.delivery.baselineOffsetMs).not.toBeNull();
+    expect(await page.evaluate(() => typeof window.supAudibleAlerts.text())).toBe('string');
+  });
+});
+
 test.describe('across a reload', () => {
   test('the opt-in is remembered', async ({ page }) => {
     await instrument(page);
