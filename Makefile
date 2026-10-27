@@ -20,10 +20,11 @@ viewarr:
 justjs: viewarr
 	cd frontend/ && npx vite build --emptyOutDir --outDir ../sup/static/
 
-# Publish that build over the installed copy. Separate because it is the only
-# part that needs root, and because INSTALLED_PATH only resolves where sup is
-# installed into the conda env.
-installjs: justjs
+# Publish an already-built sup/static/ over the installed copy: run `make
+# justjs` first. Deliberately not a prerequisite of this target -- this is the
+# half that needs root, and under `sudo make installjs` a prerequisite would
+# build as root, whose PATH has neither wasm-pack nor the conda npm.
+installjs:
 	sudo chown -R $(USER):magaox-dev $(INSTALLED_PATH)/static/
 	sudo chmod -R g+rwX $(INSTALLED_PATH)/static/
 	cp -R sup/static/* $(INSTALLED_PATH)/static/
