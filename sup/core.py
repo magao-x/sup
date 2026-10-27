@@ -53,9 +53,22 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 LCO_SITE = Observer.at_site('Las Campanas Observatory')
 LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
+# Hours by which local solar time leads UTC at the site (negative, west of
+# Greenwich). Used to bucket moments into observing nights.
+SITE_SOLAR_OFFSET_HOURS = LCO_COORDINATES.lon.to_value(u.hourangle)
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc)
+
+def observing_night(when):
+    """Identify which night of observing a moment belongs to.
+
+    Bucketed at local solar noon rather than at UTC midnight, which falls in
+    the middle of the night here and would split one night's observing across
+    two keys.
+    """
+    local_solar = when + datetime.timedelta(hours=SITE_SOLAR_OFFSET_HOURS)
+    return (local_solar - datetime.timedelta(hours=12)).date()
 
 # Both the URL the graph is served at and the name a browser saves it under.
 INSTGRAPH_DOWNLOAD_NAME = "instgraph.drawio"
@@ -70,6 +83,10 @@ class NotFound(HTTPException):
 class SupViews:
     def __init__(self, app):
         self.app : 'WebInterface' = app
+        self._sun_and_moon_for_night = None
+        # Held so that a burst of requests at the start of a night produces one
+        # computation rather than one per request.
+        self._sun_and_moon_lock = asyncio.Lock()
 
     async def light_path(self, request):
         light_path_config = INSTRUMENT_CONFIG_ROOT / 'light_path.toml'
@@ -152,15 +169,16 @@ class SupViews:
         if not target.is_dir():
             raise NotFound('Not a directory')
 
-        entries = []
-        total = 0
-        try:
+        # Off the event loop: a night's worth of exposures is thousands of
+        # entries and a stat() apiece, and every millisecond spent here is a
+        # millisecond in which no websocket update reaches anyone.
+        def read_directory():
+            entries = []
             with os.scandir(target) as scanner:
                 # Collect lightweight tuples: (is_dir, name_lower, name, full_path)
                 # DirEntry.is_dir() is cached from scandir, no extra syscall
                 all_entries = [(not e.is_dir(), e.name.lower(), e.name, e.path, e.is_dir()) for e in scanner]
             all_entries.sort()
-            total = len(all_entries)
             for _, _, name, full_path, is_dir in all_entries[offset:offset + limit]:
                 try:
                     st = os.stat(full_path)
@@ -172,6 +190,10 @@ class SupViews:
                     })
                 except OSError:
                     continue
+            return entries, len(all_entries)
+
+        try:
+            entries, total = await asyncio.to_thread(read_directory)
         except PermissionError:
             raise HTTPException(403, detail='Permission denied')
 
@@ -195,7 +217,9 @@ class SupViews:
         if not target.is_file():
             raise NotFound('Not a file')
 
-        try:
+        # Reading and converting a detector frame is slow enough to be felt by
+        # every other connected client if it happens on the event loop.
+        def read_image():
             with astropy_fits.open(str(target)) as hdul:
                 # find the first ImageHDU with data
                 data = None
@@ -212,7 +236,10 @@ class SupViews:
 
                 height, width = data.shape
                 arr = np.ascontiguousarray(data, dtype=np.float32)
-                buf = arr.tobytes()
+                return width, height, arr.tobytes()
+
+        try:
+            width, height, buf = await asyncio.to_thread(read_image)
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise
@@ -241,7 +268,7 @@ class SupViews:
         if not target.is_file():
             raise NotFound('Not a file')
 
-        try:
+        def read_header():
             with astropy_fits.open(str(target)) as hdul:
                 cards = []
                 for hdu_idx, hdu in enumerate(hdul):
@@ -259,6 +286,10 @@ class SupViews:
                             'comment': comment,
                         })
                     cards.append({'hdu': hdu_idx, 'name': hdu.name, 'cards': hdu_cards})
+                return cards
+
+        try:
+            cards = await asyncio.to_thread(read_header)
         except Exception as e:
             log.error(f'Error reading FITS header {target}: {e}')
             raise HTTPException(500, detail='Error reading FITS file')
@@ -336,19 +367,37 @@ class SupViews:
         return response
 
     async def sun_and_moon(self, request):
-        current_time = Time(utc_now())
-        payload = {
-            'solar_system': {
-                'moon': {
-                    'rise': LCO_SITE.moon_rise_time(current_time).to_value('iso'),
-                    'set': LCO_SITE.moon_set_time(current_time).to_value('iso'),
-                },
-                'sun': {
-                    'rise': LCO_SITE.sun_rise_time(current_time).to_value('iso'),
-                    'set': LCO_SITE.sun_set_time(current_time).to_value('iso'),
-                },
-            }}
-        return OrjsonResponse(payload)
+        """Rise and set times for the sun and moon, once per observing night.
+
+        These move by minutes a day and are solved iteratively, so computing
+        them per request is both slow and pointless. One answer per night is
+        the granularity the page is actually about, and it has the side
+        benefit that the displayed times stop drifting between requests.
+
+        The one computation per night still happens on a worker thread: it
+        takes long enough that doing it on the event loop would stall every
+        websocket on the server, which is precisely what a new night's first
+        request would otherwise do.
+        """
+        tonight = observing_night(utc_now())
+        async with self._sun_and_moon_lock:
+            if self._sun_and_moon_for_night is None or self._sun_and_moon_for_night[0] != tonight:
+                def compute():
+                    current_time = Time(utc_now())
+                    return {
+                        'solar_system': {
+                            'moon': {
+                                'rise': LCO_SITE.moon_rise_time(current_time).to_value('iso'),
+                                'set': LCO_SITE.moon_set_time(current_time).to_value('iso'),
+                            },
+                            'sun': {
+                                'rise': LCO_SITE.sun_rise_time(current_time).to_value('iso'),
+                                'set': LCO_SITE.sun_set_time(current_time).to_value('iso'),
+                            },
+                        }}
+                log.debug(f"Computing sun and moon times for the night of {tonight}")
+                self._sun_and_moon_for_night = (tonight, await asyncio.to_thread(compute))
+        return OrjsonResponse(self._sun_and_moon_for_night[1])
 
     async def observability_curves(self, request):
         ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
@@ -356,15 +405,27 @@ class SupViews:
 
         if (ra_str is None or dec_str is None) and (target_name is None):
             raise HTTPException(400)
-        if ra_str is None and dec_str is None:
-            target = FixedTarget.from_name(target_name)
-        else:
-            coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
-            target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
-        current_time = Time(utc_now())
-        sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
-        altitude = LCO_SITE.altaz(sample_times, target).alt
-        p_angle = LCO_SITE.parallactic_angle(sample_times, target)
+
+        # FixedTarget.from_name() resolves the name over the network, and the
+        # altaz sampling that follows is not cheap either. Either one on the
+        # event loop stalls every websocket on the server for its duration ---
+        # a name lookup against an unreachable service for as long as it takes
+        # to time out.
+        def resolve_and_sample():
+            if ra_str is None and dec_str is None:
+                target = FixedTarget.from_name(target_name)
+            else:
+                coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
+                target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
+            current_time = Time(utc_now())
+            sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
+            return (
+                sample_times,
+                LCO_SITE.altaz(sample_times, target).alt,
+                LCO_SITE.parallactic_angle(sample_times, target),
+            )
+
+        sample_times, altitude, p_angle = await asyncio.to_thread(resolve_and_sample)
         payload = {
             'parallactic_angles': [
                 {'x': ts.to_value('iso'), 'y': angle}
@@ -449,18 +510,100 @@ class AppWebSocketEndpoint(WebSocketEndpoint):
         super().__init__(*args, **kwargs)
         self.cli = cli
 
+class WebSocketClient:
+    """One connected browser, and the updates still waiting to reach it.
+
+    Broadcasts used to be awaited client by client. A browser whose connection
+    had stopped draining --- a laptop on bad wifi, a tab on the far side of an
+    ocean --- therefore held up delivery to every other browser, and delayed
+    the next batch as well. Worse, the delay compounds: the batcher keeps
+    accumulating while the broadcast waits, so the batch that eventually goes
+    out is bigger, and takes longer to send, for everyone.
+
+    Each client now drains its own queue and broadcasting is a non-blocking
+    enqueue, so one slow consumer costs only itself. A client that falls far
+    enough behind is disconnected rather than allowed to queue forever: the
+    frontend reconnects on its own and is sent a full snapshot, which is the
+    same state it would have rebuilt from the backlog.
+    """
+    def __init__(self, websocket, max_pending, slow_send_warning_sec):
+        self.websocket = websocket
+        self.outbound = asyncio.Queue(maxsize=max_pending)
+        self.slow_send_warning_sec = slow_send_warning_sec
+        self.sender = None
+        self.overflowed = False
+        self._disconnecting = None
+
+    @property
+    def where(self):
+        peer = getattr(self.websocket, 'client', None)
+        return f"{peer.host}:{peer.port}" if peer is not None else "unknown client"
+
+    def start(self):
+        self.sender = asyncio.create_task(self._send_pending())
+
+    def send(self, payload: bytes):
+        """Hand this client a payload without waiting for it to be written."""
+        if self.overflowed:
+            return
+        try:
+            self.outbound.put_nowait(payload)
+        except asyncio.QueueFull:
+            self.overflowed = True
+            log.warning(
+                f"Disconnecting {self.where}: {self.outbound.maxsize} updates queued "
+                f"without draining. It will reconnect and resync, rather than keep a "
+                f"backlog that can only grow."
+            )
+            self._disconnecting = asyncio.create_task(self._close_websocket())
+
+    async def _send_pending(self):
+        while True:
+            payload = await self.outbound.get()
+            started_at = time.monotonic()
+            try:
+                await self.websocket.send_bytes(payload)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                log.debug(f"Swallowed exception sending to {self.where}: {type(e)} {e}")
+                return
+            elapsed = time.monotonic() - started_at
+            if elapsed > self.slow_send_warning_sec:
+                # No longer holds anyone else up, but still worth knowing about
+                # when someone reports the web UI lagging for them.
+                log.warning(
+                    f"Slow websocket send: {elapsed:.2f}s to {self.where} for "
+                    f"{len(payload)} bytes, {self.outbound.qsize()} updates queued behind it."
+                )
+
+    async def _close_websocket(self):
+        try:
+            await self.websocket.close()
+        except Exception as e:
+            log.debug(f"Swallowed exception closing {self.where}: {type(e)} {e}")
+
+    def stop(self):
+        if self.sender is not None:
+            self.sender.cancel()
+            self.sender = None
+
+
 class SupWebSocket(AppWebSocketEndpoint):
     encoding = "bytes"
     async def on_connect(self, websocket):
-        self.cli._connected_clients.append(websocket)
         await websocket.accept()
+        # Registered only once the socket is open, and the snapshot is queued
+        # before any broadcast can reach this client, so a batch of deltas can
+        # never arrive ahead of the state it applies to.
+        client = self.cli.register_client(websocket)
         log.debug("Sending indi init payload")
-        await websocket.send_bytes(orjson.dumps({
+        client.send(orjson.dumps({
             'action': 'indi_init',
             'payload': self.cli.indi_client.to_serializable()['devices'],
         }))
         log.debug("Sending instgraph init payload")
-        await websocket.send_bytes(orjson.dumps({
+        client.send(orjson.dumps({
             'action': 'instgraph_updated',
             'payload': self.cli.instgraph_state(),
         }))
@@ -490,11 +633,7 @@ class SupWebSocket(AppWebSocketEndpoint):
             await self.on_indi_new(websocket, payload)
 
     async def on_disconnect(self, websocket, close_code):
-        try:
-            idx = self.cli._connected_clients.index(websocket)
-            self.cli._connected_clients.pop(idx)
-        except ValueError:
-            pass
+        self.cli.unregister_client(websocket)
 
 class LogStreamWebSocket(AppWebSocketEndpoint):
     encoding = "bytes"
@@ -658,6 +797,11 @@ class WebInterface(xconf.Command):
     instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
     obs_root : str = xconf.field(default=OBS_ROOT, help="Root directory for observation file browsing")
     log_unit : str = xconf.field(default="lookyloo", help="systemd unit name whose journal to stream (empty to disable)")
+    max_pending_updates_per_client : int = xconf.field(
+        default=50,
+        help="Updates that may queue for one websocket client before it is disconnected "
+             "to resync (at the default batch interval, about ten seconds' worth)"
+    )
     slow_send_warning_sec : float = xconf.field(
         default=1.0,
         help="Log a warning when sending one batch to one websocket client takes longer than this"
@@ -678,6 +822,25 @@ class WebInterface(xconf.Command):
         self._posix_instgraph_file_path = pathlib.Path(self.instgraph_file_path)
         self._last_instgraph_rev = None
 
+    def register_client(self, websocket) -> WebSocketClient:
+        client = WebSocketClient(
+            websocket, self.max_pending_updates_per_client, self.slow_send_warning_sec
+        )
+        client.start()
+        self._connected_clients.append(client)
+        return client
+
+    def unregister_client(self, websocket):
+        for client in list(self._connected_clients):
+            if client.websocket is websocket:
+                self._connected_clients.remove(client)
+                client.stop()
+
+    def broadcast(self, payload: bytes):
+        """Queue a payload for every connected client. Never waits on any of them."""
+        for client in list(self._connected_clients):
+            client.send(payload)
+
     async def emit_indi_updates(self):
         while True:
             try:
@@ -686,27 +849,7 @@ class WebInterface(xconf.Command):
                 # identical for everyone, and a busy instrument's batch is not
                 # cheap to encode.
                 payload = orjson.dumps({'action': 'indi_batch_update', 'payload': batch})
-                for websocket in self._connected_clients:
-                    started_at = time.monotonic()
-                    try:
-                        await websocket.send_bytes(payload)
-                    except Exception as e:
-                        log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
-                        continue
-                    # These sends are awaited one after another, so a client
-                    # whose connection has stopped draining holds up delivery
-                    # to everyone else and delays the next batch too. That is
-                    # worth knowing about when someone reports the web UI
-                    # lagging, so say which client and how long.
-                    elapsed = time.monotonic() - started_at
-                    if elapsed > self.slow_send_warning_sec:
-                        client = getattr(websocket, 'client', None)
-                        where = f"{client.host}:{client.port}" if client is not None else "unknown client"
-                        log.warning(
-                            f"Slow websocket send: {elapsed:.2f}s to {where} for "
-                            f"{len(payload)} bytes ({len(batch['updates'])} properties). "
-                            f"Delivery to other clients waits on this."
-                        )
+                self.broadcast(payload)
             except Exception as e:
                 log.warning(f"Exception in emit_indi_updates(): {type(e)=} {e}")
                 traceback.print_exc(file=sys.stdout)
@@ -739,11 +882,7 @@ class WebInterface(xconf.Command):
             return
         self._last_instgraph_rev = payload['rev']
         log.debug(f"Sending instgraph update trigger for {payload['file']} rev {payload['rev']}")
-        for websocket in self._connected_clients:
-            try:
-                await websocket.send_bytes(orjson.dumps({'action': 'instgraph_updated', 'payload': payload}))
-            except Exception as e:
-                log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
+        self.broadcast(orjson.dumps({'action': 'instgraph_updated', 'payload': payload}))
 
     async def start_file_watcher(self, file_path_to_watch=None):
         """Run the watchdog observer as an async background task."""
@@ -798,6 +937,8 @@ class WebInterface(xconf.Command):
         self._running_tasks.add(task_group.create_task(emit_indi_updates_coro))
 
     async def cancel_tasks(self):
+        for client in list(self._connected_clients):
+            client.stop()
         await self.indi_client.connection.stop()
         for task in self._running_tasks:
             log.info(f"Cancelling task: {task}")

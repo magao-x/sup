@@ -184,9 +184,11 @@ A batch arriving more than a second late also logs a warning on its own, so a
 slow connection is visible even when no alert is playing.
 
 On the server side, `sup` logs a warning when sending one batch to one client
-takes longer than `slow_send_warning_sec` (1 s by default). This is worth
-watching: batches are sent to clients one after another, so a single client on
-a slow link delays delivery to everyone else and holds up the next batch too.
+takes longer than `slow_send_warning_sec` (1 s by default), and when a client
+falls so far behind that it is disconnected to resync
+(`max_pending_updates_per_client`, 50 batches). Each client has its own
+outbound queue, so a slow one no longer delays anybody else --- but it is
+still a sign that someone's connection cannot keep up.
 
 ### Tests
 
