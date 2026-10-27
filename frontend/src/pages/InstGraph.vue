@@ -109,6 +109,12 @@ export default {
         RubberBandHandler, // Enables rubber band selection
       ]);
       this.graph.setPanning(true); // Use mouse right button for panning
+      // Folding would draw an expand/collapse icon on every group, fetched
+      // from maxGraph's image base path, where we ship no images (hence a 404
+      // for /expanded.gif on every render). The graph is a status display;
+      // nothing in it needs collapsing. A new object, because the defaults
+      // object is shared through the Graph prototype.
+      this.graph.options = { ...this.graph.options, foldingEnabled: false };
     },
     async loadGraph() {
       const fileContent = await this.loadDrawio();
