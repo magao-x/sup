@@ -1,3 +1,0 @@
-include sup/VERSION
-include sup/demo_full_system_state.json
-recursive-include sup/static *

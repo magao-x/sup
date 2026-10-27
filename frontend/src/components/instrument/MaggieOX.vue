@@ -7,6 +7,10 @@
         label="reload personality"></indi-momentary-switch>
       <indi-toggle-switch indi-id="maggieo_x.mute.toggle" label-on="muted" label-off="unmuted"></indi-toggle-switch>
     </div>
+    <div style="display: flex">
+      <div>This browser:</div>
+      <audible-alerts-toggle show-volume></audible-alerts-toggle>
+    </div>
     <div>
       <div>Speak: <indi-current-target indi-id="maggieo_x.speech_text"></indi-current-target></div>
       
@@ -32,6 +36,7 @@ import IndiCurrentTarget from "@/components/indi/IndiCurrentTarget.vue";
 import IndiSwitchMultiElement from "@/components/indi/IndiSwitchMultiElement.vue";
 import IndiToggleSwitch from "@/components/indi/IndiToggleSwitch.vue";
 import IndiMomentarySwitch from "@/components/indi/IndiMomentarySwitch.vue";
+import AudibleAlertsToggle from "@/components/basic/AudibleAlertsToggle.vue";
 
 export default {
   mixins: [utils],
@@ -44,6 +49,7 @@ export default {
     IndiSwitchMultiElement,
     IndiToggleSwitch,
     IndiMomentarySwitch,
+    AudibleAlertsToggle,
   },
 };
 </script>

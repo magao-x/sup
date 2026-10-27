@@ -10,3 +10,9 @@ __pycache__
 frontend/dist/
 frontend/.yarn/
 sup/static/**
+dist/
+.venv/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+.pytest_cache/

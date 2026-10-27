@@ -1,5 +1,5 @@
 import contextlib
-from functools import partial
+from functools import lru_cache, partial
 import pathlib
 import shutil
 import traceback
@@ -9,14 +9,15 @@ import logging
 import os
 import os.path
 import sys
+import time
 from pathlib import Path
 import multiprocessing
-import time
 
 import xconf
 from starlette.endpoints import WebSocketEndpoint
 import numpy as np
 from astropy.coordinates import SkyCoord
+from astropy.coordinates.name_resolve import NameResolveError
 import astropy.units as u
 import orjson
 import toml
@@ -31,7 +32,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Route, WebSocketRoute, Mount
 from starlette.staticfiles import StaticFiles
 
@@ -40,7 +41,9 @@ from watchdog.events import FileSystemEventHandler
 
 from .constants import (
     INSTRUMENT_CONFIG_ROOT, InstrumentLayouts, SITE_LOCATION,
-    CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT
+    CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT,
+    AUDIBLE_ALERTS_DEVICE, AUDIBLE_ALERTS_CACHE_ROOT,
+    AUDIBLE_ALERTS_TEMP_SUBDIR, AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC,
 )
 from .utils import OrjsonResponse
 
@@ -51,9 +54,51 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
 
 LCO_SITE = Observer.at_site('Las Campanas Observatory')
 LCO_COORDINATES = EarthLocation.of_site(SITE_LOCATION)
+# Hours by which local solar time leads UTC at the site (negative, west of
+# Greenwich). Used to bucket moments into observing nights.
+SITE_SOLAR_OFFSET_HOURS = LCO_COORDINATES.lon.to_value(u.hourangle)
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc)
+
+def observing_night(when):
+    """Identify which night of observing a moment belongs to.
+
+    Bucketed at local solar noon rather than at UTC midnight, which falls in
+    the middle of the night here and would split one night's observing across
+    two keys.
+    """
+    local_solar = when + datetime.timedelta(hours=SITE_SOLAR_OFFSET_HOURS)
+    return (local_solar - datetime.timedelta(hours=12)).date()
+
+# How many target names to remember. Far more than a night's observing list,
+# so in practice it bounds memory rather than evicting anything that matters.
+TARGET_NAME_CACHE_SIZE = 256
+
+@lru_cache(maxsize=TARGET_NAME_CACHE_SIZE)
+def resolve_target_name(name):
+    """Look up a target's coordinates by name, or None if there is no such target.
+
+    The lookup goes out to Sesame over the network, and catalog positions
+    don't change between requests, so answers are remembered: both a position
+    and the news that the name doesn't exist. Failures to get an answer at all
+    --- timeouts, an unreachable service --- propagate as exceptions, which
+    lru_cache does not remember, so the next request tries again.
+    """
+    try:
+        return SkyCoord.from_name(name)
+    except NameResolveError as e:
+        # astropy raises the same exception whether Sesame answered "no such
+        # object" or could not be reached; only the message tells them apart.
+        # tests/test_target_name_cache.py pins this against the installed
+        # astropy, so a change in wording fails a test rather than turning
+        # outages into cached non-existence.
+        if str(e).startswith("Unable to find coordinates"):
+            return None
+        raise
+
+# Both the URL the graph is served at and the name a browser saves it under.
+INSTGRAPH_DOWNLOAD_NAME = "instgraph.drawio"
 
 static_folder_name = "static"
 static_path = (Path(__file__).parent / static_folder_name).resolve()
@@ -65,6 +110,10 @@ class NotFound(HTTPException):
 class SupViews:
     def __init__(self, app):
         self.app : 'WebInterface' = app
+        self._sun_and_moon_for_night = None
+        # Held so that a burst of requests at the start of a night produces one
+        # computation rather than one per request.
+        self._sun_and_moon_lock = asyncio.Lock()
 
     async def light_path(self, request):
         light_path_config = INSTRUMENT_CONFIG_ROOT / 'light_path.toml'
@@ -83,8 +132,17 @@ class SupViews:
         real_path = (static_path / path).resolve()
 
         if static_path in real_path.parents:  # prevent traversal vulnerability
-            if real_path.exists():
+            if real_path.is_file():
                 return FileResponse(real_path.as_posix())
+            # Nothing on disk, so this is either a client-side route or a
+            # genuinely missing asset. The router uses history mode, meaning
+            # a reload or a bookmark of e.g. /instgraph arrives here as a
+            # real request; hand back the app and let the router resolve the
+            # path. A request carrying a file extension is an asset request,
+            # though, and answering those with HTML would turn a missing
+            # script into a baffling MIME type error instead of a 404.
+            if not real_path.suffix:
+                return await self.index(request)
         else:
             log.warning(f'Attempted directory traversal with path {path}')
         raise NotFound("No route or file at this URL")
@@ -93,7 +151,24 @@ class SupViews:
         return FileResponse((static_path / 'index.html').as_posix())
 
     async def instgraph(self, request):
-        return FileResponse(self.app.instgraph_file_path)
+        """Serve the instrument state graph.
+
+        Named for the file it returns rather than for the tab that shows it,
+        so it doesn't collide with the client-side /instgraph route and so a
+        browser pointed straight at it saves something sensibly named.
+        """
+        graph_path = Path(self.app.instgraph_file_path)
+        if not graph_path.is_file():
+            raise NotFound(f"No instrument state graph at {graph_path}")
+        # The file is replaced in-place by the writer, so a cached copy is
+        # always a stale copy. Clients also cache-bust with ?rev=, but belt
+        # and braces: intermediate proxies don't see the query string as
+        # meaningful unless we say so.
+        return FileResponse(graph_path.as_posix(), filename=INSTGRAPH_DOWNLOAD_NAME, headers={
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+        })
 
     async def config(self, request):
         config = xconf.config_to_dict(self.app)
@@ -121,15 +196,16 @@ class SupViews:
         if not target.is_dir():
             raise NotFound('Not a directory')
 
-        entries = []
-        total = 0
-        try:
+        # Off the event loop: a night's worth of exposures is thousands of
+        # entries and a stat() apiece, and every millisecond spent here is a
+        # millisecond in which no websocket update reaches anyone.
+        def read_directory():
+            entries = []
             with os.scandir(target) as scanner:
                 # Collect lightweight tuples: (is_dir, name_lower, name, full_path)
                 # DirEntry.is_dir() is cached from scandir, no extra syscall
                 all_entries = [(not e.is_dir(), e.name.lower(), e.name, e.path, e.is_dir()) for e in scanner]
             all_entries.sort()
-            total = len(all_entries)
             for _, _, name, full_path, is_dir in all_entries[offset:offset + limit]:
                 try:
                     st = os.stat(full_path)
@@ -141,6 +217,10 @@ class SupViews:
                     })
                 except OSError:
                     continue
+            return entries, len(all_entries)
+
+        try:
+            entries, total = await asyncio.to_thread(read_directory)
         except PermissionError:
             raise HTTPException(403, detail='Permission denied')
 
@@ -164,7 +244,9 @@ class SupViews:
         if not target.is_file():
             raise NotFound('Not a file')
 
-        try:
+        # Reading and converting a detector frame is slow enough to be felt by
+        # every other connected client if it happens on the event loop.
+        def read_image():
             with astropy_fits.open(str(target)) as hdul:
                 # find the first ImageHDU with data
                 data = None
@@ -181,7 +263,10 @@ class SupViews:
 
                 height, width = data.shape
                 arr = np.ascontiguousarray(data, dtype=np.float32)
-                buf = arr.tobytes()
+                return width, height, arr.tobytes()
+
+        try:
+            width, height, buf = await asyncio.to_thread(read_image)
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise
@@ -210,7 +295,7 @@ class SupViews:
         if not target.is_file():
             raise NotFound('Not a file')
 
-        try:
+        def read_header():
             with astropy_fits.open(str(target)) as hdul:
                 cards = []
                 for hdu_idx, hdu in enumerate(hdul):
@@ -228,6 +313,10 @@ class SupViews:
                             'comment': comment,
                         })
                     cards.append({'hdu': hdu_idx, 'name': hdu.name, 'cards': hdu_cards})
+                return cards
+
+        try:
+            cards = await asyncio.to_thread(read_header)
         except Exception as e:
             log.error(f'Error reading FITS header {target}: {e}')
             raise HTTPException(500, detail='Error reading FITS file')
@@ -251,20 +340,91 @@ class SupViews:
             media_type='application/octet-stream',
         )
 
+    async def audible_alerts_clip(self, request):
+        """Serve one audio clip for the browser-side audible alerts player.
+
+        The audibleAlerts device names clips by content: synthesized speech is
+        named for a hash of its text and voice, and recordings are copied into
+        the cache under their own names. A given URL therefore always means the
+        same audio, so browsers can keep clips indefinitely --- which is most of
+        the point, since random utterances, soundboard buttons, and walkups
+        repeat constantly, and a cached clip plays with no fetch latency.
+
+        The exception is the temp/ subdirectory, which holds speech whose text
+        was substituted at playback time. Those are one-offs, and the device
+        empties the directory when it restarts, so they get a short lifetime
+        instead of an immutable one.
+        """
+        rel = request.path_params['path']
+        cache_root = Path(self.app.audible_alerts_cache_root).resolve()
+        target = (cache_root / rel).resolve()
+
+        if cache_root not in target.parents:  # prevent traversal vulnerability
+            log.warning(f'Attempted directory traversal with path {rel}')
+            raise NotFound('No audio clip at this URL')
+        if not target.is_file():
+            raise NotFound('No audio clip at this URL')
+
+        if (cache_root / AUDIBLE_ALERTS_TEMP_SUBDIR) in target.parents:
+            cache_control = 'public, max-age=300'
+        else:
+            cache_control = f'public, max-age={AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC}, immutable'
+
+        # Passing stat_result gets the ETag onto the response at construction
+        # time, where we can compare it. Starlette computes one but leaves
+        # conditional requests to StaticFiles, and 'immutable' means this
+        # rarely fires --- but a browser that evicted the body while keeping
+        # the validator shouldn't have to re-download the audio.
+        stat_result = target.stat()
+        # Named explicitly rather than guessed: the platform mimetypes table
+        # calls .wav audio/x-wav, which Safari is fussier about than audio/wav.
+        media_type = 'audio/wav' if target.suffix.lower() == '.wav' else None
+        response = FileResponse(
+            target.as_posix(),
+            stat_result=stat_result,
+            media_type=media_type,
+            headers={'Cache-Control': cache_control},
+        )
+        etag = response.headers.get('etag')
+        if etag is not None and request.headers.get('if-none-match') == etag:
+            return Response(status_code=304, headers={
+                'Cache-Control': cache_control,
+                'ETag': etag,
+            })
+        return response
+
     async def sun_and_moon(self, request):
-        current_time = Time(utc_now())
-        payload = {
-            'solar_system': {
-                'moon': {
-                    'rise': LCO_SITE.moon_rise_time(current_time).to_value('iso'),
-                    'set': LCO_SITE.moon_set_time(current_time).to_value('iso'),
-                },
-                'sun': {
-                    'rise': LCO_SITE.sun_rise_time(current_time).to_value('iso'),
-                    'set': LCO_SITE.sun_set_time(current_time).to_value('iso'),
-                },
-            }}
-        return OrjsonResponse(payload)
+        """Rise and set times for the sun and moon, once per observing night.
+
+        These move by minutes a day and are solved iteratively, so computing
+        them per request is both slow and pointless. One answer per night is
+        the granularity the page is actually about, and it has the side
+        benefit that the displayed times stop drifting between requests.
+
+        The one computation per night still happens on a worker thread: it
+        takes long enough that doing it on the event loop would stall every
+        websocket on the server, which is precisely what a new night's first
+        request would otherwise do.
+        """
+        tonight = observing_night(utc_now())
+        async with self._sun_and_moon_lock:
+            if self._sun_and_moon_for_night is None or self._sun_and_moon_for_night[0] != tonight:
+                def compute():
+                    current_time = Time(utc_now())
+                    return {
+                        'solar_system': {
+                            'moon': {
+                                'rise': LCO_SITE.moon_rise_time(current_time).to_value('iso'),
+                                'set': LCO_SITE.moon_set_time(current_time).to_value('iso'),
+                            },
+                            'sun': {
+                                'rise': LCO_SITE.sun_rise_time(current_time).to_value('iso'),
+                                'set': LCO_SITE.sun_set_time(current_time).to_value('iso'),
+                            },
+                        }}
+                log.debug(f"Computing sun and moon times for the night of {tonight}")
+                self._sun_and_moon_for_night = (tonight, await asyncio.to_thread(compute))
+        return OrjsonResponse(self._sun_and_moon_for_night[1])
 
     async def observability_curves(self, request):
         ra_str, dec_str = request.query_params.get('ra', None), request.query_params.get('dec', None)
@@ -272,15 +432,30 @@ class SupViews:
 
         if (ra_str is None or dec_str is None) and (target_name is None):
             raise HTTPException(400)
-        if ra_str is None and dec_str is None:
-            target = FixedTarget.from_name(target_name)
-        else:
-            coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
-            target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
-        current_time = Time(utc_now())
-        sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
-        altitude = LCO_SITE.altaz(sample_times, target).alt
-        p_angle = LCO_SITE.parallactic_angle(sample_times, target)
+
+        # Resolving a name goes over the network (when not cached), and the
+        # altaz sampling that follows is not cheap either. Either one on the
+        # event loop stalls every websocket on the server for its duration ---
+        # a name lookup against an unreachable service for as long as it takes
+        # to time out.
+        def resolve_and_sample():
+            if ra_str is None and dec_str is None:
+                coord = resolve_target_name(target_name.strip())
+                if coord is None:
+                    raise NotFound(detail=f"No target named {target_name!r}")
+                target = FixedTarget(coord, name=target_name)
+            else:
+                coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
+                target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
+            current_time = Time(utc_now())
+            sample_times = current_time + np.linspace(-12, 12, 100)*u.hour
+            return (
+                sample_times,
+                LCO_SITE.altaz(sample_times, target).alt,
+                LCO_SITE.parallactic_angle(sample_times, target),
+            )
+
+        sample_times, altitude, p_angle = await asyncio.to_thread(resolve_and_sample)
         payload = {
             'parallactic_angles': [
                 {'x': ts.to_value('iso'), 'y': angle}
@@ -348,6 +523,10 @@ class INDIUpdateBatcher:
             'deletions': deletions,
             'connected': self.client_instance.status == constants.ConnectionStatus.CONNECTED,
             'logs': self.logs,
+            # Stamped so a client can separate how long a batch took to arrive
+            # from how far apart the two clocks are: the offset itself is
+            # unknowable, but its *variation* is exactly the delivery delay.
+            'sent_at': utc_now(),
         }
         self.properties_to_delete = set()
         self.properties_to_update = set()
@@ -361,21 +540,101 @@ class AppWebSocketEndpoint(WebSocketEndpoint):
         super().__init__(*args, **kwargs)
         self.cli = cli
 
+class WebSocketClient:
+    """One connected browser, and the updates still waiting to reach it.
+
+    Each client drains a queue of its own, so broadcasting is a non-blocking
+    enqueue and a browser that has stopped draining --- a laptop on bad wifi, a
+    tab on the far side of an ocean --- costs only itself. Waiting on one
+    client would cost everybody twice over: the other clients wait their turn
+    behind it, and the batcher keeps accumulating meanwhile, so the batch that
+    eventually goes out is larger and slower to send than it would have been.
+
+    A client that falls far enough behind is disconnected rather than allowed
+    to queue forever. The frontend reconnects on its own and is sent a full
+    snapshot, which is the same state it would have rebuilt from the backlog.
+    """
+    def __init__(self, websocket, max_pending, slow_send_warning_sec):
+        self.websocket = websocket
+        self.outbound = asyncio.Queue(maxsize=max_pending)
+        self.slow_send_warning_sec = slow_send_warning_sec
+        self.sender = None
+        self.overflowed = False
+        self._disconnecting = None
+
+    @property
+    def where(self):
+        peer = getattr(self.websocket, 'client', None)
+        return f"{peer.host}:{peer.port}" if peer is not None else "unknown client"
+
+    def start(self):
+        self.sender = asyncio.create_task(self._send_pending())
+
+    def send(self, payload: bytes):
+        """Hand this client a payload without waiting for it to be written."""
+        if self.overflowed:
+            return
+        try:
+            self.outbound.put_nowait(payload)
+        except asyncio.QueueFull:
+            self.overflowed = True
+            log.warning(
+                f"Disconnecting {self.where}: {self.outbound.maxsize} updates queued "
+                f"without draining. It will reconnect and resync, rather than keep a "
+                f"backlog that can only grow."
+            )
+            self._disconnecting = asyncio.create_task(self._close_websocket())
+
+    async def _send_pending(self):
+        while True:
+            payload = await self.outbound.get()
+            started_at = time.monotonic()
+            try:
+                await self.websocket.send_bytes(payload)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                log.debug(f"Swallowed exception sending to {self.where}: {type(e)} {e}")
+                return
+            elapsed = time.monotonic() - started_at
+            if elapsed > self.slow_send_warning_sec:
+                # Costs only this client, but it is still the thing to look
+                # for when someone reports the web UI lagging for them.
+                log.warning(
+                    f"Slow websocket send: {elapsed:.2f}s to {self.where} for "
+                    f"{len(payload)} bytes, {self.outbound.qsize()} updates queued behind it."
+                )
+
+    async def _close_websocket(self):
+        try:
+            await self.websocket.close()
+        except Exception as e:
+            log.debug(f"Swallowed exception closing {self.where}: {type(e)} {e}")
+
+    def stop(self):
+        if self.sender is not None:
+            self.sender.cancel()
+            self.sender = None
+
+
 class SupWebSocket(AppWebSocketEndpoint):
     encoding = "bytes"
     async def on_connect(self, websocket):
-        self.cli._connected_clients.append(websocket)
         await websocket.accept()
+        # Registered only once the socket is open, and the snapshot is queued
+        # before any broadcast can reach this client, so a batch of deltas can
+        # never arrive ahead of the state it applies to.
+        client = self.cli.register_client(websocket)
         log.debug("Sending indi init payload")
-        await websocket.send_bytes(orjson.dumps({
+        client.send(orjson.dumps({
             'action': 'indi_init',
             'payload': self.cli.indi_client.to_serializable()['devices'],
         }))
         log.debug("Sending instgraph init payload")
-        # await websocket.send_bytes(orjson.dumps({
-        #     'action': 'instgraph_updated',
-        #     'payload': {'file': INSTGRAPH_FILE_PATH.name},
-        # }))
+        client.send(orjson.dumps({
+            'action': 'instgraph_updated',
+            'payload': self.cli.instgraph_state(),
+        }))
 
     async def on_indi_new(self, websocket, payload):
         if not (
@@ -402,11 +661,7 @@ class SupWebSocket(AppWebSocketEndpoint):
             await self.on_indi_new(websocket, payload)
 
     async def on_disconnect(self, websocket, close_code):
-        try:
-            idx = self.cli._connected_clients.index(websocket)
-            self.cli._connected_clients.pop(idx)
-        except ValueError:
-            pass
+        self.cli.unregister_client(websocket)
 
 class LogStreamWebSocket(AppWebSocketEndpoint):
     encoding = "bytes"
@@ -469,33 +724,70 @@ class LogStreamWebSocket(AppWebSocketEndpoint):
                 pass
 
 class FileChangeHandler(FileSystemEventHandler):
+    """Watch the *directory* containing a single file and report changes to it.
+
+    Watching the directory rather than the file itself is what makes atomic
+    writes visible: a writer that does write-to-temp-then-rename never
+    generates a modify event for the destination path, only a move (or a
+    create, if the temp file lived elsewhere). An inode-level watch on the
+    original file would also go deaf after the first replacement, since the
+    inode it was watching is no longer the one at that path.
+
+    Bursts are collapsed on the *trailing* edge: a rename is often preceded
+    by create/modify events for the temp file, and the last event in a burst
+    is the one that reflects the final contents.
+    """
     def __init__(self, web_interface, file_path_to_watch, debouncing_interval_sec, loop):
         self.web_interface = web_interface
         self.file_path_to_watch = file_path_to_watch
         self.debouncing_interval_sec = debouncing_interval_sec
         self.loop = loop
-        self._last_modified_time = 0
+        self._real_path_to_watch = os.path.realpath(file_path_to_watch)
+        self._event_seq = 0
 
-    def on_modified(self, event):
-        """Trigger only if the specific file is modified."""
+    def _paths_for(self, event):
+        paths = [event.src_path]
+        # Moves carry the destination separately; for an atomic replace that
+        # destination is the only path that matches the file we care about.
+        dest = getattr(event, 'dest_path', None)
+        if dest:
+            paths.append(dest)
+        return paths
+
+    def _matches(self, event):
+        for path in self._paths_for(event):
+            if isinstance(path, bytes):
+                path = os.fsdecode(path)
+            if os.path.realpath(path) == self._real_path_to_watch:
+                return True
+        return False
+
+    def on_any_event(self, event):
         if event.is_directory:
             return
-
-        current_time = time.time()
-
-        # Check if enough time has passed since the last update
-        if current_time - self._last_modified_time < self.debouncing_interval_sec:
+        if event.event_type not in ('created', 'modified', 'moved', 'closed'):
+            return
+        if not self._matches(event):
             return
 
-        self._last_modified_time = current_time
+        self._event_seq += 1
+        log.debug(f"Update noticed on target file ({event.event_type}): {event.src_path}")
+        asyncio.run_coroutine_threadsafe(
+            self._debounced_emit(self._event_seq),
+            self.loop
+        )
 
-        log.debug(f"Update noticed on file {event.src_path}")
-        if os.path.realpath(event.src_path) == os.path.realpath(self.file_path_to_watch):
-            log.debug(f"Update noticed on target file {event.src_path}")
-            asyncio.run_coroutine_threadsafe(
-                self.web_interface.emit_instgraph_update(),
-                self.loop
-            )
+    async def _debounced_emit(self, seq):
+        """Emit only if no further event arrived during the quiet interval."""
+        try:
+            await asyncio.sleep(self.debouncing_interval_sec)
+            if seq != self._event_seq:
+                return  # superseded by a later event in the same burst
+            await self.web_interface.emit_instgraph_update()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning(f"Exception in _debounced_emit(): {type(e)=} {e}")
 
 @xconf.config
 class IndiConfig:
@@ -524,61 +816,132 @@ class WebInterface(xconf.Command):
     )
     debouncing_interval_sec : float = xconf.field(
         default=0.2,
-        help="How long to wait before sending a message over the websocket that the instGraph file has updated"
+        help="How long the instGraph file must be quiet before telling clients over the websocket that it updated"
+    )
+    watch_retry_interval_sec : float = xconf.field(
+        default=5.0,
+        help="How long to wait before retrying when the directory holding the instGraph file does not exist yet"
     )
     instgraph_file_path : str = xconf.field(default=INSTGRAPH_FILE_PATH, help="Absolute path of .drawio file that instGraph updates")
     obs_root : str = xconf.field(default=OBS_ROOT, help="Root directory for observation file browsing")
     log_unit : str = xconf.field(default="lookyloo", help="systemd unit name whose journal to stream (empty to disable)")
+    max_pending_updates_per_client : int = xconf.field(
+        default=50,
+        help="Updates that may queue for one websocket client before it is disconnected "
+             "to resync (at the default batch interval, about ten seconds' worth)"
+    )
+    slow_send_warning_sec : float = xconf.field(
+        default=1.0,
+        help="Log a warning when sending one batch to one websocket client takes longer than this"
+    )
+    audible_alerts_device : str = xconf.field(
+        default=AUDIBLE_ALERTS_DEVICE,
+        help="INDI device whose playback events drive audible alerts in the browser (empty to disable)"
+    )
+    audible_alerts_cache_root : str = xconf.field(
+        default=AUDIBLE_ALERTS_CACHE_ROOT,
+        help="Directory the audible alerts device writes playback audio into"
+    )
 
     def __post_init__(self):
         self._running_tasks = set()
         self._connected_clients = []
         self._last_instgraph_update = 0
         self._posix_instgraph_file_path = pathlib.Path(self.instgraph_file_path)
+        self._last_instgraph_rev = None
+
+    def register_client(self, websocket) -> WebSocketClient:
+        client = WebSocketClient(
+            websocket, self.max_pending_updates_per_client, self.slow_send_warning_sec
+        )
+        client.start()
+        self._connected_clients.append(client)
+        return client
+
+    def unregister_client(self, websocket):
+        for client in list(self._connected_clients):
+            if client.websocket is websocket:
+                self._connected_clients.remove(client)
+                client.stop()
+
+    def broadcast(self, payload: bytes):
+        """Queue a payload for every connected client. Never waits on any of them."""
+        for client in list(self._connected_clients):
+            client.send(payload)
 
     async def emit_indi_updates(self):
         while True:
             try:
                 batch = await self.indi_batcher.generate_batch()
-                for websocket in self._connected_clients:
-                    try:
-                        await websocket.send_bytes(orjson.dumps({'action': 'indi_batch_update', 'payload': batch}))
-                    except Exception as e:
-                        log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
+                # Encoded once for everybody: the bytes are identical for
+                # every client, and a busy instrument's batch is not cheap to
+                # encode.
+                payload = orjson.dumps({'action': 'indi_batch_update', 'payload': batch})
+                self.broadcast(payload)
             except Exception as e:
                 log.warning(f"Exception in emit_indi_updates(): {type(e)=} {e}")
                 traceback.print_exc(file=sys.stdout)
             await asyncio.sleep(self.batch_update_interval_sec)
 
+    def instgraph_state(self):
+        """Identify the current contents of the instrument state graph file.
+
+        The revision combines mtime, size, and inode. The inode matters:
+        an atomic replace swaps in a different inode, so the revision changes
+        even in the pathological case where the new file has the same size
+        and a timestamp the filesystem can't distinguish from the old one.
+        """
+        rev = None
+        try:
+            st = self._posix_instgraph_file_path.stat()
+            rev = f"{st.st_mtime_ns}-{st.st_size}-{st.st_ino}"
+        except OSError as e:
+            log.debug(f"Could not stat {self._posix_instgraph_file_path}: {e}")
+        return {'file': self._posix_instgraph_file_path.name, 'rev': rev}
+
     async def emit_instgraph_update(self):
         """Send file update notification via WebSocket."""
-        try:
-            for websocket in self._connected_clients:
-                try:
-                    log.debug(f"Sending instgraph udpate trigger for file {self._posix_instgraph_file_path.name}")
-                    await websocket.send_bytes(orjson.dumps({'action': 'instgraph_updated', 'payload': {'file': self._posix_instgraph_file_path.name}}))
-                except Exception as e:
-                    log.debug(f"Swallowed exception in websocket.send_bytes: {type(e)} {e}")
-        except Exception as e:
-            log.warning(f"Exception in emit_instgraph_updated(): {type(e)=} {e}")
-            traceback.print_exc(file=sys.stdout)
-        await asyncio.sleep(self.batch_update_interval_sec)
+        payload = self.instgraph_state()
+        if payload['rev'] is None:
+            log.debug("instgraph file is not readable, not notifying clients")
+            return
+        if payload['rev'] == self._last_instgraph_rev:
+            log.debug(f"instgraph rev {payload['rev']} unchanged, not notifying clients")
+            return
+        self._last_instgraph_rev = payload['rev']
+        log.debug(f"Sending instgraph update trigger for {payload['file']} rev {payload['rev']}")
+        self.broadcast(orjson.dumps({'action': 'instgraph_updated', 'payload': payload}))
 
     async def start_file_watcher(self, file_path_to_watch=None):
         """Run the watchdog observer as an async background task."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
-        file_path_to_watch = file_path_to_watch or self._posix_instgraph_file_path
+        file_path_to_watch = pathlib.Path(file_path_to_watch or self._posix_instgraph_file_path)
+        watch_dir = file_path_to_watch.parent
+
+        # The containing directory has to exist before we can watch it, and it
+        # may well not at startup. Wait for it rather than taking down the
+        # whole task group (and with it the INDI client) on a bad path.
+        while not watch_dir.is_dir():
+            log.warning(f"Cannot watch {file_path_to_watch}: {watch_dir} does not exist, retrying")
+            await asyncio.sleep(self.watch_retry_interval_sec)
+
+        # Record the starting revision before the observer is live, so a
+        # change landing during startup is still seen as a change rather than
+        # being swallowed as the baseline.
+        self._last_instgraph_rev = self.instgraph_state()['rev']
+
         event_handler = FileChangeHandler(self, file_path_to_watch, self.debouncing_interval_sec, loop)
         observer = observers.Observer()
-        observer.schedule(event_handler, file_path_to_watch.parent, recursive=False)
+        observer.schedule(event_handler, watch_dir.as_posix(), recursive=False)
         observer.start()
+        log.info(f"Watching {watch_dir} for changes to {file_path_to_watch.name}")
 
         try:
-            await asyncio.to_thread(observer.join)  # Run observer in a separate thread
+            await asyncio.Event().wait()  # until cancelled at shutdown
         finally:
             observer.stop()
-            observer.join()
+            await asyncio.to_thread(observer.join)
 
     async def trigger_get_properties(self, message):
         if message is constants.ConnectionStatus.CONNECTED:
@@ -602,6 +965,8 @@ class WebInterface(xconf.Command):
         self._running_tasks.add(task_group.create_task(emit_indi_updates_coro))
 
     async def cancel_tasks(self):
+        for client in list(self._connected_clients):
+            client.stop()
         await self.indi_client.connection.stop()
         for task in self._running_tasks:
             log.info(f"Cancelling task: {task}")
@@ -630,9 +995,10 @@ class WebInterface(xconf.Command):
                 Route('/obs/file', endpoint=self.views.obs_file),
                 Route('/obs/header', endpoint=self.views.obs_header),
                 Route('/obs/download', endpoint=self.views.obs_download),
+                Route('/audible-alerts/clip/{path:path}', endpoint=self.views.audible_alerts_clip),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
                 WebSocketRoute('/ws/logs', endpoint=partial(LogStreamWebSocket, self)),
-                Route("/instgraph", endpoint=self.views.instgraph),
+                Route(f"/{INSTGRAPH_DOWNLOAD_NAME}", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],
             lifespan=lifespan,

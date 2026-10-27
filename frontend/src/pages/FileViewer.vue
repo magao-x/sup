@@ -304,7 +304,7 @@ export default {
     }
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     this.cleanup();
   },
 };

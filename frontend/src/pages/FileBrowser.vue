@@ -253,7 +253,8 @@ const RECONNECT_DELAY_MS = 3000;
 export default {
   data() {
     return {
-      currentPath: '',
+      // null until the first listing loads, so the initial route always loads
+      currentPath: null,
       entries: [],
       listing: null,
       loading: false,
@@ -310,6 +311,10 @@ export default {
           throw new Error(`${res.status}: ${detail}`);
         }
         const data = await res.json();
+        // Back and forward can move on before an earlier listing arrives
+        if (path !== this.currentPath) {
+          return;
+        }
         if (offset === 0) {
           this.entries = data.entries;
         } else {
@@ -317,15 +322,38 @@ export default {
         }
         this.listing = data;
       } catch (e) {
-        this.error = e.message || 'Failed to load directory';
+        if (path === this.currentPath) {
+          this.error = e.message || 'Failed to load directory';
+        }
       } finally {
-        this.loading = false;
+        if (path === this.currentPath) {
+          this.loading = false;
+        }
       }
     },
+    // The directory lives in the URL so the browser's Back button walks back
+    // up the tree and a deep link can be shared or reloaded.
     navigateTo(path) {
+      if (path === this.pathFromRoute(this.$route)) {
+        return;
+      }
+      const location = { path: this.$route.path };
+      if (path) {
+        location.query = { path };
+      }
+      this.$router.push(location);
+    },
+    pathFromRoute(route) {
+      return route.query.path || '';
+    },
+    showPath(path) {
+      if (path === this.currentPath) {
+        return;
+      }
       this.currentPath = path;
       this.entries = [];
       this.listing = null;
+      this.scrollTop = 0;
       if (this.$refs.listContainer) {
         this.$refs.listContainer.scrollTop = 0;
       }
@@ -431,8 +459,22 @@ export default {
       this._logReconnectTimer = setTimeout(() => this.connectLog(), RECONNECT_DELAY_MS);
     },
   },
+  // Back, forward, and a reload all arrive as a route change rather than a
+  // click, so the listing is driven from the route instead of from navigateTo.
+  beforeRouteUpdate(to) {
+    this.showPath(this.pathFromRoute(to));
+  },
+  activated() {
+    // The tab bar links to the bare /files route, so returning via the tab
+    // keeps the directory that was open instead of jumping back to the root.
+    if (!this.pathFromRoute(this.$route) && this.currentPath) {
+      this.$router.replace({ path: this.$route.path, query: { path: this.currentPath } });
+      return;
+    }
+    this.showPath(this.pathFromRoute(this.$route));
+  },
   mounted() {
-    this.fetchEntries('');
+    this.showPath(this.pathFromRoute(this.$route));
     this.updateContainerHeight();
     this._resizeObserver = new ResizeObserver(() => this.updateContainerHeight());
     if (this.$refs.listContainer) {
@@ -440,7 +482,7 @@ export default {
     }
     this.connectLog();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
     }

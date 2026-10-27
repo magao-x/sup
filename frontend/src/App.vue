@@ -5,6 +5,7 @@
       <status-indicator :state="webSocketConnectionStatus" label="WS" icon-ok="link" icon-alert="link_off"></status-indicator>
       <status-indicator :state="indiConnectionStatus" label="INDI" icon-ok="link" icon-alert="link_off"></status-indicator>
       <indi-toggle-switch indi-id="tcsi.labMode.toggle" label-on="lab" label-off="tcs"></indi-toggle-switch>
+      <audible-alerts-toggle></audible-alerts-toggle>
       <div style="flex: 1"></div>
       <button class="btn square" @click="toggleLightMode">+</button>
     </div>
@@ -108,6 +109,8 @@ import StatusIndicator from "@/components/basic/StatusIndicator.vue";
 import constants from "./constants.js";
 import ObservationWarnings from "@/components/instrument/ObservationWarnings.vue";
 import Flames from "@/components/basic/Flames.vue";
+import AudibleAlertsToggle from "@/components/basic/AudibleAlertsToggle.vue";
+import audibleAlerts from "@/audibleAlerts.js";
 import { DateTime } from "luxon";
 import utils from "@/mixins/utils.js";
 
@@ -131,7 +134,8 @@ export default Vue.extend({
     LoopState,
     StatusIndicator,
     ObservationWarnings,
-    IndiToggleSwitch
+    IndiToggleSwitch,
+    AudibleAlertsToggle
   },
   data: function () {
     return {
@@ -145,6 +149,11 @@ export default Vue.extend({
       toggleFlames: this.toggleFlames,
     };
   },
+  mounted() {
+    // Someone who left alerts on should get them back without a click, where
+    // the browser's site permissions allow it.
+    audibleAlerts.restoreSession();
+  },
   methods: {
     toggleFlames() {
       this.flamesEnabled = !this.flamesEnabled;
@@ -153,9 +162,21 @@ export default Vue.extend({
       this.isLightMode = !this.isLightMode;
     },
   },
+  watch: {
+    audibleAlertsPlayback(property) {
+      audibleAlerts.observePlayback(property);
+    },
+  },
   computed: {
     devices() {
       return this.indi.world.devices;
+    },
+    audibleAlertsPlayback() {
+      // Watched here rather than in the control itself: App is always mounted,
+      // so navigating between tabs cannot interrupt playback, and one watcher
+      // means one playback no matter how many copies of the control are shown.
+      const device = this.$store.state.config ? this.$store.state.config.audible_alerts_device : null;
+      return device ? this.retrievePropertyByIndiId(`${device}.playback`) : null;
     },
     loopClosed () {
       let elt = this.retrieveByIndiId('aoloop.loopState.state');

@@ -45,25 +45,33 @@ export default {
       graph: null,
     };
   },
-  props: {
-    relativeURL: String,
-    // n.b. this can be anything, we just snoop on updates
-    // to know when to re-fetch the graph
-    lastUpdated: {
-      type: String,
-      default: "",
+  computed: {
+    // Bumped by the server over the websocket whenever the watched .drawio
+    // file is replaced on disk; watching it is what drives live reloading.
+    instGraphRev() {
+      return this.$store.state.instGraphRev;
     }
   },
   watch: {
-    async lastUpdated(newValue, oldValue) {
+    instGraphRev(newValue, oldValue) {
+      if (newValue === null || newValue === oldValue) {
+        return;
+      }
       this.loadGraph();
     }
   },
   methods: {
     async loadDrawio() {
       try {
-        const destURL = utils.buildBackendUrl(`instgraph`);
-        const response = await fetch(destURL);
+        // The file is replaced wholesale, so the URL alone doesn't identify
+        // its contents; tag the request with the revision to defeat caching.
+        const rev = this.instGraphRev || Date.now();
+        const destURL = utils.buildBackendUrl(`instgraph.drawio?rev=${encodeURIComponent(rev)}`);
+        const response = await fetch(destURL, { cache: "no-store" });
+        if (!response.ok) {
+          console.error("Error loading instrument state graph:", response.status, response.statusText);
+          return null;
+        }
         return response.text();
       } catch (error) {
         console.error("Error loading file:", error);
@@ -104,7 +112,13 @@ export default {
     },
     async loadGraph() {
       const fileContent = await this.loadDrawio();
+      if (!fileContent) {
+        return;
+      }
       const instrumentGraphDocument = this.extractDiagramContent(fileContent);
+      if (!instrumentGraphDocument) {
+        return;
+      }
       const modelXmlSerializer = new ModelXmlSerializer(this.graph.model);
       this.graph.view.rendering = false;
       this.graph.getDataModel().batchUpdate(() => {
