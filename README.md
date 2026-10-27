@@ -187,8 +187,8 @@ On the server side, `sup` logs a warning when sending one batch to one client
 takes longer than `slow_send_warning_sec` (1 s by default), and when a client
 falls so far behind that it is disconnected to resync
 (`max_pending_updates_per_client`, 50 batches). Each client has its own
-outbound queue, so a slow one no longer delays anybody else --- but it is
-still a sign that someone's connection cannot keep up.
+outbound queue, so a slow one costs only itself --- but it is still a sign
+that someone's connection cannot keep up.
 
 ### Tests
 

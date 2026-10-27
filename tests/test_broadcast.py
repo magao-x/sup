@@ -1,10 +1,9 @@
 """Tests for fanning updates out to connected browsers.
 
 The property worth protecting is that one slow client costs only itself.
-Updates used to be awaited client by client, so a browser that had stopped
-draining delayed delivery to every other browser and held up the next batch
-as well --- and because the batcher keeps accumulating while a broadcast
-waits, the next batch was then bigger and slower still.
+Waiting on a client costs everybody twice over: the other clients wait their
+turn behind it, and the batcher keeps accumulating meanwhile, so the batch
+that eventually goes out is larger and slower to send than it would have been.
 """
 import asyncio
 

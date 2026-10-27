@@ -513,18 +513,16 @@ class AppWebSocketEndpoint(WebSocketEndpoint):
 class WebSocketClient:
     """One connected browser, and the updates still waiting to reach it.
 
-    Broadcasts used to be awaited client by client. A browser whose connection
-    had stopped draining --- a laptop on bad wifi, a tab on the far side of an
-    ocean --- therefore held up delivery to every other browser, and delayed
-    the next batch as well. Worse, the delay compounds: the batcher keeps
-    accumulating while the broadcast waits, so the batch that eventually goes
-    out is bigger, and takes longer to send, for everyone.
+    Each client drains a queue of its own, so broadcasting is a non-blocking
+    enqueue and a browser that has stopped draining --- a laptop on bad wifi, a
+    tab on the far side of an ocean --- costs only itself. Waiting on one
+    client would cost everybody twice over: the other clients wait their turn
+    behind it, and the batcher keeps accumulating meanwhile, so the batch that
+    eventually goes out is larger and slower to send than it would have been.
 
-    Each client now drains its own queue and broadcasting is a non-blocking
-    enqueue, so one slow consumer costs only itself. A client that falls far
-    enough behind is disconnected rather than allowed to queue forever: the
-    frontend reconnects on its own and is sent a full snapshot, which is the
-    same state it would have rebuilt from the backlog.
+    A client that falls far enough behind is disconnected rather than allowed
+    to queue forever. The frontend reconnects on its own and is sent a full
+    snapshot, which is the same state it would have rebuilt from the backlog.
     """
     def __init__(self, websocket, max_pending, slow_send_warning_sec):
         self.websocket = websocket
@@ -570,8 +568,8 @@ class WebSocketClient:
                 return
             elapsed = time.monotonic() - started_at
             if elapsed > self.slow_send_warning_sec:
-                # No longer holds anyone else up, but still worth knowing about
-                # when someone reports the web UI lagging for them.
+                # Costs only this client, but it is still the thing to look
+                # for when someone reports the web UI lagging for them.
                 log.warning(
                     f"Slow websocket send: {elapsed:.2f}s to {self.where} for "
                     f"{len(payload)} bytes, {self.outbound.qsize()} updates queued behind it."
@@ -845,9 +843,9 @@ class WebInterface(xconf.Command):
         while True:
             try:
                 batch = await self.indi_batcher.generate_batch()
-                # Serialized once rather than per client: the result is
-                # identical for everyone, and a busy instrument's batch is not
-                # cheap to encode.
+                # Encoded once for everybody: the bytes are identical for
+                # every client, and a busy instrument's batch is not cheap to
+                # encode.
                 payload = orjson.dumps({'action': 'indi_batch_update', 'payload': batch})
                 self.broadcast(payload)
             except Exception as e:
