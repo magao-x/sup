@@ -7,7 +7,14 @@ all:
 	sudo chown -R $(USER):magaox-dev ./
 	sudo chmod -R g+rwX ./
 
-justjs:
+# frontend/ imports viewarr from viewarr-workspace/viewarr/pkg/, the wasm-pack
+# output. Nothing else rebuilds it, and a pkg/ left over from a different
+# submodule checkout is invisible -- vite bundles it and the viewer silently
+# stays on the old code -- so rebuild it here. cargo no-ops when it is current.
+viewarr:
+	cd viewarr-workspace/viewarr/ && npm run build
+
+justjs: viewarr
 	cd frontend/ && npx vite build --emptyOutDir --outDir ../sup/static/
 	sudo chown -R $(USER):magaox-dev $(INSTALLED_PATH)/static/
 	sudo chmod -R g+rwX $(INSTALLED_PATH)/static/
@@ -26,4 +33,4 @@ test-browser:
 fake-audible-alerts:
 	uv run python tests/fake_audible_alerts_device.py
 
-.PHONY: test test-browser fake-audible-alerts
+.PHONY: viewarr test test-browser fake-audible-alerts

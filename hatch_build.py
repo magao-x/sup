@@ -7,11 +7,15 @@ submodule. This hook runs both steps whenever a wheel (or an editable install)
 is built, so ``uv build`` / ``uv pip install .`` produce a complete package the
 way the old ``setup.py`` ``build_py`` subclass did.
 
-Build-time prerequisites: node/npm, and (only when the wasm-pack output is
-absent) a Rust toolchain with wasm-pack.
+Build-time prerequisites: node/npm, and a Rust toolchain with wasm-pack to
+rebuild viewarr. Without wasm-pack the build falls back to whatever is already
+in ``viewarr-workspace/viewarr/pkg/``, warning that it may be stale; if nothing
+is there to fall back to, it is an error.
 
 Set ``SUP_SKIP_NPM_BUILD=1`` to reuse whatever is already in ``sup/static/``
-(useful on machines without node, or when iterating on the Python side).
+(useful on machines without node, or when iterating on the Python side), or
+``SUP_SKIP_VIEWARR_BUILD=1`` to rebuild the frontend against the existing
+``pkg/`` without paying for wasm-pack.
 
 Building a wheel *from an sdist* takes that same path automatically: the sdist
 carries a built ``sup/static/`` but not the viewarr submodule, so there is
@@ -88,14 +92,17 @@ class NpmBuildHook(BuildHookInterface):
         return not GIT_DIR.exists() and not (VIEWARR_DIR / "Cargo.toml").exists()
 
     def _build_viewarr(self, npm):
-        """Build the viewarr wasm module the frontend imports, if needed.
+        """Rebuild the viewarr wasm module the frontend imports.
 
         frontend/package.json depends on ``file:../viewarr-workspace/viewarr/pkg``,
-        which only exists once wasm-pack has run. Rebuilding it on every Python
-        build would be slow, so only do it when it is missing.
+        which only exists once wasm-pack has run. The submodule checkout it is
+        built from moves -- a bump, a branch switch -- and a ``pkg/`` left over
+        from the previous one is invisible: the frontend bundles it, the build
+        succeeds, and the install quietly ships the old viewer. So rebuild
+        unconditionally and let cargo's own caching keep the no-op case cheap,
+        rather than trusting the output's mere existence to mean it is current.
         """
-        if (VIEWARR_PKG / "wrapper.js").exists():
-            return
+        have_pkg = (VIEWARR_PKG / "wrapper.js").exists()
 
         if not (VIEWARR_DIR / "Cargo.toml").exists():
             raise RuntimeError(
@@ -103,13 +110,34 @@ class NpmBuildHook(BuildHookInterface):
                 "to check out the viewarr-workspace submodule."
             )
 
-        if shutil.which("wasm-pack") is None:
-            raise RuntimeError(
-                f"{VIEWARR_PKG} is missing and wasm-pack was not found on PATH. "
-                "Install a Rust toolchain and wasm-pack "
-                "(https://rustwasm.github.io/wasm-pack/installer/), or build "
-                "viewarr separately and re-run."
+        if os.environ.get("SUP_SKIP_VIEWARR_BUILD"):
+            if not have_pkg:
+                raise RuntimeError(
+                    f"SUP_SKIP_VIEWARR_BUILD is set but {VIEWARR_PKG} does not "
+                    "exist, so the frontend has nothing to build against. "
+                    "Unset it to build viewarr."
+                )
+            self.app.display_warning(
+                f"SUP_SKIP_VIEWARR_BUILD set, reusing {VIEWARR_PKG} "
+                "(it may not match the current viewarr checkout)"
             )
+            return
+
+        if shutil.which("wasm-pack") is None:
+            if not have_pkg:
+                raise RuntimeError(
+                    f"{VIEWARR_PKG} is missing and wasm-pack was not found on "
+                    "PATH. Install a Rust toolchain and wasm-pack "
+                    "(https://rustwasm.github.io/wasm-pack/installer/), or "
+                    "build viewarr separately and re-run."
+                )
+            self.app.display_warning(
+                f"wasm-pack was not found on PATH, so {VIEWARR_PKG} cannot be "
+                "rebuilt; reusing it as-is. It may not match the current "
+                "viewarr checkout, in which case this build will ship an "
+                "out-of-date viewer."
+            )
+            return
 
         self.app.display_info("viewarr: npm run build (wasm-pack)")
         subprocess.run([npm, "run", "build"], cwd=VIEWARR_DIR, check=True)
