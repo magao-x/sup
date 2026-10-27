@@ -16,7 +16,7 @@
     "test:headed": "playwright test --headed"
   },
   "dependencies": {
-    "@maxgraph/core": "^0.15.1",
+    "@maxgraph/core": "^0.25.1",
     "@vue/compat": "^3.1.0",
     "css-element-queries": "^1.2.3",
     "cytoscape": "^3.31.2",

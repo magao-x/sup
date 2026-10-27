@@ -20,6 +20,8 @@
 .graph-container {
   flex: 1;
   overflow: hidden;
+  /* Nothing to interact with, so a drag shouldn't select label text either */
+  user-select: none;
 }
 
 .graph-buttons {
@@ -29,13 +31,15 @@
 <script>
 import * as ElementQueries from "css-element-queries";
 import {
-  constants,
-  DomHelpers,
-  getDefaultPlugins,
-  Graph,
+  BaseGraph,
+  EdgeMarker,
+  EdgeMarkerRegistry,
+  FitPlugin,
   InternalEvent,
   ModelXmlSerializer,
-  RubberBandHandler,
+  Perimeter,
+  PerimeterRegistry,
+  registerElbowEdgeStyle,
 } from '@maxgraph/core';
 import utils from "@/utils.js";
 
@@ -103,18 +107,24 @@ export default {
       // Disables the built-in context menu
       InternalEvent.disableContextMenu(container);
 
-      // Creates the graph inside the given container
-      this.graph = new Graph(container, undefined, [
-        ...getDefaultPlugins(),
-        RubberBandHandler, // Enables rubber band selection
-      ]);
-      this.graph.setPanning(true); // Use mouse right button for panning
+      // The graph is a status display: nothing to select, drag, edit or
+      // collapse. BaseGraph, unlike Graph, brings in no interaction plugins
+      // and registers no style elements, which leaves the bundler free to
+      // drop everything we don't name here.
+      this.graph = new BaseGraph({ container, plugins: [FitPlugin] });
+      this.graph.setEnabled(false);
       // Folding would draw an expand/collapse icon on every group, fetched
       // from maxGraph's image base path, where we ship no images (hence a 404
-      // for /expanded.gif on every render). The graph is a status display;
-      // nothing in it needs collapsing. A new object, because the defaults
-      // object is shared through the Graph prototype.
-      this.graph.options = { ...this.graph.options, foldingEnabled: false };
+      // for /expanded.gif on every render).
+      this.graph.options.foldingEnabled = false;
+    },
+    registerStyleElements() {
+      // Only what the instrument graph's styles use. Rectangles and plain
+      // connectors are maxGraph's fallbacks and need no registration; anything
+      // else a future diagram names would silently render without it.
+      PerimeterRegistry.add('rectanglePerimeter', Perimeter.RectanglePerimeter);
+      EdgeMarkerRegistry.add('classic', EdgeMarker.createArrow(2));
+      registerElbowEdgeStyle();
     },
     async loadGraph() {
       const fileContent = await this.loadDrawio();
@@ -125,25 +135,34 @@ export default {
       if (!instrumentGraphDocument) {
         return;
       }
-      const modelXmlSerializer = new ModelXmlSerializer(this.graph.model);
+      const model = this.graph.getDataModel();
+      // Tear down the drawing of the graph being replaced while its cells
+      // are still reachable from the root. Left to the root change, maxGraph
+      // keeps every old cell's state (and its SVG) alive when the change
+      // happens with rendering off, so each reload stacked another copy.
+      this.graph.view.clear(model.getRoot(), true, true);
       this.graph.view.rendering = false;
-      this.graph.getDataModel().batchUpdate(() => {
-        this.graph.model.clear();
-        modelXmlSerializer.import(instrumentGraphDocument);
-      });
+      // Importing replaces the root, so there is no need to clear first.
+      new ModelXmlSerializer(model).import(instrumentGraphDocument);
       this.graph.view.rendering = true;
-      // this.graph.fit(0, false, 100);
-      this.graph.fit(0, false, 100, true, false, false, this.$el.offsetHeight);
-      this.graph.refresh();
+      this.fitToHeight();
     },
     fitGraph() {
       this.$refs.graphControls.style.height = `${this.$el.offsetHeight}px`;
-      this.graph.fit(0, false, 100, true, false, false, this.$el.offsetHeight);
+      this.fitToHeight();
+    },
+    fitToHeight() {
+      this.graph.getPlugin(FitPlugin.pluginId).fit({
+        border: 0,
+        margin: 100,
+        maxHeight: this.$el.offsetHeight,
+      });
       this.graph.refresh();
     }
   },
   async mounted() {
     this.resizeSensor = new ElementQueries.ResizeSensor(this.$el, () => this.fitGraph());
+    this.registerStyleElements();
     this.initializeGraph();
     this.loadGraph();
     this.fitGraph();
