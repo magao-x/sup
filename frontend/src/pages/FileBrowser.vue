@@ -482,7 +482,7 @@ export default {
     }
     this.connectLog();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
     }
