@@ -1,5 +1,5 @@
 import contextlib
-from functools import partial
+from functools import lru_cache, partial
 import pathlib
 import shutil
 import traceback
@@ -17,6 +17,7 @@ import xconf
 from starlette.endpoints import WebSocketEndpoint
 import numpy as np
 from astropy.coordinates import SkyCoord
+from astropy.coordinates.name_resolve import NameResolveError
 import astropy.units as u
 import orjson
 import toml
@@ -69,6 +70,32 @@ def observing_night(when):
     """
     local_solar = when + datetime.timedelta(hours=SITE_SOLAR_OFFSET_HOURS)
     return (local_solar - datetime.timedelta(hours=12)).date()
+
+# How many target names to remember. Far more than a night's observing list,
+# so in practice it bounds memory rather than evicting anything that matters.
+TARGET_NAME_CACHE_SIZE = 256
+
+@lru_cache(maxsize=TARGET_NAME_CACHE_SIZE)
+def resolve_target_name(name):
+    """Look up a target's coordinates by name, or None if there is no such target.
+
+    The lookup goes out to Sesame over the network, and catalog positions
+    don't change between requests, so answers are remembered: both a position
+    and the news that the name doesn't exist. Failures to get an answer at all
+    --- timeouts, an unreachable service --- propagate as exceptions, which
+    lru_cache does not remember, so the next request tries again.
+    """
+    try:
+        return SkyCoord.from_name(name)
+    except NameResolveError as e:
+        # astropy raises the same exception whether Sesame answered "no such
+        # object" or could not be reached; only the message tells them apart.
+        # tests/test_target_name_cache.py pins this against the installed
+        # astropy, so a change in wording fails a test rather than turning
+        # outages into cached non-existence.
+        if str(e).startswith("Unable to find coordinates"):
+            return None
+        raise
 
 # Both the URL the graph is served at and the name a browser saves it under.
 INSTGRAPH_DOWNLOAD_NAME = "instgraph.drawio"
@@ -406,14 +433,17 @@ class SupViews:
         if (ra_str is None or dec_str is None) and (target_name is None):
             raise HTTPException(400)
 
-        # FixedTarget.from_name() resolves the name over the network, and the
+        # Resolving a name goes over the network (when not cached), and the
         # altaz sampling that follows is not cheap either. Either one on the
         # event loop stalls every websocket on the server for its duration ---
         # a name lookup against an unreachable service for as long as it takes
         # to time out.
         def resolve_and_sample():
             if ra_str is None and dec_str is None:
-                target = FixedTarget.from_name(target_name)
+                coord = resolve_target_name(target_name.strip())
+                if coord is None:
+                    raise NotFound(detail=f"No target named {target_name!r}")
+                target = FixedTarget(coord, name=target_name)
             else:
                 coord = SkyCoord(ra=float(ra_str)*u.deg, dec=float(dec_str)*u.deg)
                 target = FixedTarget(coord, label=f"RA: {ra_str}, Dec: {dec_str}")
