@@ -1,18 +1,21 @@
+// Each page loads when its route is first visited, so a page's dependencies
+// (maxGraph for the instrument graph, say) aren't in the bundle every page
+// downloads.
+
 // MagAOX
-import PropertiesTable from "@/pages/magaox/PropertiesTable.vue";
-import Observation from "@/pages/magaox/Observation.vue";
-import VirtualMachine from "@/pages/magaox/VirtualMachine.vue";
-import LabMode from "@/pages/magaox/LabMode.vue";
-import Dashboard from "@/pages/magaox/Dashboard.vue";
-import Cameras from "@/pages/magaox/Cameras.vue";
-import AdaptiveOptics from "@/pages/magaox/AdaptiveOptics.vue";
-import Power from "@/pages/magaox/Power.vue";
-import PlantStatus from "@/pages/magaox/PlantStatus.vue";
-import InstGraph from "@/pages/InstGraph.vue";
-import FileBrowser from "@/pages/FileBrowser.vue";
+const PropertiesTable = () => import("@/pages/magaox/PropertiesTable.vue");
+const Observation = () => import("@/pages/magaox/Observation.vue");
+const VirtualMachine = () => import("@/pages/magaox/VirtualMachine.vue");
+const LabMode = () => import("@/pages/magaox/LabMode.vue");
+const Dashboard = () => import("@/pages/magaox/Dashboard.vue");
+const Cameras = () => import("@/pages/magaox/Cameras.vue");
+const AdaptiveOptics = () => import("@/pages/magaox/AdaptiveOptics.vue");
+const Power = () => import("@/pages/magaox/Power.vue");
+const InstGraph = () => import("@/pages/InstGraph.vue");
+const FileBrowser = () => import("@/pages/FileBrowser.vue");
 
 // SCOOB
-import ScoobObservation from "@/pages/scoob/Observation.vue";
+const ScoobObservation = () => import("@/pages/scoob/Observation.vue");
 
 export const map =
 {   "magaox": {
@@ -26,7 +29,6 @@ export const map =
                 { path: '/vm', component: VirtualMachine },
                 { path: '/lab', component: LabMode },
                 { path: '/dashboard', component: Dashboard },
-                { path: '/plant-status', component: PlantStatus},
                 { path: '/instgraph', component: InstGraph},
                 { path: '/files', component: FileBrowser},
             ],
