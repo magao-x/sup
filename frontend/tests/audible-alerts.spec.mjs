@@ -234,6 +234,11 @@ test.describe('latency diagnostics', () => {
     await page.waitForTimeout(400);
     await emit(request, STATIC_CLIP);
     await expect.poll(() => playedClips(page)).toEqual([STATIC_CLIP]);
+    // A playback is reported once sound actually starts, which is a moment
+    // after play() is called --- longer while the page is still loading.
+    await expect.poll(
+      () => page.evaluate(() => window.supAudibleAlerts.report().playbacks.length)
+    ).toBe(1);
 
     const report = await page.evaluate(() => window.supAudibleAlerts.report());
     expect(report.enabled).toBe(true);

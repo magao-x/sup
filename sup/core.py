@@ -1,3 +1,4 @@
+import collections
 import contextlib
 from functools import lru_cache, partial
 import pathlib
@@ -5,6 +6,7 @@ import shutil
 import traceback
 import asyncio
 import datetime
+import heapq
 import logging
 import os
 import os.path
@@ -44,6 +46,7 @@ from .constants import (
     CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT,
     AUDIBLE_ALERTS_DEVICE, AUDIBLE_ALERTS_CACHE_ROOT,
     AUDIBLE_ALERTS_TEMP_SUBDIR, AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC,
+    LOG_LEVELS,
 )
 from .utils import OrjsonResponse
 
@@ -474,9 +477,41 @@ class SupViews:
         return serialized
 
 
+def log_level(message):
+    """The level a log message opens with, or None if it names none we know."""
+    level = message.message[:4].strip()
+    return level if level in LOG_LEVELS else None
+
+class LogHistory:
+    """The most recent log messages at each level, for browsers that connect later.
+
+    Each level has its own fixed-size buffer, so a burst at one level can't
+    push the last few messages at another out of the history: a viewer
+    filtered down to errors still has errors to show. Messages that name no
+    known level aren't kept, since no filter in the viewer would show them.
+    """
+    def __init__(self, per_level):
+        self.per_level = per_level
+        self._by_level = {level: collections.deque(maxlen=per_level) for level in LOG_LEVELS}
+        # Arrival order, so the levels can be interleaved again as they came.
+        self._next_seq = 0
+
+    def add(self, message):
+        level = log_level(message)
+        if level is None:
+            return
+        self._by_level[level].append((self._next_seq, message))
+        self._next_seq += 1
+
+    def messages(self):
+        """Every kept message at every level, oldest first."""
+        merged = heapq.merge(*self._by_level.values(), key=lambda entry: entry[0])
+        return [message for _, message in merged]
+
 class INDIUpdateBatcher:
-    def __init__(self, client_instance):
+    def __init__(self, client_instance, log_history):
         self.client_instance = client_instance
+        self.log_history = log_history
         self.properties_to_update = set()
         self.properties_to_delete = set()
         self.logs = []
@@ -528,6 +563,13 @@ class INDIUpdateBatcher:
             # unknowable, but its *variation* is exactly the delivery delay.
             'sent_at': utc_now(),
         }
+        # Into the history only as they go out, and with no await between
+        # here and the broadcast, so at any moment a message is either in the
+        # history or still to come in a batch, never both. A browser that
+        # connects is sent the history and then every later batch, and so
+        # sees each message exactly once.
+        for message in self.logs:
+            self.log_history.add(message)
         self.properties_to_delete = set()
         self.properties_to_update = set()
         self.logs = []
@@ -629,6 +671,13 @@ class SupWebSocket(AppWebSocketEndpoint):
         client.send(orjson.dumps({
             'action': 'indi_init',
             'payload': self.cli.indi_client.to_serializable()['devices'],
+        }))
+        client.send(orjson.dumps({
+            'action': 'log_history',
+            'payload': {
+                'per_level': self.cli.log_history.per_level,
+                'logs': self.cli.log_history.messages(),
+            },
         }))
         log.debug("Sending instgraph init payload")
         client.send(orjson.dumps({
@@ -834,6 +883,11 @@ class WebInterface(xconf.Command):
         default=1.0,
         help="Log a warning when sending one batch to one websocket client takes longer than this"
     )
+    log_history_per_level : int = xconf.field(
+        default=100,
+        help="Recent log messages kept at each level, so a browser that connects later "
+             "has history to show however its level filters are set"
+    )
     audible_alerts_device : str = xconf.field(
         default=AUDIBLE_ALERTS_DEVICE,
         help="INDI device whose playback events drive audible alerts in the browser (empty to disable)"
@@ -849,6 +903,7 @@ class WebInterface(xconf.Command):
         self._last_instgraph_update = 0
         self._posix_instgraph_file_path = pathlib.Path(self.instgraph_file_path)
         self._last_instgraph_rev = None
+        self.log_history = LogHistory(self.log_history_per_level)
 
     def register_client(self, websocket) -> WebSocketClient:
         client = WebSocketClient(
@@ -953,7 +1008,7 @@ class WebInterface(xconf.Command):
         self.indi_client = purepyindi2.IndiClient(conn)
         self._running_tasks.add(task_group.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.connection, self.trigger_get_properties)))
 
-        self.indi_batcher = INDIUpdateBatcher(self.indi_client)
+        self.indi_batcher = INDIUpdateBatcher(self.indi_client, self.log_history)
         self._running_tasks.add(task_group.create_task(self.indi_client.connection.add_async_callback(constants.TransportEvent.inbound, self.indi_batcher.process_update)))
 
         self._running_tasks.add(task_group.create_task(self.start_file_watcher()))
