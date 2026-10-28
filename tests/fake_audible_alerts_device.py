@@ -8,6 +8,7 @@ on demand. Alongside the INDI port it runs a small HTTP control surface, so a
 test (or a developer poking at it with a browser) can trigger an utterance:
 
     POST /emit?file=<clip>&speech=<text>   make the device "play" a clip
+    POST /log?text=<text>                  send an INDI log message, e.g. "ERR  oops"
     GET  /clips                            list the clips in the cache
     GET  /health                           readiness check
 
@@ -18,7 +19,8 @@ to point ``sup``'s ``audible_alerts_cache_root`` at::
     uv run sup indi.port=17624 audible_alerts_cache_root=/tmp/sup-alerts
 
 This is deliberately not a general INDI simulator: it publishes one property,
-because that is the whole interface the browser player depends on.
+because that is the whole interface the browser player depends on, plus log
+messages on demand, for the log viewer's tests.
 """
 import argparse
 import asyncio
@@ -97,6 +99,12 @@ def set_property_xml(file: str, speech: str, voice: str, timestamp: str) -> byte
     ).encode()
 
 
+def log_message_xml(text: str, timestamp: str) -> bytes:
+    return (
+        f'<message device="{DEVICE}" timestamp={quoteattr(timestamp)} message={quoteattr(text)}/>\n'
+    ).encode()
+
+
 class FakeDevice:
     def __init__(self, cache_root: pathlib.Path):
         self.cache_root = cache_root
@@ -121,9 +129,7 @@ class FakeDevice:
                 self.clients.remove(writer)
             writer.close()
 
-    async def emit(self, file: str, speech: str, voice: str) -> dict:
-        timestamp = iso_now()
-        payload = set_property_xml(file, speech, voice, timestamp)
+    async def send_to_clients(self, payload: bytes) -> int:
         delivered = 0
         for writer in list(self.clients):
             try:
@@ -133,6 +139,11 @@ class FakeDevice:
             except ConnectionError:
                 if writer in self.clients:
                     self.clients.remove(writer)
+        return delivered
+
+    async def emit(self, file: str, speech: str, voice: str) -> dict:
+        timestamp = iso_now()
+        delivered = await self.send_to_clients(set_property_xml(file, speech, voice, timestamp))
         record = {'file': file, 'speech': speech, 'voice': voice,
                   'timestamp': timestamp, 'clients': delivered}
         self.emitted.append(record)
@@ -141,6 +152,11 @@ class FakeDevice:
     def emit_threadsafe(self, file: str, speech: str, voice: str) -> dict:
         future = asyncio.run_coroutine_threadsafe(self.emit(file, speech, voice), self.loop)
         return future.result(timeout=5)
+
+    def log_threadsafe(self, text: str) -> dict:
+        payload = log_message_xml(text, iso_now())
+        future = asyncio.run_coroutine_threadsafe(self.send_to_clients(payload), self.loop)
+        return {'text': text, 'clients': future.result(timeout=5)}
 
 
 def make_control_handler(device: FakeDevice):
@@ -170,10 +186,13 @@ def make_control_handler(device: FakeDevice):
 
         def do_POST(self):
             parsed = urllib.parse.urlparse(self.path)
+            query = urllib.parse.parse_qs(parsed.query)
+            if parsed.path == '/log':
+                self._respond(200, device.log_threadsafe(query.get('text', ['INFO hello'])[0]))
+                return
             if parsed.path != '/emit':
                 self._respond(404, {'error': 'no such control route'})
                 return
-            query = urllib.parse.parse_qs(parsed.query)
             file = query.get('file', [device.clips[0]])[0]
             speech = query.get('speech', [f'playing {file}'])[0]
             voice = query.get('voice', ['en_GB-cori-high'])[0]

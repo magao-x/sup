@@ -61,7 +61,9 @@ export default defineConfig({
       command: `uv run sup indi.port=${INDI_PORT} bind_port=${SUP_PORT}`
         + ` audible_alerts_cache_root=${CACHE_ROOT}`
         + ` instgraph_file_path=${path.join(CACHE_ROOT, 'magaox.drawio')}`
-        + ` log_unit=`,
+        + ` log_unit=`
+        // Small, so the log history tests can overflow it quickly.
+        + ` log_history_per_level=5`,
       url: `http://127.0.0.1:${SUP_PORT}/config`,
       cwd: repoRoot,
       reuseExistingServer: !process.env.CI,

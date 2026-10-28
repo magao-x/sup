@@ -2,13 +2,16 @@ import Vue from 'vue';
 import { DateTime } from "luxon";
 import utils from '@/utils.js';
 import latency from '@/latency.js';
+import { trimPerLevel } from '@/logLevels.js';
 
 // Vue.use(VueVirtualScroller)
 
 let textEncoder = new TextEncoder();
 let textDecoder = new TextDecoder();
 
-const MAX_LOG_ENTRIES = 10;
+// Log messages kept at each level until the server says how many it keeps,
+// which it does as soon as the websocket connects.
+const DEFAULT_LOGS_PER_LEVEL = 100;
 
 export default {
     methods: {
@@ -47,6 +50,8 @@ export default {
               this.reinitializeIndiWorld(msg.payload);
             } else if (msg.action == "indi_batch_update") {
               this.batchUpdate(msg.payload);
+            } else if (msg.action == "log_history") {
+              this.logHistory(msg.payload);
             } else if (msg.action == "instgraph_updated") {
               this.instgraphUpdate(msg.payload);
             }
@@ -105,10 +110,15 @@ export default {
           }
           this.lastUpdate = DateTime.utc();
           this.indiIsConnected = payload.connected;
-          this.systemLogs = this.systemLogs.concat(payload.logs);
-          if (this.systemLogs.length > MAX_LOG_ENTRIES) {
-            this.systemLogs.splice(0, this.systemLogs.length - MAX_LOG_ENTRIES);
+          if (payload.logs.length > 0) {
+            this.systemLogs = trimPerLevel(this.systemLogs.concat(payload.logs), this.logsPerLevel);
           }
+        },
+        logHistory(payload) {
+          // Sent on every connect, and it already holds everything this page
+          // saw before a disconnect, so it replaces rather than extends.
+          this.logsPerLevel = payload.per_level;
+          this.systemLogs = trimPerLevel(payload.logs, this.logsPerLevel);
         },
         instgraphUpdate(payload) {
           console.log("instGraph updated", payload.file, payload.rev);
@@ -129,6 +139,7 @@ export default {
           currentTime: DateTime.utc(),
           indiWorld: {},
           systemLogs: [],
+          logsPerLevel: DEFAULT_LOGS_PER_LEVEL,
           ws: null,
           webSocketIsConnected: false,
           indiIsConnected: false,

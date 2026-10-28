@@ -89,6 +89,7 @@ tbody {
 <script>
 import utils from "@/mixins/utils.js";
 import MaterialIcon from "@/components/basic/MaterialIcon.vue";
+import { LOG_LEVELS, logLevel } from "@/logLevels.js";
 
 const iconLookup = {
   EMER: "error",
@@ -108,28 +109,29 @@ export default {
   },
   data() {
     return {
-      showLevels: ["EMER", "ALRT", "CRIT", "ERR", "WARN", "NOTE", "INFO"],
+      showLevels: [...LOG_LEVELS],
     }
   },
   computed: {
-    levels() { return Object.keys(iconLookup); },
+    levels() { return LOG_LEVELS; },
     mungedLogs() {
       let newLogs = [];
       for (let log of this.indi.logs) {
-        const msgLevel = log.message.slice(0, 4).trim();
+        const msgLevel = logLevel(log);
         if (this.showLevels.indexOf(msgLevel) == -1) {
           continue;
         }
         const newLog = {
           level: msgLevel,
           message: log.message.slice(4),
-          icon: iconLookup.hasOwnProperty(msgLevel) ? iconLookup[msgLevel] : "help",
+          icon: iconLookup[msgLevel],
           device: log.device,
           timestamp: log.timestamp.slice(11, 19),
         };
-        newLogs.splice(0, 0, newLog);
+        newLogs.push(newLog);
       }
-      return newLogs;
+      // Newest first
+      return newLogs.reverse();
     }
   }
 }

@@ -24,3 +24,6 @@ BATCH_UPDATE_INTERVAL = 0.2 # seconds
 class InstrumentLayouts(Enum):
     MAGAOX = "magaox"
     SCOOB = "scoob"
+# Severities a log message can open with, as the web UI's level filters name
+# them. Devices pad the shorter ones to four characters ("ERR  ...").
+LOG_LEVELS = ("EMER", "ALRT", "CRIT", "ERR", "WARN", "NOTE", "INFO")
