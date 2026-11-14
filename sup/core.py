@@ -44,7 +44,7 @@ from watchdog.events import FileSystemEventHandler
 from .constants import (
     INSTRUMENT_CONFIG_ROOT, InstrumentLayouts, SITE_LOCATION,
     CONFIG_FILENAME, INSTGRAPH_FILE_PATH, OBS_ROOT,
-    AUDIBLE_ALERTS_DEVICE, AUDIBLE_ALERTS_CACHE_ROOT,
+    AUDIBLE_ALERTS_DEVICE, AUDIBLE_ALERTS_PLAYBACK_ROOT,
     AUDIBLE_ALERTS_TEMP_SUBDIR, AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC,
     LOG_LEVELS,
 )
@@ -893,7 +893,7 @@ class WebInterface(xconf.Command):
         help="INDI device whose playback events drive audible alerts in the browser (empty to disable)"
     )
     audible_alerts_cache_root : str = xconf.field(
-        default=AUDIBLE_ALERTS_CACHE_ROOT,
+        default=AUDIBLE_ALERTS_PLAYBACK_ROOT,
         help="Directory the audible alerts device writes playback audio into"
     )
 

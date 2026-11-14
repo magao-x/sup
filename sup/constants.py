@@ -11,7 +11,7 @@ INSTGRAPH_FILE_PATH = "/tmp/magaox.drawio"
 # clip it plays into this directory and publishes the path relative to it as
 # maggieo_x.playback.file, which is what the browser player fetches.
 AUDIBLE_ALERTS_DEVICE = "maggieo_x"
-AUDIBLE_ALERTS_CACHE_ROOT = "/tmp/audibleAlerts_cache"
+AUDIBLE_ALERTS_PLAYBACK_ROOT = "/tmp/audibleAlerts_playback"
 # Subdirectory of the above holding speech whose text was substituted at
 # playback time. The device wipes it on startup, so clips there are one-offs.
 AUDIBLE_ALERTS_TEMP_SUBDIR = "temp"
