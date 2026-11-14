@@ -47,6 +47,11 @@ WantedBy=default.target
 
 (Note that for MagAO-X there's a `sup` env created in `/opt/conda` used by this app, currently on Python 3.13.)
 
+To update the installed copy, run `make` as your own user, *not* under `sudo`. It does this in two steps, and you can run each one by itself:
+
+- `make wheel` builds `dist/sup-*.whl` as you. This is the step that needs node/npm (from the `sup` env) and your Rust toolchain with wasm-pack.
+- `make install` uses `sudo` to install that wheel into `/opt/conda/envs/sup`. Installing a wheel runs no build step, so root needs nothing but the env's pip.
+
 The entry-point is a console command `sup` installed from `pyproject.toml`. It invokes the `WebInterface.run` class method in `core.py`, which invokes `WebInterface.main`, which calls `uvicorn.run`.
 
 The config is read from `/opt/MagAOX/config/gui_sup.conf`, a TOML file. The effective config is shown with `sup --dump-config`:
