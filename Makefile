@@ -8,10 +8,13 @@ all: wheel install
 # Build a wheel into dist/ as yourself. This is where all the work happens --
 # the build hook (hatch_build.py) runs wasm-pack for viewarr and npm for the
 # frontend -- so it needs your Rust toolchain and the sup env's npm, neither
-# of which root has. Do not run it under sudo.
+# of which root has. Do not run it under sudo. The build should see only the
+# sup env, not your PYTHONPATH or user site-packages: pip stats every sys.path
+# entry, and fails outright on one it cannot read.
 wheel:
 	rm -f dist/sup-*.whl
-	PATH="$(SUP_ENV)/bin:$(PATH)" $(SUP_PYTHON) -m pip wheel --no-deps --wheel-dir dist/ .
+	env -u PYTHONPATH PYTHONNOUSERSITE=1 PATH="$(SUP_ENV)/bin:$(PATH)" \
+		$(SUP_PYTHON) -m pip wheel --no-deps --wheel-dir dist/ .
 
 # Install the wheel from `make wheel` into the shared env as root. Installing
 # a wheel runs no build step, so root needs nothing but the env's pip.
