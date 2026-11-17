@@ -1,31 +1,35 @@
 
 SUP_ENV ?= /opt/conda/envs/sup
 SUP_PYTHON := $(SUP_ENV)/bin/python
+CODEC_DIR := viewarr-workspace/viewcam-codec/python
 INSTALLED_PATH ?= "$(shell $(SUP_PYTHON) -c 'import site;print(site.getsitepackages()[0])')/sup"
 
 all: wheel install
 
-# Build a wheel into dist/ as yourself. This is where all the work happens --
+# Build wheels into dist/ as yourself. This is where all the work happens --
 # the build hook (hatch_build.py) runs wasm-pack for viewarr and npm for the
-# frontend -- so it needs your Rust toolchain and the sup env's npm, neither
-# of which root has. Do not run it under sudo. The build should see only the
-# sup env, not your PYTHONPATH or user site-packages: pip stats every sys.path
-# entry, and fails outright on one it cannot read.
+# frontend, and maturin compiles viewcam_codec, the Rust frame compressor
+# sup-stream encodes with -- so it needs your Rust toolchain and the sup env's
+# npm, neither of which root has. Do not run it under sudo. The build should
+# see only the sup env, not your PYTHONPATH or user site-packages: pip stats
+# every sys.path entry, and fails outright on one it cannot read.
 wheel:
-	rm -f dist/sup-*.whl
+	rm -f dist/sup-*.whl dist/viewcam_codec-*.whl
 	env -u PYTHONPATH PYTHONNOUSERSITE=1 PATH="$(SUP_ENV)/bin:$(PATH)" \
-		$(SUP_PYTHON) -m pip wheel --no-deps --wheel-dir dist/ .
+		$(SUP_PYTHON) -m pip wheel --no-deps --wheel-dir dist/ . $(CODEC_DIR)
 
-# Install the wheel from `make wheel` into the shared env as root. Installing
+# Install the wheels from `make wheel` into the shared env as root. Installing
 # a wheel runs no build step, so root needs nothing but the env's pip.
 # Deliberately not dependent on `wheel`, so `sudo make install` cannot end up
 # building as root. The second pip run is because pip skips a wheel whose
 # version is already installed, and a rebuild usually does not bump it; the
-# first one is still needed to pick up any new dependencies.
+# first one is still needed to pick up any new dependencies. viewcam_codec is
+# not a dependency of sup (without it, frames go out uncompressed), so it is
+# named here rather than pulled in.
 install:
-	@ls dist/sup-*.whl >/dev/null 2>&1 || { echo "no wheel in dist/, run 'make wheel' first" >&2; exit 1; }
-	sudo $(SUP_PYTHON) -m pip install --no-cache-dir dist/sup-*.whl
-	sudo $(SUP_PYTHON) -m pip install --no-cache-dir --no-deps --force-reinstall dist/sup-*.whl
+	@ls dist/sup-*.whl dist/viewcam_codec-*.whl >/dev/null 2>&1 || { echo "no wheels in dist/, run 'make wheel' first" >&2; exit 1; }
+	sudo $(SUP_PYTHON) -m pip install --no-cache-dir dist/sup-*.whl dist/viewcam_codec-*.whl
+	sudo $(SUP_PYTHON) -m pip install --no-cache-dir --no-deps --force-reinstall dist/sup-*.whl dist/viewcam_codec-*.whl
 
 # frontend/ imports viewarr from viewarr-workspace/viewarr/pkg/, the wasm-pack
 # output. Nothing else rebuilds it, and a pkg/ left over from a different
