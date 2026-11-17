@@ -48,6 +48,7 @@ from .constants import (
     AUDIBLE_ALERTS_TEMP_SUBDIR, AUDIBLE_ALERTS_CLIP_MAX_AGE_SEC,
     LOG_LEVELS,
 )
+from .streaming import ShmimHub, ShmimStreamingConfig
 from .utils import OrjsonResponse
 
 log = logging.getLogger(__name__)
@@ -896,6 +897,12 @@ class WebInterface(xconf.Command):
         default=AUDIBLE_ALERTS_PLAYBACK_ROOT,
         help="Directory the audible alerts device writes playback audio into"
     )
+    serve_shmims : bool = xconf.field(
+        default=True,
+        help="Serve shmim image streams as viewcam feeds at /ws/viewcam/<name> from sup itself. "
+             "Where sup-stream serves them behind a proxy, this route gets no traffic and opens no shmims."
+    )
+    shmim_streaming : ShmimStreamingConfig = xconf.field(default_factory=ShmimStreamingConfig)
 
     def __post_init__(self):
         self._running_tasks = set()
@@ -1037,6 +1044,7 @@ class WebInterface(xconf.Command):
                 log.info("Stopping background tasks...")
                 await self.cancel_tasks()
         self.views = SupViews(self)
+        shmim_routes = ShmimHub(self.shmim_streaming).routes() if self.serve_shmims else []
         self.app = Starlette(
             debug=self.debug_mode,
             routes=[
@@ -1053,6 +1061,7 @@ class WebInterface(xconf.Command):
                 Route('/audible-alerts/clip/{path:path}', endpoint=self.views.audible_alerts_clip),
                 WebSocketRoute('/websocket', endpoint=partial(SupWebSocket, self)),
                 WebSocketRoute('/ws/logs', endpoint=partial(LogStreamWebSocket, self)),
+                *shmim_routes,
                 Route(f"/{INSTGRAPH_DOWNLOAD_NAME}", endpoint=self.views.instgraph),
                 Route('/{path:path}', endpoint=self.views.catch_all),
             ],

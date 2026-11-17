@@ -118,6 +118,39 @@ configuration keys:
     connected clients (default: 0.2)
 ```
 
+#### Image streams
+
+Browsers watch shmims (ImageStreamIO shared memory images) as viewcam feeds,
+one websocket per shmim at `/ws/viewcam/<name>`, speaking the protocol in
+`viewarr-workspace/viewcam-proto/PROTOCOL.md`. A camera view opens three, such
+as `camwfs`, `camwfs_dark` and `camwfs_sat`. In production those routes belong
+to a second console command, `sup-stream`, a separate server on port 9192 with
+its config in `/opt/MagAOX/config/gui_sup_stream.conf`. The reverse proxy that
+holds port 443 sends `/ws/viewcam/` to `sup-stream` and everything else to
+`sup`. Running it apart means a crash in the ImageStreamIO binding, which is
+unguarded C, can't take INDI down with it, and frame traffic doesn't delay
+INDI updates or alerts.
+
+Frames are compressed with `viewcam_codec`, the Python build of the Rust codec
+the viewer decodes with, when it is installed, and sent uncompressed otherwise.
+For development it is in the `dev` dependency group, built from the submodule
+by `uv sync` (this needs a Rust toolchain). After changing the codec's Rust,
+rebuild it with `uv sync --reinstall-package viewcam-codec`.
+
+For development, `sup` serves the same route itself (`serve_shmims = true`, the
+default), so the frontend uses one URL either way. Where `sup-stream` is behind
+the proxy, sup's copy of the route gets no traffic and opens no shmims.
+
+The ImageStreamIOWrap binding can't be built on macOS, so there sup uses
+`sup.isio_mock`, which keeps the binding's API and stores images as files in the
+same directory (`$MILK_SHM_DIR`, else `/milk/shm`, else `/tmp`). To have
+something to watch, run a simulated camera, which writes `camsim`, `camsim_dark`
+and `camsim_sat`:
+
+```
+python tests/fake_camera.py --rate 2 --width 128 --height 128
+```
+
 #### Audible alerts
 
 Web UI users can opt in to hearing the alerts that the `audibleAlerts` xApp

@@ -4,6 +4,7 @@ import pathlib
 TMPFILE_ROOT = pathlib.Path("/dev/shm")
 INSTRUMENT_CONFIG_ROOT = pathlib.Path("/opt/MagAOX/config")
 CONFIG_FILENAME = "gui_sup.conf"
+SHMIM_STREAM_CONFIG_FILENAME = "gui_sup_stream.conf"
 
 INSTGRAPH_FILE_PATH = "/tmp/magaox.drawio"
 

@@ -44,6 +44,14 @@ class ShmimPoller:
             return None
         return img
 
+    def exists(self):
+        """Whether the shmim can be opened right now."""
+        img = self._open()
+        if img is None:
+            return False
+        img.close()
+        return True
+
     def _replaced(self, img):
         """Whether a different image now has our name. One that is simply
         gone is not replaced: the mapping we hold stays valid, and following
