@@ -31,12 +31,15 @@ install:
 	sudo $(SUP_PYTHON) -m pip install --no-cache-dir dist/sup-*.whl dist/viewcam_codec-*.whl
 	sudo $(SUP_PYTHON) -m pip install --no-cache-dir --no-deps --force-reinstall dist/sup-*.whl dist/viewcam_codec-*.whl
 
-# frontend/ imports viewarr from viewarr-workspace/viewarr/pkg/, the wasm-pack
-# output. Nothing else rebuilds it, and a pkg/ left over from a different
-# submodule checkout is invisible -- vite bundles it and the viewer silently
-# stays on the old code -- so rebuild it here. cargo no-ops when it is current.
+# frontend/ imports viewarr, viewcam and viewcam-codec from their pkg/
+# directories in viewarr-workspace/, the wasm-pack output. Nothing else
+# rebuilds them, and a pkg/ left over from a different submodule checkout is
+# invisible -- vite bundles it and the viewer silently stays on the old code --
+# so rebuild them here. cargo no-ops when they are current.
 viewarr:
 	cd viewarr-workspace/viewarr/ && npm run build
+	cd viewarr-workspace/viewcam/ && npm run build
+	cd viewarr-workspace/viewcam-codec/ && npm run build
 
 # Build the frontend into sup/static/ in this checkout. Needs no root, and
 # touches nothing outside the working tree -- enough on its own when sup runs

@@ -16,7 +16,7 @@ cd sup
 uv sync
 ```
 
-`uv sync` installs sup in editable mode and runs the full frontend build: wasm-pack for `viewarr-workspace/viewarr/pkg/`, then `npm install` and `vite build` into `sup/static/`. (If you cloned without `--recurse-submodules`, run `git submodule update --init` first.)
+`uv sync` installs sup in editable mode and runs the full frontend build: wasm-pack for the `pkg/` directories of `viewarr`, `viewcam` and `viewcam-codec` in `viewarr-workspace/`, then `npm install` and `vite build` into `sup/static/`. (If you cloned without `--recurse-submodules`, run `git submodule update --init` first.)
 
 Useful variations:
 
@@ -137,6 +137,12 @@ For development it is in the `dev` dependency group, built from the submodule
 by `uv sync` (this needs a Rust toolchain). After changing the codec's Rust,
 rebuild it with `uv sync --reinstall-package viewcam-codec`.
 
+To watch a camera, open `/camera.html?name=<shmim>`, e.g.
+`/camera.html?name=camwfs`. It opens the three feeds and shows them in
+viewcam, with toggles for dark subtraction and the saturation overlay; a
+hidden tab pauses its feeds. The browser side of the protocol is
+`viewarr-workspace/viewcam-proto/js/viewcam_proto.js`.
+
 For development, `sup` serves the same route itself (`serve_shmims = true`, the
 default), so the frontend uses one URL either way. Where `sup-stream` is behind
 the proxy, sup's copy of the route gets no traffic and opens no shmims.
@@ -150,6 +156,8 @@ and `camsim_sat`:
 ```
 python tests/fake_camera.py --rate 2 --width 128 --height 128
 ```
+
+and open <http://localhost:8000/camera.html?name=camsim>.
 
 #### Audible alerts
 

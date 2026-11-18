@@ -26,7 +26,9 @@ export default defineConfig({
   resolve: {
     alias: {
       vue: '@vue/compat',
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // The protocol's browser client, used from the submodule as it stands.
+      'viewcam-proto': fileURLToPath(new URL('../viewarr-workspace/viewcam-proto/js/viewcam_proto.js', import.meta.url)),
     },
   },
   build: {
@@ -34,11 +36,16 @@ export default defineConfig({
       input: {
         main: resolve(root, 'index.html'),
         viewer: resolve(root, 'viewer.html'),
+        camera: resolve(root, 'camera.html'),
       },
     },
   },
   optimizeDeps: {
-    exclude: ['viewarr'],
+    exclude: ['viewarr', 'viewcam', 'viewcam-codec'],
+  },
+  // viewcam-codec's decode worker is an ES module.
+  worker: {
+    format: 'es',
   },
   server: {
     allowedHosts: ["exao1.magao-x.org"],

@@ -1,21 +1,21 @@
 """Build the Vue frontend into ``sup/static/`` as part of the Python build.
 
 ``sup/static/`` is not checked in; it is produced by ``npm run build`` in
-``frontend/``, which in turn depends on ``viewarr-workspace/viewarr/pkg/`` --
-the wasm-pack output of the viewarr library inside the ``viewarr-workspace``
-submodule. This hook runs both steps whenever a wheel (or an editable install)
+``frontend/``, which in turn depends on the wasm-pack output (``pkg/``) of
+three packages inside the ``viewarr-workspace`` submodule: the viewarr
+library, the viewcam camera viewer, and viewcam-codec's frame decoder. This hook runs both steps whenever a wheel (or an editable install)
 is built, so ``uv build`` / ``uv pip install .`` produce a complete package the
 way the old ``setup.py`` ``build_py`` subclass did.
 
 Build-time prerequisites: node/npm, and a Rust toolchain with wasm-pack to
-rebuild viewarr. Without wasm-pack the build falls back to whatever is already
-in ``viewarr-workspace/viewarr/pkg/``, warning that it may be stale; if nothing
-is there to fall back to, it is an error.
+rebuild those packages. Without wasm-pack the build falls back to whatever is
+already in their ``pkg/`` directories, warning that it may be stale; if
+nothing is there to fall back to, it is an error.
 
 Set ``SUP_SKIP_NPM_BUILD=1`` to reuse whatever is already in ``sup/static/``
 (useful on machines without node, or when iterating on the Python side), or
 ``SUP_SKIP_VIEWARR_BUILD=1`` to rebuild the frontend against the existing
-``pkg/`` without paying for wasm-pack.
+``pkg/`` directories without paying for wasm-pack.
 
 Building a wheel *from an sdist* takes that same path automatically: the sdist
 carries a built ``sup/static/`` but not the viewarr submodule, so there is
@@ -37,7 +37,13 @@ STATIC_DIR = HERE / "sup" / "static"
 # downstream consumers); the library sup builds against is one directory in.
 WORKSPACE_DIR = HERE / "viewarr-workspace"
 VIEWARR_DIR = WORKSPACE_DIR / "viewarr"
-VIEWARR_PKG = VIEWARR_DIR / "pkg"
+# The submodule's WASM packages the frontend imports, each with a file its
+# build leaves in pkg/.
+WASM_PACKAGES = {
+    "viewarr": (VIEWARR_DIR, "wrapper.js"),
+    "viewcam": (WORKSPACE_DIR / "viewcam", "wrapper.js"),
+    "viewcam-codec": (WORKSPACE_DIR / "viewcam-codec", "viewcam_codec.js"),
+}
 
 
 class NpmBuildHook(BuildHookInterface):
@@ -70,7 +76,8 @@ class NpmBuildHook(BuildHookInterface):
                 "existing sup/static/ directory."
             )
 
-        self._build_viewarr(npm)
+        for name, (package_dir, built_file) in WASM_PACKAGES.items():
+            self._build_wasm_package(npm, name, package_dir, built_file)
 
         for command in (["install"], ["run", "build"]):
             self.app.display_info(f"frontend: npm {' '.join(command)}")
@@ -91,10 +98,10 @@ class NpmBuildHook(BuildHookInterface):
         """
         return not GIT_DIR.exists() and not (VIEWARR_DIR / "Cargo.toml").exists()
 
-    def _build_viewarr(self, npm):
-        """Rebuild the viewarr wasm module the frontend imports.
+    def _build_wasm_package(self, npm, name, package_dir, built_file):
+        """Rebuild one of the wasm modules the frontend imports.
 
-        frontend/package.json depends on ``file:../viewarr-workspace/viewarr/pkg``,
+        frontend/package.json depends on e.g. ``file:../viewarr-workspace/viewarr/pkg``,
         which only exists once wasm-pack has run. The submodule checkout it is
         built from moves -- a bump, a branch switch -- and a ``pkg/`` left over
         from the previous one is invisible: the frontend bundles it, the build
@@ -102,42 +109,43 @@ class NpmBuildHook(BuildHookInterface):
         unconditionally and let cargo's own caching keep the no-op case cheap,
         rather than trusting the output's mere existence to mean it is current.
         """
-        have_pkg = (VIEWARR_PKG / "wrapper.js").exists()
+        pkg = package_dir / "pkg"
+        have_pkg = (pkg / built_file).exists()
 
-        if not (VIEWARR_DIR / "Cargo.toml").exists():
+        if not (package_dir / "Cargo.toml").exists():
             raise RuntimeError(
-                f"{VIEWARR_DIR} is empty. Run `git submodule update --init` "
+                f"{package_dir} is empty. Run `git submodule update --init` "
                 "to check out the viewarr-workspace submodule."
             )
 
         if os.environ.get("SUP_SKIP_VIEWARR_BUILD"):
             if not have_pkg:
                 raise RuntimeError(
-                    f"SUP_SKIP_VIEWARR_BUILD is set but {VIEWARR_PKG} does not "
+                    f"SUP_SKIP_VIEWARR_BUILD is set but {pkg} does not "
                     "exist, so the frontend has nothing to build against. "
-                    "Unset it to build viewarr."
+                    f"Unset it to build {name}."
                 )
             self.app.display_warning(
-                f"SUP_SKIP_VIEWARR_BUILD set, reusing {VIEWARR_PKG} "
-                "(it may not match the current viewarr checkout)"
+                f"SUP_SKIP_VIEWARR_BUILD set, reusing {pkg} "
+                f"(it may not match the current {name} checkout)"
             )
             return
 
         if shutil.which("wasm-pack") is None:
             if not have_pkg:
                 raise RuntimeError(
-                    f"{VIEWARR_PKG} is missing and wasm-pack was not found on "
+                    f"{pkg} is missing and wasm-pack was not found on "
                     "PATH. Install a Rust toolchain and wasm-pack "
                     "(https://rustwasm.github.io/wasm-pack/installer/), or "
-                    "build viewarr separately and re-run."
+                    f"build {name} separately and re-run."
                 )
             self.app.display_warning(
-                f"wasm-pack was not found on PATH, so {VIEWARR_PKG} cannot be "
+                f"wasm-pack was not found on PATH, so {pkg} cannot be "
                 "rebuilt; reusing it as-is. It may not match the current "
-                "viewarr checkout, in which case this build will ship an "
-                "out-of-date viewer."
+                f"{name} checkout, in which case this build will ship an "
+                "out-of-date copy."
             )
             return
 
-        self.app.display_info("viewarr: npm run build (wasm-pack)")
-        subprocess.run([npm, "run", "build"], cwd=VIEWARR_DIR, check=True)
+        self.app.display_info(f"{name}: npm run build (wasm-pack)")
+        subprocess.run([npm, "run", "build"], cwd=package_dir, check=True)
