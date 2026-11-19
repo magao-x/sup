@@ -1,0 +1,29 @@
+# The image stream server: serves shmims to browsers as viewcam feeds at
+# /ws/viewcam/<name>, and the list of streams at /ws/viewcam/, behind the
+# reverse proxy. Running it apart from sup means a crash in the ImageStreamIO
+# binding (unguarded C) can't take the web UI down, and frame traffic doesn't
+# delay INDI updates. See DEPLOY.md.
+#
+# Install: sudo cp sup-stream.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now sup-stream
+
+[Unit]
+Description=MagAO-X web UI image streams (sup-stream)
+Requires=network.target
+After=network.target
+
+[Service]
+# ImageStreamIO opens shmims read-write, even to read them, so this user
+# needs read and write access to the files in /milk/shm.
+User=xsup
+WorkingDirectory=/home/xsup
+# The trial environment (see DEPLOY.md). Once this code is in the
+# production environment, use /opt/conda/envs/sup/bin/sup-stream instead.
+ExecStart=/opt/sup-trial/bin/sup-stream bind_host=127.0.0.1 bind_port=9192
+# Where shmims live, if not /milk/shm.
+#Environment=MILK_SHM_DIR=/milk/shm
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,28 @@
+# A trial copy of the web UI, from the /opt/sup-trial environment, alongside
+# the production sup (port 9191), which it leaves alone. It reads the same
+# /opt/MagAOX/config/gui_sup.conf and talks to the same INDI server, so it is
+# a fully working UI: commands sent from it reach the instrument. The reverse
+# proxy serves it on its own port, with sup-stream's image streams. See
+# DEPLOY.md.
+#
+# Install: sudo cp sup-trial.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now sup-trial
+
+[Unit]
+Description=MagAO-X web UI, trial instance (sup)
+Requires=network.target
+After=network.target
+# The camera viewer's streams come from sup-stream; the UI runs without it.
+Wants=sup-stream.service
+
+[Service]
+User=xsup
+WorkingDirectory=/home/xsup
+# serve_shmims=false: the proxy sends /ws/viewcam/ to sup-stream, so this
+# process never opens a shmim.
+ExecStart=/opt/sup-trial/bin/sup bind_host=127.0.0.1 bind_port=9291 serve_shmims=false
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

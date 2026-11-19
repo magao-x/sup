@@ -130,7 +130,8 @@ its config in `/opt/MagAOX/config/gui_sup_stream.conf`. The reverse proxy that
 holds port 443 sends `/ws/viewcam/` to `sup-stream` and everything else to
 `sup`. Running it apart means a crash in the ImageStreamIO binding, which is
 unguarded C, can't take INDI down with it, and frame traffic doesn't delay
-INDI updates or alerts.
+INDI updates or alerts. [DEPLOY.md](DEPLOY.md) has systemd units and an nginx
+config for running `sup-stream` and a trial copy of the UI on an instrument.
 
 Frames are compressed (zstd) with `viewcam_codec`, the Python build of the Rust
 codec the viewer decodes with, when it is installed, and sent uncompressed
