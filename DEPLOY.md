@@ -10,6 +10,7 @@ real streams without disturbing the control room. The files are in
 | [`deploy/systemd/sup-stream.service`](deploy/systemd/sup-stream.service) | `sup-stream`, the image stream server, on 127.0.0.1:9192 |
 | [`deploy/systemd/sup-trial.service`](deploy/systemd/sup-trial.service) | a trial `sup`, the web UI, on 127.0.0.1:9291 |
 | [`deploy/nginx/sup-trial.conf`](deploy/nginx/sup-trial.conf) | HTTPS on port 8443: `/ws/viewcam/` to `sup-stream`, the rest to the trial `sup` |
+| [`deploy/bringup.sh`](deploy/bringup.sh) | all of the above, from a checkout: build, environment, services, nginx, checks |
 
 Once it's running:
 
@@ -21,6 +22,33 @@ Once it's running:
 Both UIs read `/opt/MagAOX/config/gui_sup.conf` and talk to the same INDI
 server. The trial UI is a fully working UI: commands sent from it reach the
 instrument.
+
+## Quick start
+
+[`deploy/bringup.sh`](deploy/bringup.sh) does steps 1 to 4 below in order,
+then checks that both services answer, that nginx serves the trial, and that
+`sup-stream` is reading real shmims, not its mock. Run it from a checkout of
+this branch, as yourself (it uses `sudo` where it must):
+
+```bash
+git clone --recurse-submodules -b isio-streaming git@github.com:magao-x/sup.git
+cd sup
+deploy/bringup.sh --cert /etc/ssl/certs/magaox.crt --key /etc/ssl/private/magaox.key \
+    --isio-source /path/to/ImageStreamIO
+```
+
+- `--cert` and `--key`: the certificate the production server block uses.
+- `--isio-source`: the ImageStreamIO source to build the Python binding from
+  (step 2). It's needed only until `/opt/sup-trial` has the binding.
+- `--open-firewall`: also open port 8443 with `firewall-cmd`.
+- `--skip-build`: reuse the wheels already in `dist/`.
+
+It stops at the first thing missing or failing. Each step is safe to repeat,
+so rerunning it after a `git pull` updates the trial. If `nginx -t` rejects
+the new config, the script puts back the file that was there before, so
+nginx's next reload isn't broken.
+
+The steps it takes, to do by hand or to follow when something fails:
 
 ## 1. Build the wheels
 
