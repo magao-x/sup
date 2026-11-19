@@ -142,7 +142,8 @@ the signal, through a square root that keeps the steps finest at the faint end
 come back within half a step of their noise, and the viewer shows them as
 floats. Streams that don't vary, like darks, and single-byte images, like
 saturation masks, are sent exact. On a `camwfs` archive this sends 0.63 of the
-bytes of exact LZ4, and on a `dm01disp` archive 0.26.
+bytes that exact frames took with the LZ4 compression it replaced, and on a
+`dm01disp` archive 0.26.
 For development it is in the `dev` dependency group, built from the submodule
 by `uv sync` (this needs a Rust toolchain). After changing the codec's Rust,
 rebuild it with `uv sync --reinstall-package viewcam-codec`.

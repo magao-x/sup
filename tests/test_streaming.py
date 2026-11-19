@@ -97,9 +97,8 @@ def decode(message):
     elif codec == viewcam_proto.CODEC_RAW:
         pixels = np.frombuffer(payload, dtype).reshape(height, width)
     else:
-        shuffle = codec != viewcam_proto.CODEC_LZ4
-        zstd = codec == viewcam_proto.CODEC_SHUFFLE_ZSTD
-        pixels = viewcam_codec.decode(payload, dtype, (height, width), shuffle=shuffle, zstd=zstd)
+        assert codec == viewcam_proto.CODEC_SHUFFLE_ZSTD
+        pixels = viewcam_codec.decode(payload, dtype, (height, width))
     quantization = None
     if quantized:
         quantization = viewcam_proto.Quantization(*params)

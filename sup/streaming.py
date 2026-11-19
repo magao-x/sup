@@ -143,7 +143,7 @@ def encode_frame(seq, frame, compress, noise=None, noise_step=0.25):
             plane, dtype = codes, viewcam_proto.dtype_code(codes.dtype)
             quantization = viewcam_proto.Quantization(
                 code_offset, noise.bias, noise.read_noise, noise.noise_slope, noise_step)
-    payload = viewcam_codec.encode(plane, zstd=True)
+    payload = viewcam_codec.encode(plane)
     return viewcam_proto.encode_frame(
         seq, width, height, dtype, payload, viewcam_proto.CODEC_SHUFFLE_ZSTD, quantization)
 
@@ -371,6 +371,6 @@ class ShmimStreamServer(xconf.Command):
             create_app(self.streaming, self.debug_mode),
             host=self.bind_host,
             port=self.bind_port,
-            # PROTOCOL.md: LZ4 payloads don't deflate, and the CPU it costs is latency.
+            # PROTOCOL.md: zstd payloads don't deflate, and the CPU it costs is latency.
             ws_per_message_deflate=False,
         )

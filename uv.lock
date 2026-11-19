@@ -566,7 +566,6 @@ source = { directory = "viewarr-workspace/viewcam-codec/python" }
 
 [package.metadata]
 requires-dist = [
-    { name = "lz4", marker = "extra == 'test'" },
     { name = "numpy", marker = "extra == 'numpy'" },
     { name = "numpy", marker = "extra == 'test'" },
     { name = "pytest", marker = "extra == 'test'" },
