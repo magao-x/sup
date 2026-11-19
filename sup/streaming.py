@@ -3,8 +3,11 @@
 The wire protocol is viewcam's (viewarr-workspace/viewcam-proto/PROTOCOL.md):
 each shmim is a feed, served as a WebSocket at ``/ws/viewcam/<shmim name>``,
 carrying FRAME messages windowed by the client's ACKs. A camera view opens
-three feeds, e.g. ``camwfs``, ``camwfs_dark`` and ``camwfs_sat``, and
-combines them itself. ``viewcam_proto`` is the protocol's Python reference,
+a feed for the image and one each for its dark and saturation mask, if its
+rtimv config names them, and combines them itself. The streams there are to watch, and each one's dark
+and saturation mask, are listed as JSON at ``/ws/viewcam/`` (see
+``stream_catalog``), found once at startup; any shmim can be watched by
+name, listed or not. ``viewcam_proto`` is the protocol's Python reference,
 copied verbatim from the submodule as the protocol intends servers to.
 
 This is a Starlette app of its own so it can run in a process of its own,
@@ -24,17 +27,18 @@ Frames are compressed with ``viewcam_codec`` when it is installed, and sent
 import asyncio
 import dataclasses
 import logging
-import re
 import time
 
 import uvicorn
 import xconf
 from starlette.applications import Starlette
-from starlette.routing import WebSocketRoute
+from starlette.routing import Route, WebSocketRoute
 
 from . import viewcam_proto
 from .constants import INSTRUMENT_CONFIG_ROOT, SHMIM_STREAM_CONFIG_FILENAME
-from .shmim import ShmimPoller
+from .shmim import SHMIM_NAME_PATTERN, ShmimPoller
+from .stream_catalog import build_catalog
+from .utils import OrjsonResponse
 
 try:
     import viewcam_codec
@@ -44,8 +48,8 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 VIEWCAM_PATH = "/ws/viewcam/{name}"
-# Shmim names become file names, so nothing that could leave the directory.
-SHMIM_NAME_PATTERN = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*")
+# Beside the feeds, so the proxy rule that sends them to sup-stream sends this too.
+CATALOG_PATH = "/ws/viewcam/"
 # Close codes PROTOCOL.md asks for.
 CLOSE_PROTOCOL_ERROR = 1002
 CLOSE_UNSUPPORTED_DATA = 1003
@@ -74,6 +78,16 @@ class ShmimStreamingConfig:
     slow_send_warning_sec : float = xconf.field(
         default=1.0,
         help="Log a warning when sending one frame to one client takes longer than this"
+    )
+    rtimv_config_dir : str = xconf.field(
+        default=str(INSTRUMENT_CONFIG_ROOT),
+        help="Directory of rtimv_*.conf files, which define the streams listed first, "
+             "and their darks and saturation masks, which aren't listed (empty to skip)"
+    )
+    shmim_dir : str = xconf.field(
+        default="",
+        help="Directory whose other shmims are listed after (empty for ImageStreamIO's: "
+             "$MILK_SHM_DIR, else /milk/shm, else /tmp)"
     )
 
 
@@ -226,11 +240,13 @@ class ViewcamFeed:
 
 class ShmimHub:
     """The streams being watched, each started by its first feed and stopped
-    with its last. Nothing runs at startup, so the hub works the same as its
-    own app or mounted in sup, where a sub-app's lifespan never runs."""
+    with its last. Nothing runs at startup but finding the streams to list,
+    so the hub works the same as its own app or mounted in sup, where a
+    sub-app's lifespan never runs."""
     def __init__(self, config):
         self.config = config
         self.streams = {}
+        self.catalog = build_catalog(config.rtimv_config_dir or None, config.shmim_dir or None)
 
     def subscribe(self, name, websocket):
         stream = self.streams.get(name)
@@ -279,8 +295,14 @@ class ShmimHub:
             feed.stop()
             self.unsubscribe(feed)
 
+    async def list_streams(self, request):
+        return OrjsonResponse(self.catalog.to_json())
+
     def routes(self):
-        return [WebSocketRoute(VIEWCAM_PATH, endpoint=self.endpoint)]
+        return [
+            Route(CATALOG_PATH, endpoint=self.list_streams),
+            WebSocketRoute(VIEWCAM_PATH, endpoint=self.endpoint),
+        ]
 
 
 def create_app(config, debug=False):

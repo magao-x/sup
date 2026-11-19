@@ -35,7 +35,7 @@ def mock_isio(tmp_path, monkeypatch):
 
 
 def fast_config(**overrides):
-    settings = dict(max_fps=0, poll_interval_sec=0.001, reopen_interval_sec=0.02)
+    settings = dict(max_fps=0, poll_interval_sec=0.001, reopen_interval_sec=0.02, rtimv_config_dir="")
     settings.update(overrides)
     return ShmimStreamingConfig(**settings)
 

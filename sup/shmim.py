@@ -8,20 +8,58 @@ stream's frame counter (md.cnt0, a read of shared memory) every few
 milliseconds and copies the frame when it moves. Display streams don't need
 every frame of a kHz camera anyway, so it can also hold to a maximum rate.
 
-Companion streams such as <name>_dark are ordinary shmims; follow them with
+A stream's dark and saturation mask are ordinary shmims; follow them with
 their own poller.
 """
 import asyncio
 import logging
+import os
+import re
 import time
+
+from . import isio_mock
 
 log = logging.getLogger(__name__)
 
 try:
     import ImageStreamIOWrap as ISIO
 except ImportError:
-    from . import isio_mock as ISIO
+    ISIO = isio_mock
     log.warning("ImageStreamIOWrap is not installed; shmims will come from sup.isio_mock")
+
+# Shmim names become file names, so nothing that could leave the directory.
+SHMIM_NAME_PATTERN = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*")
+# What ImageStreamIO names the file holding a shmim, after the shmim's name.
+SHMIM_FILE_SUFFIX = ".im.shm"
+SHMIM_DIR_DEFAULT = "/milk/shm"
+
+
+def shmim_directory():
+    """Where shmims live, chosen as ImageStreamIO chooses it:
+    ``$MILK_SHM_DIR`` if that exists, else ``/milk/shm``, else ``/tmp``."""
+    if ISIO is isio_mock:
+        return isio_mock._shmdirname()
+    env = os.environ.get("MILK_SHM_DIR")
+    if env is not None and os.path.isdir(env):
+        return env
+    if os.path.isdir(SHMIM_DIR_DEFAULT):
+        return SHMIM_DIR_DEFAULT
+    return "/tmp"
+
+
+def list_shmims(directory=None):
+    """Names of the shmims in a directory (by default, where ImageStreamIO
+    keeps them), sorted. Other files there, such as milk's process lists,
+    are skipped, as is any name that couldn't be opened as a shmim."""
+    directory = shmim_directory() if directory is None else directory
+    suffix = isio_mock.FILE_SUFFIX if ISIO is isio_mock else SHMIM_FILE_SUFFIX
+    try:
+        filenames = os.listdir(directory)
+    except OSError as e:
+        log.debug(f"Can't list shmims in {directory}: {e}")
+        return []
+    names = (filename.removesuffix(suffix) for filename in filenames if filename.endswith(suffix))
+    return sorted(name for name in names if SHMIM_NAME_PATTERN.fullmatch(name))
 
 
 class ShmimPoller:

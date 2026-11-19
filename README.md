@@ -137,6 +137,14 @@ For development it is in the `dev` dependency group, built from the submodule
 by `uv sync` (this needs a Rust toolchain). After changing the codec's Rust,
 rebuild it with `uv sync --reinstall-package viewcam-codec`.
 
+At startup the server finds the streams there are to watch and lists them as
+JSON at `/ws/viewcam/`, beside the feeds so the same proxy rule covers it. The
+`rtimv_*.conf` files in `/opt/MagAOX/config` (`rtimv_config_dir`) come first,
+each with its dark, saturation mask and saturation level. Any other shmim in
+the shmim directory (`shmim_dir`, by default `$MILK_SHM_DIR`, else `/milk/shm`)
+comes after, except those a config uses as a dark or saturation mask. Any shmim
+can still be watched by name, listed or not.
+
 To watch a camera, open `/camera.html?name=<shmim>`, e.g.
 `/camera.html?name=camwfs`. It opens the three feeds and shows them in
 viewcam, with toggles for dark subtraction and the saturation overlay; a
