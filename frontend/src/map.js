@@ -13,6 +13,7 @@ const AdaptiveOptics = () => import("@/pages/magaox/AdaptiveOptics.vue");
 const Power = () => import("@/pages/magaox/Power.vue");
 const InstGraph = () => import("@/pages/InstGraph.vue");
 const FileBrowser = () => import("@/pages/FileBrowser.vue");
+const Streams = () => import("@/pages/Streams.vue");
 
 // SCOOB
 const ScoobObservation = () => import("@/pages/scoob/Observation.vue");
@@ -31,10 +32,12 @@ export const map =
                 { path: '/dashboard', component: Dashboard },
                 { path: '/instgraph', component: InstGraph},
                 { path: '/files', component: FileBrowser},
+                { path: '/streams', component: Streams},
             ],
         "tabs": {
             "observation": {"icon": "visibility", "path": "/", "label": "observation"},
             "quicklook": {"icon": "folder_open", "path": "/files", "label": "files"},
+            "streams": {"icon": "videocam", "path": "/streams", "label": "streams"},
             // "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
             // "ao": {"icon": "blur_on", "path": "/ao", "label": "AO"},
             // "dashboard": {"icon": "speed", "path": "/dashboard", "label": "dashboard"},
@@ -49,12 +52,14 @@ export const map =
                 { path: '/cameras', component: Cameras},
                 { path: '/power', component: Power},
                 { path: '/files', component: FileBrowser},
+                { path: '/streams', component: Streams},
             ],
         "tabs": {
             "observation": {"icon": "visibility", "path": "/", "label": "observation"},
             "cameras": {"icon": "camera", "path": "/cameras", "label": "cameras"},
             "power": {"icon": "power_settings_new", "path": "/power", "label": "power"},
             "files": {"icon": "folder_open", "path": "/files", "label": "files"},
+            "streams": {"icon": "videocam", "path": "/streams", "label": "streams"},
         }
     }
 }

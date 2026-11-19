@@ -1,13 +1,22 @@
 <template>
   <div class="camera-viewer">
-    <form class="viewer-toolbar" @submit.prevent="submit">
+    <form v-if="!popup" class="viewer-toolbar" @submit.prevent="submit">
       <label for="shmim-name">Camera</label>
-      <input id="shmim-name" v-model.trim="entered" placeholder="shmim name, e.g. camwfs" />
+      <input id="shmim-name" v-model.trim="entered" list="known-streams" placeholder="shmim name, e.g. camwfs" />
+      <datalist id="known-streams">
+        <option v-for="stream in catalog?.streams ?? []" :key="stream.name" :value="stream.name"></option>
+      </datalist>
       <button class="btn" type="submit">Watch</button>
     </form>
     <div class="viewer-panel">
-      <shmim-camera v-if="name" :key="name" :name="name"></shmim-camera>
-      <div v-else class="hint">Enter the name of a camera's shmim to watch it.</div>
+      <shmim-camera
+        v-if="name && catalogLoaded"
+        :key="name"
+        :name="name"
+        :dark="companions.dark"
+        :saturation="companions.saturation"
+      ></shmim-camera>
+      <div v-else-if="!name" class="hint">Enter the name of a camera's shmim to watch it.</div>
     </div>
   </div>
 </template>
@@ -49,18 +58,32 @@
 
 <script>
 import ShmimCamera from "@/components/viewcam/ShmimCamera.vue";
+import { companionsFor, fetchStreamCatalog } from "@/components/viewcam/streams.js";
 
 // The camera to watch is in the URL, camera.html?name=camwfs, so a view can
-// be bookmarked or opened in a window of its own.
-function nameFromUrl() {
-  return new URLSearchParams(window.location.search).get('name') || '';
+// be bookmarked or opened in a window of its own. The streams tab opens it
+// with popup=1, for a window that is all camera: no toolbar to pick another.
+function paramsFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return { name: params.get('name') || '', popup: params.get('popup') === '1' };
 }
 
 export default {
   components: { ShmimCamera },
   data() {
-    const name = nameFromUrl();
-    return { name, entered: name };
+    const { name, popup } = paramsFromUrl();
+    return {
+      name,
+      entered: name,
+      popup,
+      catalog: null,
+      catalogLoaded: false,
+    };
+  },
+  computed: {
+    companions() {
+      return companionsFor(this.catalog, this.name);
+    },
   },
   watch: {
     name: {
@@ -69,6 +92,15 @@ export default {
         document.title = name ? `${name} – camera` : 'Camera';
       },
     },
+  },
+  async created() {
+    try {
+      this.catalog = await fetchStreamCatalog();
+    } catch (err) {
+      // Without the list, the camera is shown without a dark or saturation mask.
+      console.warn("Couldn't fetch the stream catalog:", err);
+    }
+    this.catalogLoaded = true;
   },
   mounted() {
     window.addEventListener('popstate', this.onPopState);
@@ -85,7 +117,8 @@ export default {
       this.name = this.entered;
     },
     onPopState() {
-      this.name = this.entered = nameFromUrl();
+      ({ name: this.name, popup: this.popup } = paramsFromUrl());
+      this.entered = this.name;
     },
   },
 };

@@ -63,7 +63,10 @@ export default defineConfig({
         + ` instgraph_file_path=${path.join(CACHE_ROOT, 'magaox.drawio')}`
         + ` log_unit=`
         // Small, so the log history tests can overflow it quickly.
-        + ` log_history_per_level=5`,
+        + ` log_history_per_level=5`
+        // A known list of streams for the streams tab (see streams.spec.mjs).
+        + ` shmim_streaming.rtimv_config_dir=${path.join(repoRoot, 'frontend/tests/fixtures/rtimv')}`
+        + ` shmim_streaming.shmim_dir=${path.join(CACHE_ROOT, 'no-shmims')}`,
       url: `http://127.0.0.1:${SUP_PORT}/config`,
       cwd: repoRoot,
       reuseExistingServer: !process.env.CI,

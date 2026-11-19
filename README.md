@@ -122,8 +122,9 @@ configuration keys:
 
 Browsers watch shmims (ImageStreamIO shared memory images) as viewcam feeds,
 one websocket per shmim at `/ws/viewcam/<name>`, speaking the protocol in
-`viewarr-workspace/viewcam-proto/PROTOCOL.md`. A camera view opens three, such
-as `camwfs`, `camwfs_dark` and `camwfs_sat`. In production those routes belong
+`viewarr-workspace/viewcam-proto/PROTOCOL.md`. A camera view opens one for the
+image and one each for the dark and saturation mask its rtimv config names, if
+it names them: `camwfs` and `camwfs_dark`, say. In production those routes belong
 to a second console command, `sup-stream`, a separate server on port 9192 with
 its config in `/opt/MagAOX/config/gui_sup_stream.conf`. The reverse proxy that
 holds port 443 sends `/ws/viewcam/` to `sup-stream` and everything else to
@@ -145,8 +146,9 @@ the shmim directory (`shmim_dir`, by default `$MILK_SHM_DIR`, else `/milk/shm`)
 comes after, except those a config uses as a dark or saturation mask. Any shmim
 can still be watched by name, listed or not.
 
-To watch a camera, open `/camera.html?name=<shmim>`, e.g.
-`/camera.html?name=camwfs`. It opens the three feeds and shows them in
+To watch a camera, pick it from the **streams** tab, which opens it in a
+window of its own, or open `/camera.html?name=<shmim>`, e.g.
+`/camera.html?name=camwfs`. It opens the stream's feeds and shows them in
 viewcam, with toggles for dark subtraction and the saturation overlay; a
 hidden tab pauses its feeds. The browser side of the protocol is
 `viewarr-workspace/viewcam-proto/js/viewcam_proto.js`.
@@ -165,7 +167,15 @@ and `camsim_sat`:
 python tests/fake_camera.py --rate 2 --width 128 --height 128
 ```
 
-and open <http://localhost:8000/camera.html?name=camsim>.
+then start sup with the test rtimv configs, which make `camsim_dark` and
+`camsim_sat` its dark and saturation mask:
+
+```
+sup shmim_streaming.rtimv_config_dir=frontend/tests/fixtures/rtimv
+```
+
+and open `camsim` from the streams tab, or go to
+<http://localhost:8000/camera.html?name=camsim>.
 
 #### Audible alerts
 

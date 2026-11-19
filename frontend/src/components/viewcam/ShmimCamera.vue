@@ -79,17 +79,19 @@ let nextViewerId = 0;
 
 export default {
   props: {
-    // The camera's shmim; its dark and saturation map are <name>_dark and <name>_sat.
+    // The camera's shmim, and the shmims of its dark and saturation map, if it has them.
     name: { type: String, required: true },
+    dark: { type: String, default: null },
+    saturation: { type: String, default: null },
   },
   data() {
     return {
       containerId: `viewcam-${nextViewerId++}`,
       feeds: [
         { role: 'data', name: this.name },
-        { role: 'dark', name: `${this.name}_dark` },
-        { role: 'saturation', name: `${this.name}_sat` },
-      ].map((feed) => ({
+        { role: 'dark', name: this.dark },
+        { role: 'saturation', name: this.saturation },
+      ].filter((feed) => feed.name).map((feed) => ({
         ...feed, status: 'connecting', empty: false, seq: null, width: 0, height: 0, dtype: '', fps: 0,
       })),
       error: null,
