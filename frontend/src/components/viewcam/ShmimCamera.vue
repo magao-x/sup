@@ -83,6 +83,8 @@ export default {
     name: { type: String, required: true },
     dark: { type: String, default: null },
     saturation: { type: String, default: null },
+    // For a camera without a saturation map: data at or above this is saturated.
+    saturationLevel: { type: Number, default: null },
   },
   data() {
     return {
@@ -122,6 +124,9 @@ export default {
       return;
     }
     if (this.destroyed) return;
+    if (!this.saturation && this.saturationLevel !== null) {
+      viewcam.setSaturationLevel(this.containerId, this.saturationLevel);
+    }
     this.connections = this.feeds.map((feed) => this.connect(feed));
     document.addEventListener('visibilitychange', this.onVisibilityChange);
   },

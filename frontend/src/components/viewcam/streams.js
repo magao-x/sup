@@ -25,11 +25,15 @@ export function fetchStreamCatalog() {
   return catalogPromise;
 }
 
-// A stream's dark and saturation mask, as its rtimv config names them;
-// either may be null, and a stream without a config has neither.
+// A stream's dark, saturation mask and saturation level, as its rtimv config
+// gives them; any may be null, and a stream without a config has none.
 export function companionsFor(catalog, name) {
   const info = catalog?.streams.find((stream) => stream.name === name);
-  return { dark: info?.dark ?? null, saturation: info?.sat_mask ?? null };
+  return {
+    dark: info?.dark ?? null,
+    saturation: info?.sat_mask ?? null,
+    saturationLevel: info?.sat_level ?? null,
+  };
 }
 
 export function cameraUrl(name, { popup = false } = {}) {

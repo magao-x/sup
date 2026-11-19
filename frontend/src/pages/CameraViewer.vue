@@ -15,6 +15,7 @@
         :name="name"
         :dark="companions.dark"
         :saturation="companions.saturation"
+        :saturation-level="companions.saturationLevel"
       ></shmim-camera>
       <div v-else-if="!name" class="hint">Enter the name of a camera's shmim to watch it.</div>
     </div>

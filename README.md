@@ -150,7 +150,8 @@ To watch a camera, pick it from the **streams** tab, which opens it in a
 window of its own, or open `/camera.html?name=<shmim>`, e.g.
 `/camera.html?name=camwfs`. It opens the stream's feeds and shows them in
 viewcam, with toggles for dark subtraction and the saturation overlay; a
-hidden tab pauses its feeds. The browser side of the protocol is
+hidden tab pauses its feeds. A camera whose config gives a `satLevel` but no
+saturation mask has the pixels at or above that level marked in each frame. The browser side of the protocol is
 `viewarr-workspace/viewcam-proto/js/viewcam_proto.js`.
 
 For development, `sup` serves the same route itself (`serve_shmims = true`, the
