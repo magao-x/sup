@@ -102,6 +102,26 @@ wheels = [
 ]
 
 [[package]]
+name = "fixr"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0d/54/0ced98984016c7aa8f4bc0d091e6a207e0a01407d2cfddcd4ac240ad4d7b/fixr-0.2.3.tar.gz", hash = "sha256:9916cf219349ac8c151ab36c5572f70c2d2f856bca1f95f834ff6254acb25e4f", size = 5746, upload-time = "2026-06-18T21:36:08.009Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/1b/ac5a3e3707eac050f3cf919fdb56eb062c8004dcb438556d912205d9d8e0/fixr-0.2.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0515806b61aa2b71a49ea0cd4aa92bff1d7bf5f00b8d8b4fa5bb082d3e65fb91", size = 376811, upload-time = "2026-06-18T21:35:49.382Z" },
+    { url = "https://files.pythonhosted.org/packages/11/ec/b4c5d095cff9a4c223fa0e79773ad615cb5e803fd37e772161985f753b5a/fixr-0.2.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fdc1693db2dd4b77fb440cfd652145d3f6a6a4d07d78ec585fc283de3fb9979c", size = 520258, upload-time = "2026-06-18T21:35:51.109Z" },
+    { url = "https://files.pythonhosted.org/packages/67/13/f937f2351e8b2408cd0d23070d41324eeeff834bb448b9758a074419b972/fixr-0.2.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a24243b307af48c474647b785d8d826ae67961da63ff3e308780e13a03a8d79f", size = 528855, upload-time = "2026-06-18T21:35:52.541Z" },
+    { url = "https://files.pythonhosted.org/packages/45/88/4eb54650614f34c59e69e46e2a9c59ca746dccafab3d833fe882c7b75576/fixr-0.2.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:4fe7dfa788c86cfa11d6a901946e4b9dace83d9d6c9526f619e209498fec0538", size = 376811, upload-time = "2026-06-18T21:35:53.857Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/9e/6c194e406f0b300de8a94375c8cfa4c687f630371f1175bc2f0b84ecdd46/fixr-0.2.3-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:87637fd0eabc02deb822e1b4db23227ea638e159bb59f983f9e0c52d35eaa6b0", size = 520256, upload-time = "2026-06-18T21:35:55.526Z" },
+    { url = "https://files.pythonhosted.org/packages/49/a3/8cb82f6b1e3492b823184afbd3283b87f8e27718dd675cc085c06ac05f76/fixr-0.2.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a22bf6e2334428a2306bcdd0448b46ffc2c5557b16dfeafc9fa8d8fe1961892d", size = 528853, upload-time = "2026-06-18T21:35:57.019Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/8b/c7292231d2b3bf3439c7163b3ae6321596b1be97cee53af9b326b96e34a3/fixr-0.2.3-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:585e46070ca48dde5040c515bcc1ed67544f5b647b02283edc97315184f0f117", size = 376814, upload-time = "2026-06-18T21:35:58.701Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/94/8d292bbee0537a3b6bb61fdc1e71e93de72f0c99422f4e83021a3b9df5bc/fixr-0.2.3-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2fa1909fb2ded5c506313f247ff50bac2c2e89dbf1d49b7353c5126703646005", size = 520258, upload-time = "2026-06-18T21:36:00.167Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/86/091ed1abeca7d4e40e3dd17f1314d68f9748accc1f5162690ac1c444c2c8/fixr-0.2.3-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:cce694b23148f6c8cf1241d9389b529b23494df38462a99e31ab20eeaca508df", size = 528856, upload-time = "2026-06-18T21:36:01.708Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -432,6 +452,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fixr" },
     { name = "httpx2" },
     { name = "pytest" },
     { name = "viewcam-codec" },
@@ -455,6 +476,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fixr", specifier = ">=0.2.3" },
     { name = "httpx2" },
     { name = "pytest", specifier = ">=8" },
     { name = "viewcam-codec", directory = "viewarr-workspace/viewcam-codec/python" },
@@ -548,6 +570,7 @@ requires-dist = [
     { name = "numpy", marker = "extra == 'numpy'" },
     { name = "numpy", marker = "extra == 'test'" },
     { name = "pytest", marker = "extra == 'test'" },
+    { name = "zstandard", marker = "extra == 'test'" },
 ]
 provides-extras = ["numpy", "test"]
 

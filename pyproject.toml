@@ -35,6 +35,7 @@ dev = [
     # WASM decodes them with. After changing the codec's Rust, rebuild with
     # `uv sync --reinstall-package viewcam-codec`.
     "viewcam-codec",
+    "fixr>=0.2.3",
 ]
 
 [tool.pytest.ini_options]
