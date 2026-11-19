@@ -62,7 +62,7 @@
 <script>
 import * as viewcam from "viewcam";
 import DecodeWorker from "viewcam-codec/decode-worker.js?worker";
-import { ViewcamFeed, workerDecoder } from "viewcam-proto";
+import { ViewcamFeed, quantizedThreshold, workerDecoder } from "viewcam-proto";
 import utils from "@/utils.js";
 
 // Frames allowed in flight on each feed. Six keeps 30 fps going over a
@@ -126,6 +126,7 @@ export default {
     if (this.destroyed) return;
     if (!this.saturation && this.saturationLevel !== null) {
       viewcam.setSaturationLevel(this.containerId, this.saturationLevel);
+      this.appliedSaturationLevel = this.saturationLevel;
     }
     this.connections = this.feeds.map((feed) => this.connect(feed));
     document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -141,7 +142,10 @@ export default {
   methods: {
     connect(feed) {
       const show = {
-        data: (frame) => viewcam.setData(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype),
+        data: (frame) => {
+          this.followSaturationLevel(frame.quantization);
+          viewcam.setData(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype);
+        },
         dark: (frame) => viewcam.setDark(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype),
         saturation: (frame) => viewcam.setSaturation(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype),
       }[feed.role];
@@ -176,6 +180,16 @@ export default {
           Object.assign(feed, { empty: true, width: 0, height: 0 });
         },
       });
+    },
+    // A quantized frame's values are rounded, so a saturated pixel can come
+    // back a little under the saturation level: compare with the threshold
+    // between the level's code and the one below it instead.
+    followSaturationLevel(quantization) {
+      if (this.saturation || this.saturationLevel === null) return;
+      const level = quantization ? quantizedThreshold(this.saturationLevel, quantization) : this.saturationLevel;
+      if (level === this.appliedSaturationLevel) return;
+      this.appliedSaturationLevel = level;
+      viewcam.setSaturationLevel(this.containerId, level);
     },
     updateBandwidth() {
       const now = performance.now();

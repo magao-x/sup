@@ -21,8 +21,13 @@ Each shmim is polled and encoded once, however many clients watch it, and
 the same bytes go to all of them. What each client gets is up to its window:
 while the window is full, only the newest frame waits for it.
 
-Frames are compressed with ``viewcam_codec`` when it is installed, and sent
-``raw`` otherwise.
+Frames are compressed (``shuffle-zstd``) with ``viewcam_codec`` when it is
+installed, and sent ``raw`` otherwise. Compressed frames are first rounded to
+a fraction of their noise (PROTOCOL.md, "Quantization"), which ``noise``
+estimates from each stream's own frames: noise is most of what a camera
+frame holds, and precision finer than it is none a display can use. Frames
+that don't measurably vary, like a dark, and single-byte images, like a
+saturation mask, are sent exact.
 """
 import asyncio
 import dataclasses
@@ -36,6 +41,7 @@ from starlette.routing import Route, WebSocketRoute
 
 from . import viewcam_proto
 from .constants import INSTRUMENT_CONFIG_ROOT, SHMIM_STREAM_CONFIG_FILENAME
+from .noise import NoiseTracker
 from .shmim import SHMIM_NAME_PATTERN, ShmimPoller
 from .stream_catalog import build_catalog
 from .utils import OrjsonResponse
@@ -75,6 +81,11 @@ class ShmimStreamingConfig:
         default=True,
         help="Compress frames with viewcam_codec, when it is installed"
     )
+    noise_step : float = xconf.field(
+        default=0.25,
+        help="Round compressed frames to this fraction of their noise, estimated live from "
+             "each stream's frames (0 to send them exact)"
+    )
     slow_send_warning_sec : float = xconf.field(
         default=1.0,
         help="Log a warning when sending one frame to one client takes longer than this"
@@ -97,9 +108,9 @@ class EncodedFrame:
     message : bytes
 
 
-def encode_frame(seq, frame, compress):
-    """A FRAME message for a frame as the binding returns it: indexed [x, y]
-    (or [x, y, z]) in column-major order.
+def plane_of(frame):
+    """A frame as the binding returns it, indexed [x, y] (or [x, y, z]) in
+    column-major order, as the protocol's image.
 
     Column-major [x, y] is the protocol's row-major layout with x fastest, so
     ``frame.T`` is the plane to send as it stands, no copy needed; row 0 is
@@ -107,17 +118,34 @@ def encode_frame(seq, frame, compress):
     one-axis stream is sent as a single row, and a cube as its slices
     stacked along y.
     """
+    return frame.T
+
+
+def encode_frame(seq, frame, compress, noise=None, noise_step=0.25):
+    """A FRAME message for a frame as the binding returns it (see
+    ``plane_of``). Compressed, and with a ``noise`` model, its values are
+    rounded to ``noise_step`` of their noise and sent as codes."""
     width = frame.shape[0]
     height = frame.size // width if width else 0
     dtype = viewcam_proto.dtype_code(frame.dtype)
-    plane = frame.T
-    if compress and viewcam_codec is not None and frame.size:
-        shuffle = frame.itemsize > 1
-        payload = viewcam_codec.encode(plane, shuffle=shuffle)
-        codec = viewcam_proto.CODEC_SHUFFLE_LZ4 if shuffle else viewcam_proto.CODEC_LZ4
-    else:
-        payload, codec = plane, viewcam_proto.CODEC_RAW
-    return viewcam_proto.encode_frame(seq, width, height, dtype, payload, codec)
+    plane = plane_of(frame)
+    if not (compress and viewcam_codec is not None and frame.size):
+        return viewcam_proto.encode_frame(seq, width, height, dtype, plane, viewcam_proto.CODEC_RAW)
+    quantization = None
+    if noise is not None:
+        try:
+            codes, code_offset = viewcam_codec.quantize(
+                plane, noise.bias, noise.read_noise, noise.noise_slope, noise_step)
+        except ValueError:
+            # Values the model can't round, like NaN: this frame goes exact.
+            pass
+        else:
+            plane, dtype = codes, viewcam_proto.dtype_code(codes.dtype)
+            quantization = viewcam_proto.Quantization(
+                code_offset, noise.bias, noise.read_noise, noise.noise_slope, noise_step)
+    payload = viewcam_codec.encode(plane, zstd=True)
+    return viewcam_proto.encode_frame(
+        seq, width, height, dtype, payload, viewcam_proto.CODEC_SHUFFLE_ZSTD, quantization)
 
 
 class SharedStream:
@@ -125,7 +153,9 @@ class SharedStream:
     def __init__(self, name, config):
         self.name = name
         self.feeds = set()
-        self._compress = config.compress
+        self._compress = config.compress and viewcam_codec is not None
+        self._noise_step = config.noise_step
+        self._noise = NoiseTracker() if self._compress and config.noise_step > 0 else None
         self._retry_sec = config.reopen_interval_sec
         self._last_seq = 0
         self._seq_offset = 0
@@ -153,11 +183,24 @@ class SharedStream:
         self._last_seq = seq
         return seq
 
+    def _noise_model(self, frame):
+        """The noise to round this frame to, or None to send it exact."""
+        if self._noise is None or frame.itemsize == 1:
+            return None
+        model = self._noise.update(plane_of(frame))
+        if model is not None and frame.dtype.kind in "iu":
+            # Integers are already rounded to 1: no finer steps than that.
+            model = dataclasses.replace(model, read_noise=max(model.read_noise, 1 / self._noise_step))
+        return model
+
+    def _encode_now(self, seq, frame):
+        return encode_frame(seq, frame, self._compress, self._noise_model(frame), self._noise_step)
+
     async def _encode(self, seq, frame):
-        if self._compress and viewcam_codec is not None:
+        if self._compress:
             # The codec releases the GIL, so a large frame needn't stall the loop.
-            return await asyncio.to_thread(encode_frame, seq, frame, True)
-        return encode_frame(seq, frame, False)
+            return await asyncio.to_thread(self._encode_now, seq, frame)
+        return self._encode_now(seq, frame)
 
     async def _run(self):
         while True:

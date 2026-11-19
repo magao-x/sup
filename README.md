@@ -132,8 +132,17 @@ holds port 443 sends `/ws/viewcam/` to `sup-stream` and everything else to
 unguarded C, can't take INDI down with it, and frame traffic doesn't delay
 INDI updates or alerts.
 
-Frames are compressed with `viewcam_codec`, the Python build of the Rust codec
-the viewer decodes with, when it is installed, and sent uncompressed otherwise.
+Frames are compressed (zstd) with `viewcam_codec`, the Python build of the Rust
+codec the viewer decodes with, when it is installed, and sent uncompressed
+otherwise. Compressed frames are first rounded to a quarter of their noise
+(`shmim_streaming.noise_step`, 0 to send them exact), which `sup/noise.py`
+estimates from each frame itself: read noise, and photon noise growing with
+the signal, through a square root that keeps the steps finest at the faint end
+(see "Quantization" in `viewarr-workspace/viewcam-proto/PROTOCOL.md`). Values
+come back within half a step of their noise, and the viewer shows them as
+floats. Streams that don't vary, like darks, and single-byte images, like
+saturation masks, are sent exact. On a `camwfs` archive this sends 0.63 of the
+bytes of exact LZ4, and on a `dm01disp` archive 0.26.
 For development it is in the `dev` dependency group, built from the submodule
 by `uv sync` (this needs a Rust toolchain). After changing the codec's Rust,
 rebuild it with `uv sync --reinstall-package viewcam-codec`.
