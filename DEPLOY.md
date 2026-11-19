@@ -103,10 +103,11 @@ In `sup-trial.conf`:
 - Port 8443 must be open to the people trying it, e.g. with firewalld:
   `sudo firewall-cmd --permanent --add-port=8443/tcp && sudo firewall-cmd --reload`.
 
-The proxy raises nginx's idle timeout to a day, because a feed can be quiet
-for much longer than nginx's default 60 s (a dark is sent once; a hidden tab
-pauses its feeds). It also turns off buffering for the streams, which are
-already compressed and paced by each browser's window.
+The proxy turns off buffering for the streams, which are already compressed
+and paced by each browser's window. nginx's default idle timeout of 60 s
+stays: a feed can send nothing for much longer (a dark is sent once; a
+hidden tab pauses its feeds), but uvicorn pings every WebSocket every 20 s,
+which keeps it open.
 
 ## 5. Try it
 
@@ -177,8 +178,6 @@ Once this branch is merged and installed in `/opt/conda/envs/sup` with
        proxy_set_header Upgrade $http_upgrade;
        proxy_set_header Connection $connection_upgrade;
        proxy_set_header Host $host;
-       proxy_read_timeout 1d;
-       proxy_send_timeout 1d;
        proxy_buffering off;
    }
    ```
