@@ -1,25 +1,6 @@
 <template>
   <div class="shmim-camera">
     <div :id="containerId" class="viewcam-container"></div>
-    <div class="feed-status">
-      <span v-for="feed in shownFeeds" :key="feed.role" class="feed" :class="feed.status">
-        <span class="feed-name">{{ feed.name }}</span>
-        <span v-if="feed.status !== 'open'">{{ feed.status }}</span>
-        <span v-else-if="feed.empty">no image</span>
-        <span v-else-if="feed.width">
-          {{ feed.width }}×{{ feed.height }} {{ feed.dtype }} · #{{ feed.seq }}
-          <template v-if="feed.role !== 'dark'"> · {{ feed.fps.toFixed(1) }} fps</template>
-        </span>
-        <span v-else>waiting</span>
-      </span>
-      <button type="button" class="turbo" :class="{ on: turbo }" @click="setTurbo(!turbo)"
-        :title="turbo ? 'Back to one frame a second' : 'As many frames as the link and server allow'">
-        turbo {{ turbo ? 'on' : 'off' }}
-      </button>
-      <span class="feed bandwidth" title="Received over the last few seconds, all feeds together">
-        <span class="feed-name">total</span>{{ formatRate(bandwidth) }}
-      </span>
-    </div>
     <div v-if="error" class="error">{{ error }}</div>
   </div>
 </template>
@@ -37,37 +18,6 @@
   flex: 1;
   min-height: 0;
 }
-.feed-status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 1.5em;
-  padding: $medgap $lggap;
-  font-family: monospace;
-  font-size: 0.85em;
-  color: var(--fg-inactive);
-  background: var(--inset-bg);
-}
-.feed-name {
-  color: $plasma-blue;
-  margin-right: 0.5em;
-}
-.feed.closed, .feed.connecting {
-  color: $beware-orange;
-}
-.turbo {
-  margin-left: auto;
-  padding: 0 0.6em;
-  font: inherit;
-  color: var(--fg-inactive);
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  cursor: pointer;
-  &.on {
-    color: $beware-orange;
-    border-color: $beware-orange;
-  }
-}
 .error {
   padding: $medgap $lggap;
   color: $danger-red;
@@ -84,19 +34,16 @@ import utils from "@/utils.js";
 // 150 ms round trip; the dark changes so rarely that one is plenty.
 // See "Choosing a window" in viewcam-proto/PROTOCOL.md.
 const WINDOWS = { data: 6, dark: 1, saturation: 6 };
-// Until turbo is switched on, each feed gets at most this many frames a
-// second. At one a second a window of one frame is plenty, and keeps a
-// burst of frames from coming through ahead of the pacing.
+// Until turbo is switched on in viewcam's status bar, each feed gets at most
+// this many frames a second. At one a second a window of one frame is
+// plenty, and keeps a burst of frames from coming through ahead of the pacing.
 const CAPPED_FPS = 1;
 const CAPPED_WINDOW = 1;
-// Over how many frames the frame rate is averaged.
-const FPS_FRAMES = 10;
-// Over how long the bandwidth is averaged, and how often it is updated.
-const BANDWIDTH_WINDOW_MS = 5000;
-const BANDWIDTH_UPDATE_MS = 1000;
 
 let nextViewerId = 0;
 
+// The feeds go to viewcam, which shows what they are doing in its status
+// bar; this only connects them and reports what happens on them.
 export default {
   props: {
     // The camera's shmim, and the shmims of its dark and saturation map, if it has them.
@@ -109,33 +56,18 @@ export default {
   data() {
     return {
       containerId: `viewcam-${nextViewerId++}`,
-      feeds: [
-        { role: 'data', name: this.name },
-        { role: 'dark', name: this.dark },
-        { role: 'saturation', name: this.saturation },
-      ].filter((feed) => feed.name).map((feed) => ({
-        ...feed, status: 'connecting', empty: false, seq: null, width: 0, height: 0, dtype: '', fps: 0,
-      })),
       error: null,
-      bandwidth: 0,
-      turbo: false,
     };
-  },
-  computed: {
-    // A dark or saturation shmim is optional: many cameras have neither, so
-    // those feeds are listed only while they have an image. The data feed
-    // is always listed, as the one that says whether the camera is there.
-    shownFeeds() {
-      return this.feeds.filter((feed) => feed.role === 'data' || (feed.width && !feed.empty));
-    },
   },
   async mounted() {
     // Not reactive: these are handles, not state to render.
+    this.feeds = [
+      { role: 'data', name: this.name },
+      { role: 'dark', name: this.dark },
+      { role: 'saturation', name: this.saturation },
+    ].filter((feed) => feed.name);
     this.connections = [];
-    // [time, bytes] of each message received on any feed, oldest first.
-    this.received = [];
-    this.openedAt = performance.now();
-    this.bandwidthTimer = setInterval(this.updateBandwidth, BANDWIDTH_UPDATE_MS);
+    this.turbo = false;
     this.worker = new DecodeWorker();
     this.decode = workerDecoder(this.worker);
     try {
@@ -149,57 +81,49 @@ export default {
       viewcam.setSaturationLevel(this.containerId, this.saturationLevel);
       this.appliedSaturationLevel = this.saturationLevel;
     }
+    for (const feed of this.feeds) viewcam.setFeed(this.containerId, feed.role, feed.name);
+    viewcam.onStateChange(this.containerId, ({ turbo }) => {
+      if (turbo !== this.turbo) this.setTurbo(turbo);
+    });
     this.connections = this.feeds.map((feed) => this.connect(feed));
     document.addEventListener('visibilitychange', this.onVisibilityChange);
   },
   beforeUnmount() {
     this.destroyed = true;
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
-    clearInterval(this.bandwidthTimer);
     for (const connection of this.connections) connection.close();
     this.worker.terminate();
     if (viewcam.hasViewer(this.containerId)) viewcam.destroyViewer(this.containerId);
   },
   methods: {
     connect(feed) {
+      const id = this.containerId;
       const show = {
         data: (frame) => {
           this.followSaturationLevel(frame.quantization);
-          viewcam.setData(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype);
+          viewcam.setData(id, frame.pixels, frame.width, frame.height, frame.dtype);
         },
-        dark: (frame) => viewcam.setDark(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype),
-        saturation: (frame) => viewcam.setSaturation(this.containerId, frame.pixels, frame.width, frame.height, frame.dtype),
+        dark: (frame) => viewcam.setDark(id, frame.pixels, frame.width, frame.height, frame.dtype),
+        saturation: (frame) => viewcam.setSaturation(id, frame.pixels, frame.width, frame.height, frame.dtype),
       }[feed.role];
       const clear = {
         data: () => {},
-        dark: () => viewcam.clearDark(this.containerId),
-        saturation: () => viewcam.clearSaturation(this.containerId),
+        dark: () => viewcam.clearDark(id),
+        saturation: () => viewcam.clearSaturation(id),
       }[feed.role];
-      const arrivals = [];
       return new ViewcamFeed(utils.buildWebSocketUrl(`ws/viewcam/${encodeURIComponent(feed.name)}`), {
         decode: this.decode,
-        onReceive: (bytes) => this.received.push([performance.now(), bytes]),
+        onReceive: (bytes) => viewcam.noteReceived(id, bytes),
         windowFrames: this.windowFor(feed),
         maxFps: this.turbo ? 0 : CAPPED_FPS,
-        onStatus: (status) => {
-          feed.status = status;
-          arrivals.length = 0;
-          feed.fps = 0;
-        },
+        onStatus: (status) => viewcam.setFeedConnection(id, feed.role, status),
         onFrame: (frame) => {
           show(frame);
-          Object.assign(feed, {
-            empty: false, seq: frame.seq.toString(), width: frame.width, height: frame.height, dtype: frame.dtype,
-          });
-          arrivals.push(performance.now());
-          if (arrivals.length > FPS_FRAMES) arrivals.shift();
-          if (arrivals.length > 1) {
-            feed.fps = 1000 * (arrivals.length - 1) / (arrivals.at(-1) - arrivals[0]);
-          }
+          viewcam.noteFeedFrame(id, feed.role, frame.seq, frame.width, frame.height, frame.dtype);
         },
         onEmpty: () => {
           clear();
-          Object.assign(feed, { empty: true, width: 0, height: 0 });
+          viewcam.noteFeedEmpty(id, feed.role);
         },
       });
     },
@@ -212,22 +136,6 @@ export default {
       if (level === this.appliedSaturationLevel) return;
       this.appliedSaturationLevel = level;
       viewcam.setSaturationLevel(this.containerId, level);
-    },
-    updateBandwidth() {
-      const now = performance.now();
-      const since = now - BANDWIDTH_WINDOW_MS;
-      while (this.received.length && this.received[0][0] < since) this.received.shift();
-      // Averaged over the whole window, or since the view opened if sooner,
-      // so a quiet spell counts as quiet rather than being skipped over.
-      const span = Math.min(BANDWIDTH_WINDOW_MS, now - this.openedAt);
-      const bytes = this.received.reduce((total, [, n]) => total + n, 0);
-      this.bandwidth = span > 0 ? 1000 * bytes / span : 0;
-    },
-    formatRate(bytesPerSec) {
-      const bits = 8 * bytesPerSec;
-      if (bits >= 1e6) return `${(bits / 1e6).toFixed(1)} Mbit/s`;
-      if (bits >= 1e3) return `${(bits / 1e3).toFixed(1)} kbit/s`;
-      return `${bits.toFixed(0)} bit/s`;
     },
     windowFor(feed) {
       if (document.hidden) return 0;

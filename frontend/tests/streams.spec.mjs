@@ -30,7 +30,7 @@ test('clicking a stream opens it in a popup with only the camera in it', async (
   expect(url.pathname).toBe('/camera.html');
   expect(url.searchParams.get('name')).toBe('dm00disp');
   expect(url.searchParams.get('popup')).toBe('1');
-  await expect(popup.locator('.feed-name').first()).toHaveText('dm00disp');
+  await expect(popup.locator('.viewcam-container canvas')).toBeVisible();
   await expect(popup.locator('.viewer-toolbar')).toHaveCount(0);
   await expect(page.locator('.blocked-hint')).toHaveCount(0);
 });
@@ -96,10 +96,14 @@ test('a camera starts capped at one frame a second, and turbo lifts the cap', as
   // Acks for the opening and for the "no image" frame, as there's no shmim here.
   await expect.poll(() => windows.length).toBeGreaterThan(0);
   expect(new Set(windows)).toEqual(new Set([1]));
-  const turbo = page.getByRole('button', { name: 'turbo off' });
-  await turbo.click();
-  await expect(page.getByRole('button', { name: 'turbo on' })).toBeVisible();
+  // Turbo is viewcam's toggle, drawn on its canvas; switching it from the
+  // API reaches the page by the same state change a click does.
+  const setTurbo = (on) => page.evaluate((on) => {
+    const id = document.querySelector('.viewcam-container').id;
+    window.viewcam.setTurbo(id, on);
+  }, on);
+  await setTurbo(true);
   await expect.poll(() => windows.at(-1)).toBe(6);
-  await page.getByRole('button', { name: 'turbo on' }).click();
+  await setTurbo(false);
   await expect.poll(() => windows.at(-1)).toBe(1);
 });
