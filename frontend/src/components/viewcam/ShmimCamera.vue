@@ -119,7 +119,7 @@ export default {
         onStatus: (status) => viewcam.setFeedConnection(id, feed.role, status),
         onFrame: (frame) => {
           show(frame);
-          viewcam.noteFeedFrame(id, feed.role, frame.seq, frame.width, frame.height, frame.dtype);
+          viewcam.noteFeedFrame(id, feed.role, frame.seq, frame.width, frame.height, frame.dtype, frame.acquiredMs);
         },
         onEmpty: () => {
           clear();

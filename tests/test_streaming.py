@@ -25,7 +25,7 @@ from sup.streaming import ShmimHub, ShmimStreamingConfig
 viewcam_codec = pytest.importorskip("viewcam_codec")
 
 VENDORED_FROM = pathlib.Path(__file__).parent.parent / "viewarr-workspace/viewcam-proto/python/viewcam_proto.py"
-FRAME_HEADER = struct.Struct("<4sBBHQIIBBBBIqdddd")
+FRAME_HEADER = struct.Struct("<4sBBHQqIIBBBBIqdddd")
 
 
 @pytest.fixture(autouse=True)
@@ -82,12 +82,14 @@ class Received:
     pixels: np.ndarray | None
     # For a quantized frame, its noise model and step; None for an exact one.
     quantization: viewcam_proto.Quantization | None = None
+    # When the frame was acquired, in ns since the Unix epoch; 0 if unknown.
+    acq_time_ns: int = 0
 
 
 def decode(message):
     """A frame, decoded independently of the server's encoder."""
-    (magic, version, kind, _, seq, width, height, dtype, codec, quantized, _, encoded_len,
-     *params) = FRAME_HEADER.unpack_from(message)
+    (magic, version, kind, _, seq, acq_time_ns, width, height, dtype, codec, quantized, _,
+     encoded_len, *params) = FRAME_HEADER.unpack_from(message)
     assert (magic, version, kind) == (b"VCAM", 1, viewcam_proto.KIND_FRAME)
     payload = message[FRAME_HEADER.size:]
     assert len(payload) == encoded_len
@@ -106,7 +108,7 @@ def decode(message):
         pixels = viewcam_codec.dequantize(pixels, q.code_offset, q.bias, q.read_noise, q.noise_slope, q.step)
     else:
         assert not any(params)
-    return Received(seq, width, height, codec, pixels, quantization)
+    return Received(seq, width, height, codec, pixels, quantization, acq_time_ns)
 
 
 class Viewer:
@@ -166,6 +168,17 @@ def test_frames_arrive_row_major_with_x_fastest(compress, codec):
     assert got.seq == 1
     # Row y of the protocol's image is column y of the binding's [x, y] array.
     np.testing.assert_array_equal(got.pixels, pixels.T)
+
+
+def test_frames_carry_their_acquisition_time(client):
+    img = make_image("stamped", frame(1))
+    img.update()
+    with watch(client, "stamped") as viewer:
+        got = viewer.receive()
+    # An update stamps the image with the time it was made, as
+    # ImageStreamIO_UpdateIm does when the writer doesn't give one.
+    assert got.acq_time_ns == round(img.md.acqtime.timestamp() * 1e6) * 1000
+    assert abs(got.acq_time_ns / 1e9 - time.time()) < 60
 
 
 def noisy(seed, shape=(64, 48), level=1000.0, read_noise=10.0, photons=True, dtype=np.uint16):

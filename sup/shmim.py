@@ -62,13 +62,27 @@ def list_shmims(directory=None):
     return sorted(name for name in names if SHMIM_NAME_PATTERN.fullmatch(name))
 
 
+def _acq_time_ns(md):
+    """An image's acquisition time in nanoseconds since the Unix epoch, or 0
+    if it was never set. The binding hands it over as a naive local
+    datetime, which ``timestamp()`` reads as local time, so this is right
+    whatever the machine's time zone; it is good to the microsecond."""
+    try:
+        seconds = md.acqtime.timestamp()
+    except (AttributeError, OverflowError, OSError, ValueError):
+        return 0
+    return max(round(seconds * 1e6), 0) * 1000
+
+
 class ShmimPoller:
     """Yields the new frames of one shmim, opening it once it exists and
     reopening it when it is recreated under the same name, which is what
     happens when a camera restarts or changes its region of interest.
 
-    Use it as ``async for cnt0, frame in ShmimPoller("camwfs").frames():``;
-    leaving the loop closes the stream.
+    Use it as ``async for cnt0, acq_time_ns, frame in ShmimPoller("camwfs").frames():``;
+    leaving the loop closes the stream. ``acq_time_ns`` is when the frame
+    was acquired (the image's ``atime``), in nanoseconds since the Unix
+    epoch, or 0 if the writer never set it.
     """
     def __init__(self, name, poll_interval=0.005, min_frame_interval=0.0, reopen_interval=1.0):
         self.name = name
@@ -104,7 +118,8 @@ class ShmimPoller:
 
     @staticmethod
     def _read(img):
-        """Copy the frame, or return None if a write may have torn it.
+        """Copy the frame and when it was acquired, as ``(cnt0,
+        acq_time_ns, frame)``, or return None if a write may have torn them.
 
         The writer sets md.write for the duration of its copy and bumps cnt0
         after, so a copy taken while neither moved is whole.
@@ -114,9 +129,10 @@ class ShmimPoller:
         if md.write:
             return None
         frame = img.copy()
+        acq_time_ns = _acq_time_ns(md)
         if md.write or md.cnt0 != before:
             return None
-        return before, frame
+        return before, acq_time_ns, frame
 
     async def frames(self):
         img = None
@@ -144,9 +160,9 @@ class ShmimPoller:
                 if img.md.cnt0 != last_cnt0 and now - last_yield >= self.min_frame_interval:
                     result = self._read(img)
                     if result is not None:
-                        last_cnt0, frame = result
+                        last_cnt0, acq_time_ns, frame = result
                         last_yield = now
-                        yield last_cnt0, frame
+                        yield last_cnt0, acq_time_ns, frame
                 await asyncio.sleep(self.poll_interval)
         finally:
             if img is not None:

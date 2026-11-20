@@ -121,16 +121,18 @@ def plane_of(frame):
     return frame.T
 
 
-def encode_frame(seq, frame, compress, noise=None, noise_step=0.25):
+def encode_frame(seq, frame, compress, noise=None, noise_step=0.25, acq_time_ns=0):
     """A FRAME message for a frame as the binding returns it (see
-    ``plane_of``). Compressed, and with a ``noise`` model, its values are
-    rounded to ``noise_step`` of their noise and sent as codes."""
+    ``plane_of``), acquired at ``acq_time_ns`` (0 if unknown). Compressed,
+    and with a ``noise`` model, its values are rounded to ``noise_step`` of
+    their noise and sent as codes."""
     width = frame.shape[0]
     height = frame.size // width if width else 0
     dtype = viewcam_proto.dtype_code(frame.dtype)
     plane = plane_of(frame)
     if not (compress and viewcam_codec is not None and frame.size):
-        return viewcam_proto.encode_frame(seq, width, height, dtype, plane, viewcam_proto.CODEC_RAW)
+        return viewcam_proto.encode_frame(
+            seq, width, height, dtype, plane, viewcam_proto.CODEC_RAW, acq_time_ns=acq_time_ns)
     quantization = None
     if noise is not None:
         try:
@@ -145,7 +147,7 @@ def encode_frame(seq, frame, compress, noise=None, noise_step=0.25):
                 code_offset, noise.bias, noise.read_noise, noise.noise_slope, noise_step)
     payload = viewcam_codec.encode(plane)
     return viewcam_proto.encode_frame(
-        seq, width, height, dtype, payload, viewcam_proto.CODEC_SHUFFLE_ZSTD, quantization)
+        seq, width, height, dtype, payload, viewcam_proto.CODEC_SHUFFLE_ZSTD, quantization, acq_time_ns)
 
 
 class SharedStream:
@@ -193,21 +195,22 @@ class SharedStream:
             model = dataclasses.replace(model, read_noise=max(model.read_noise, 1 / self._noise_step))
         return model
 
-    def _encode_now(self, seq, frame):
-        return encode_frame(seq, frame, self._compress, self._noise_model(frame), self._noise_step)
+    def _encode_now(self, seq, frame, acq_time_ns):
+        return encode_frame(
+            seq, frame, self._compress, self._noise_model(frame), self._noise_step, acq_time_ns)
 
-    async def _encode(self, seq, frame):
+    async def _encode(self, seq, frame, acq_time_ns):
         if self._compress:
             # The codec releases the GIL, so a large frame needn't stall the loop.
-            return await asyncio.to_thread(self._encode_now, seq, frame)
-        return self._encode_now(seq, frame)
+            return await asyncio.to_thread(self._encode_now, seq, frame, acq_time_ns)
+        return self._encode_now(seq, frame, acq_time_ns)
 
     async def _run(self):
         while True:
             try:
-                async for cnt0, frame in self._poller.frames():
+                async for cnt0, acq_time_ns, frame in self._poller.frames():
                     seq = self._seq_for(cnt0)
-                    self.latest = EncodedFrame(seq, await self._encode(seq, frame))
+                    self.latest = EncodedFrame(seq, await self._encode(seq, frame, acq_time_ns))
                     for feed in list(self.feeds):
                         feed.offer(self.latest)
             except asyncio.CancelledError:

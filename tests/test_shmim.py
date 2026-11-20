@@ -1,5 +1,6 @@
 """Tests for following shmims from the event loop, against sup.isio_mock."""
 import asyncio
+import time
 import warnings
 
 import numpy as np
@@ -34,7 +35,7 @@ def follow(poller, collect, act):
         seen = []
         stream = poller.frames()
         async def gather():
-            async for cnt0, data in stream:
+            async for cnt0, _, data in stream:
                 seen.append((cnt0, data))
                 if len(seen) == collect:
                     return
@@ -75,7 +76,7 @@ def test_waits_for_the_stream_to_appear():
             await stream.aclose()
             await creator
 
-    cnt0, data = asyncio.run(run())
+    cnt0, _, data = asyncio.run(run())
     assert data[0, 0] == 9
 
 
@@ -91,7 +92,7 @@ def test_decimates_to_min_frame_interval():
         seen = []
         stream = fast_poller("fast", min_frame_interval=0.05).frames()
         try:
-            async for cnt0, _ in stream:
+            async for cnt0, _, _ in stream:
                 seen.append(cnt0)
                 if writer_task.done():
                     break
@@ -119,8 +120,20 @@ def test_rejects_a_frame_caught_mid_write():
     img._hdr["write"] = 1
     assert ShmimPoller._read(img) is None
     img._hdr["write"] = 0
-    cnt0, data = ShmimPoller._read(img)
+    cnt0, _, data = ShmimPoller._read(img)
     assert cnt0 == 1
+
+
+def test_reads_when_a_frame_was_acquired():
+    img = make_image("stamped", frame(0))
+    # Unset until an update stamps it: write() alone doesn't, in the binding
+    # or the mock, which is why sup's fake camera frames have none.
+    img.write(frame(1))
+    assert ShmimPoller._read(img)[1] == 0
+    # update() does, as ImageStreamIO_UpdateIm does for the cameras.
+    img.update()
+    _, acq_time_ns, _ = ShmimPoller._read(img)
+    assert abs(acq_time_ns / 1e9 - time.time()) < 60
 
 
 def test_fake_camera_streams_agree():
