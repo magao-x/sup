@@ -62,16 +62,30 @@ def list_shmims(directory=None):
     return sorted(name for name in names if SHMIM_NAME_PATTERN.fullmatch(name))
 
 
+_warned_unreadable_times = False
+
+
+def _time_ns(when):
+    """A binding timestamp in nanoseconds since the Unix epoch, 0 if unset.
+    The binding hands them over as naive local datetimes, which
+    ``timestamp()`` reads as local time, so this is right whatever the
+    machine's time zone; it is good to the microsecond."""
+    return max(round(when.timestamp() * 1e6), 0) * 1000
+
+
 def _acq_time_ns(md):
-    """An image's acquisition time in nanoseconds since the Unix epoch, or 0
-    if it was never set. The binding hands it over as a naive local
-    datetime, which ``timestamp()`` reads as local time, so this is right
-    whatever the machine's time zone; it is good to the microsecond."""
+    """When an image was acquired, in nanoseconds since the Unix epoch: its
+    ``atime`` if the writer set one, else its ``writetime``, when it landed
+    in shared memory, which for a camera is just after readout. (MagAO-X's
+    cameras leave ``atime`` unset.) 0 if neither is set or can be read."""
+    global _warned_unreadable_times
     try:
-        seconds = md.acqtime.timestamp()
-    except (AttributeError, OverflowError, OSError, ValueError):
+        return _time_ns(md.acqtime) or _time_ns(md.writetime)
+    except (AttributeError, OverflowError, OSError, ValueError) as e:
+        if not _warned_unreadable_times:
+            _warned_unreadable_times = True
+            log.warning(f"Can't read shmim timestamps ({type(e).__name__}: {e}); frames will go without")
         return 0
-    return max(round(seconds * 1e6), 0) * 1000
 
 
 class ShmimPoller:
@@ -81,8 +95,8 @@ class ShmimPoller:
 
     Use it as ``async for cnt0, acq_time_ns, frame in ShmimPoller("camwfs").frames():``;
     leaving the loop closes the stream. ``acq_time_ns`` is when the frame
-    was acquired (the image's ``atime``), in nanoseconds since the Unix
-    epoch, or 0 if the writer never set it.
+    was acquired, in nanoseconds since the Unix epoch, or 0 if not known:
+    see ``_acq_time_ns``.
     """
     def __init__(self, name, poll_interval=0.005, min_frame_interval=0.0, reopen_interval=1.0):
         self.name = name

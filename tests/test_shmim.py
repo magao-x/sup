@@ -136,6 +136,15 @@ def test_reads_when_a_frame_was_acquired():
     assert abs(acq_time_ns / 1e9 - time.time()) < 60
 
 
+def test_falls_back_to_the_write_time_without_an_acquisition_time():
+    # As MagAO-X's cameras leave them: atime unset, writetime stamped.
+    img = make_image("unstamped", frame(0))
+    written = 1_795_000_000_123_456_000
+    img._hdr["acqtime"] = 0
+    img._hdr["writetime"] = written
+    assert ShmimPoller._read(img)[1] == written
+
+
 def test_fake_camera_streams_agree():
     rng = np.random.default_rng(1)
     width, height = 96, 64
