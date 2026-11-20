@@ -130,21 +130,20 @@ its config in `/opt/MagAOX/config/gui_sup_stream.conf`. The reverse proxy that
 holds port 443 sends `/ws/viewcam/` to `sup-stream` and everything else to
 `sup`. Running it apart means a crash in the ImageStreamIO binding, which is
 unguarded C, can't take INDI down with it, and frame traffic doesn't delay
-INDI updates or alerts. [DEPLOY.md](DEPLOY.md) has systemd units and an nginx
-config for running `sup-stream` and a trial copy of the UI on an instrument.
+INDI updates or alerts.
 
-Frames are compressed (zstd) with `viewcam_codec`, the Python build of the Rust
-codec the viewer decodes with, when it is installed, and sent uncompressed
-otherwise. Compressed frames are first rounded to a quarter of their noise
-(`shmim_streaming.noise_step`, 0 to send them exact), which `sup/noise.py`
-estimates from each frame itself: read noise, and photon noise growing with
-the signal, through a square root that keeps the steps finest at the faint end
-(see "Quantization" in `viewarr-workspace/viewcam-proto/PROTOCOL.md`). Values
-come back within half a step of their noise, and the viewer shows them as
-floats. Streams that don't vary, like darks, and single-byte images, like
-saturation masks, are sent exact. On a `camwfs` archive this sends 0.63 of the
-bytes that exact frames took with the LZ4 compression it replaced, and on a
-`dm01disp` archive 0.26.
+Frames are compressed (bit-shuffled, then zstd) with `viewcam_codec`, the
+Python build of the Rust codec the viewer decodes with, when it is installed,
+and sent uncompressed otherwise. Integer frames, a camera's counts, go exact:
+the bit shuffle turns the high bits a camera barely uses into planes zstd all
+but removes. Floating-point frames are first rounded to a quarter of their
+noise (`shmim_streaming.noise_step`, 0 to send them exact), which
+`sup/noise.py` estimates from each frame itself: read noise, and photon noise
+growing with the signal, through a square root that keeps the steps finest at
+the faint end (see "Quantization" in
+`viewarr-workspace/viewcam-proto/PROTOCOL.md`). Values come back within half a
+step of their noise. Float streams that don't vary, like averaged darks, are
+sent exact too.
 For development it is in the `dev` dependency group, built from the submodule
 by `uv sync` (this needs a Rust toolchain). After changing the codec's Rust,
 rebuild it with `uv sync --reinstall-package viewcam-codec`.

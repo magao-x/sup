@@ -27,7 +27,7 @@
 <script>
 import * as viewcam from "viewcam";
 import DecodeWorker from "viewcam-codec/decode-worker.js?worker";
-import { ViewcamFeed, quantizedThreshold, workerDecoder } from "viewcam-proto";
+import { ViewcamFeed, workerDecoder } from "viewcam-proto";
 import utils from "@/utils.js";
 
 // Frames allowed in flight on each feed. Six keeps 30 fps going over a
@@ -79,7 +79,6 @@ export default {
     if (this.destroyed) return;
     if (!this.saturation && this.saturationLevel !== null) {
       viewcam.setSaturationLevel(this.containerId, this.saturationLevel);
-      this.appliedSaturationLevel = this.saturationLevel;
     }
     for (const feed of this.feeds) viewcam.setFeed(this.containerId, feed.role, feed.name);
     viewcam.onStateChange(this.containerId, ({ turbo }) => {
@@ -99,10 +98,9 @@ export default {
     connect(feed) {
       const id = this.containerId;
       const show = {
-        data: (frame) => {
-          this.followSaturationLevel(frame.quantization);
-          viewcam.setData(id, frame.pixels, frame.width, frame.height, frame.dtype);
-        },
+        // A quantized frame's quantization goes with it, for viewcam to
+        // compare it with any saturation level correctly.
+        data: (frame) => viewcam.setData(id, frame.pixels, frame.width, frame.height, frame.dtype, frame.quantization),
         dark: (frame) => viewcam.setDark(id, frame.pixels, frame.width, frame.height, frame.dtype),
         saturation: (frame) => viewcam.setSaturation(id, frame.pixels, frame.width, frame.height, frame.dtype),
       }[feed.role];
@@ -126,16 +124,6 @@ export default {
           viewcam.noteFeedEmpty(id, feed.role);
         },
       });
-    },
-    // A quantized frame's values are rounded, so a saturated pixel can come
-    // back a little under the saturation level: compare with the threshold
-    // between the level's code and the one below it instead.
-    followSaturationLevel(quantization) {
-      if (this.saturation || this.saturationLevel === null) return;
-      const level = quantization ? quantizedThreshold(this.saturationLevel, quantization) : this.saturationLevel;
-      if (level === this.appliedSaturationLevel) return;
-      this.appliedSaturationLevel = level;
-      viewcam.setSaturationLevel(this.containerId, level);
     },
     windowFor(feed) {
       if (document.hidden) return 0;

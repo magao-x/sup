@@ -21,13 +21,14 @@ Each shmim is polled and encoded once, however many clients watch it, and
 the same bytes go to all of them. What each client gets is up to its window:
 while the window is full, only the newest frame waits for it.
 
-Frames are compressed (``shuffle-zstd``) with ``viewcam_codec`` when it is
-installed, and sent ``raw`` otherwise. Compressed frames are first rounded to
-a fraction of their noise (PROTOCOL.md, "Quantization"), which ``noise``
-estimates from each stream's own frames: noise is most of what a camera
-frame holds, and precision finer than it is none a display can use. Frames
-that don't measurably vary, like a dark, and single-byte images, like a
-saturation mask, are sent exact.
+Frames are compressed (``bitshuffle-zstd``) with ``viewcam_codec`` when it
+is installed, and sent ``raw`` otherwise. Integer frames, a camera's counts,
+go exact: bit-shuffling regroups them into bit planes, so the high-order
+bits a camera barely uses cost next to nothing. Floating-point frames are
+first rounded to a fraction of their noise (PROTOCOL.md, "Quantization"),
+which ``noise`` estimates from each stream's own frames, since their
+low-order bits are all noise and compress worst of all; those that don't
+measurably vary, like an averaged dark, go exact too.
 """
 import asyncio
 import dataclasses
@@ -83,8 +84,9 @@ class ShmimStreamingConfig:
     )
     noise_step : float = xconf.field(
         default=0.25,
-        help="Round compressed frames to this fraction of their noise, estimated live from "
-             "each stream's frames (0 to send them exact)"
+        help="Round compressed floating-point frames to this fraction of their noise, "
+             "estimated live from each stream's frames (0 to send them exact); integer "
+             "frames always go exact"
     )
     slow_send_warning_sec : float = xconf.field(
         default=1.0,
@@ -147,7 +149,7 @@ def encode_frame(seq, frame, compress, noise=None, noise_step=0.25, acq_time_ns=
                 code_offset, noise.bias, noise.read_noise, noise.noise_slope, noise_step)
     payload = viewcam_codec.encode(plane)
     return viewcam_proto.encode_frame(
-        seq, width, height, dtype, payload, viewcam_proto.CODEC_SHUFFLE_ZSTD, quantization, acq_time_ns)
+        seq, width, height, dtype, payload, viewcam_proto.CODEC_BITSHUFFLE_ZSTD, quantization, acq_time_ns)
 
 
 class SharedStream:
@@ -186,14 +188,11 @@ class SharedStream:
         return seq
 
     def _noise_model(self, frame):
-        """The noise to round this frame to, or None to send it exact."""
-        if self._noise is None or frame.itemsize == 1:
+        """The noise to round this frame to, or None to send it exact, as
+        integer frames always are."""
+        if self._noise is None or frame.dtype.kind != "f":
             return None
-        model = self._noise.update(plane_of(frame))
-        if model is not None and frame.dtype.kind in "iu":
-            # Integers are already rounded to 1: no finer steps than that.
-            model = dataclasses.replace(model, read_noise=max(model.read_noise, 1 / self._noise_step))
-        return model
+        return self._noise.update(plane_of(frame))
 
     def _encode_now(self, seq, frame, acq_time_ns):
         return encode_frame(

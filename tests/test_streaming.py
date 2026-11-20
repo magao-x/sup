@@ -99,7 +99,7 @@ def decode(message):
     elif codec == viewcam_proto.CODEC_RAW:
         pixels = np.frombuffer(payload, dtype).reshape(height, width)
     else:
-        assert codec == viewcam_proto.CODEC_SHUFFLE_ZSTD
+        assert codec == viewcam_proto.CODEC_BITSHUFFLE_ZSTD
         pixels = viewcam_codec.decode(payload, dtype, (height, width))
     quantization = None
     if quantized:
@@ -157,7 +157,7 @@ def newest_seq(hub, name):
 
 @pytest.mark.parametrize("compress, codec", [
     (False, viewcam_proto.CODEC_RAW),
-    (True, viewcam_proto.CODEC_SHUFFLE_ZSTD),
+    (True, viewcam_proto.CODEC_BITSHUFFLE_ZSTD),
 ])
 def test_frames_arrive_row_major_with_x_fastest(compress, codec):
     pixels = np.arange(12, dtype=np.uint16).reshape(4, 3)  # [x, y]
@@ -189,8 +189,8 @@ def noisy(seed, shape=(64, 48), level=1000.0, read_noise=10.0, photons=True, dty
     return np.rint(level + rng.normal(0, sigma, shape)).astype(dtype)
 
 
-def test_noisy_frames_are_rounded_to_a_quarter_of_their_noise(client):
-    original = noisy(1)
+def test_noisy_float_frames_are_rounded_to_a_quarter_of_their_noise(client):
+    original = noisy(1, dtype=np.float32)
     make_image("cam", original)
     with watch(client, "cam") as viewer:
         got = viewer.receive()
@@ -206,11 +206,10 @@ def test_noisy_frames_are_rounded_to_a_quarter_of_their_noise(client):
 
 
 @pytest.mark.parametrize("pixels", [
-    np.eye(4, dtype=np.uint8),                          # a saturation mask: single bytes
-    np.full((8, 6), 512, dtype=np.uint16),              # nothing varies
-    np.tile(np.arange(6, dtype=np.uint16), (8, 1)).T,   # noiseless bands
+    np.full((8, 6), 512, dtype=np.float32),             # nothing varies
+    np.tile(np.arange(6, dtype=np.float64), (8, 1)).T,  # noiseless bands
 ])
-def test_frames_without_measurable_noise_are_sent_exact(client, pixels):
+def test_float_frames_without_measurable_noise_are_sent_exact(client, pixels):
     make_image("dark", pixels)
     with watch(client, "dark") as viewer:
         got = viewer.receive()
@@ -219,8 +218,8 @@ def test_frames_without_measurable_noise_are_sent_exact(client, pixels):
 
 
 @pytest.mark.parametrize("settings", [dict(noise_step=0), dict(compress=False)])
-def test_frames_can_be_sent_exact(settings):
-    original = noisy(2)
+def test_float_frames_can_be_sent_exact(settings):
+    original = noisy(2, dtype=np.float32)
     make_image("cam", original)
     with serve(fast_config(**settings)) as (_, client), watch(client, "cam") as viewer:
         got = viewer.receive()
@@ -228,14 +227,19 @@ def test_frames_can_be_sent_exact(settings):
     np.testing.assert_array_equal(got.pixels, original.T)
 
 
-def test_integer_frames_are_not_rounded_finer_than_one(client):
-    # Read noise of 2 counts: a quarter of it would be a step of 1/2.
-    original = noisy(3, level=100.0, read_noise=2.0, photons=False)
+@pytest.mark.parametrize("original", [
+    noisy(3),                                           # a camera's noisy counts
+    np.eye(4, dtype=np.uint8),                          # a saturation mask
+    (noisy(4) - 1000).astype(np.int32),                 # signed, and wider
+])
+def test_integer_frames_are_sent_exact_and_bit_shuffled(client, original):
     make_image("cam", original)
     with watch(client, "cam") as viewer:
         got = viewer.receive()
-    q = got.quantization
-    assert q is not None and q.read_noise * q.step >= 1
+    assert got.quantization is None
+    assert got.codec == viewcam_proto.CODEC_BITSHUFFLE_ZSTD
+    assert got.pixels.dtype == original.dtype
+    np.testing.assert_array_equal(got.pixels, original.T)
 
 
 def test_a_cube_is_sent_as_slices_stacked_along_y(client):
