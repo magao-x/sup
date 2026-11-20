@@ -27,7 +27,8 @@
           <tbody>
             <tr v-for="camName in camNames" :key="camName">
               <td>
-                <a v-if="camName != 'visx'" :href="`/video#cam${camName}`" target="_blank">
+                <a v-if="camName != 'visx'" :href="cameraUrl(`cam${camName}`)" target="_blank"
+                  @click="openCamera($event, `cam${camName}`)" title="Open in a new window">
                   <MaterialIcon name="open_in_new"></MaterialIcon>
                 </a>
               </td>
@@ -287,6 +288,7 @@ import MaggieOX from "@/components/instrument/MaggieOX.vue";
 import SparklesControl from "@/components/instrument/SparklesControl.vue";
 import AdaptiveOpticsLoop from "@/components/instrument/AdaptiveOpticsLoop.vue";
 import ObservabilityPlots from '@/components/plots/ObservabilityPlots.vue';
+import { cameraUrl, openCameraPopup } from "@/components/viewcam/streams.js";
 export default {
   mixins: [utils],
   inject: ["indi"],
@@ -350,6 +352,12 @@ export default {
     };
   },
   methods: {
+    cameraUrl,
+    // Opens the camera in a popup like the streams tab does; if the browser
+    // blocks that, the link's own new tab is left to open instead.
+    openCamera(event, name) {
+      if (openCameraPopup(name)) event.preventDefault();
+    },
     shutterAvailable(camName) {
       const retval = this.indi.indiIsConnected && this.retrieveByIndiId(`cam${camName}.shutter_status.status`) && (
         this.retrieveByIndiId(`cam${camName}.shutter_status.status`)._value == "READY"
