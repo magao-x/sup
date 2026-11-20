@@ -77,3 +77,29 @@ test('a stream without an rtimv config opens no dark or mask', async ({ page }) 
   await page.waitForTimeout(500);
   expect(feeds).toEqual(['acc000_psds']);
 });
+
+/** The window of each ack a page sends on a feed, as they go. */
+function windowsSentOn(page, name) {
+  const windows = [];
+  page.on('websocket', (ws) => {
+    if (!ws.url().endsWith(`/ws/viewcam/${name}`)) return;
+    ws.on('framesent', ({ payload }) => {
+      if (typeof payload !== 'string') windows.push(payload.readUInt32LE(24));
+    });
+  });
+  return windows;
+}
+
+test('a camera starts capped at one frame a second, and turbo lifts the cap', async ({ page }) => {
+  const windows = windowsSentOn(page, 'camwfs');
+  await page.goto('/camera.html?name=camwfs');
+  // Acks for the opening and for the "no image" frame, as there's no shmim here.
+  await expect.poll(() => windows.length).toBeGreaterThan(0);
+  expect(new Set(windows)).toEqual(new Set([1]));
+  const turbo = page.getByRole('button', { name: 'turbo off' });
+  await turbo.click();
+  await expect(page.getByRole('button', { name: 'turbo on' })).toBeVisible();
+  await expect.poll(() => windows.at(-1)).toBe(6);
+  await page.getByRole('button', { name: 'turbo on' }).click();
+  await expect.poll(() => windows.at(-1)).toBe(1);
+});

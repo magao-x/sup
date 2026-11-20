@@ -12,6 +12,10 @@
         </span>
         <span v-else>waiting</span>
       </span>
+      <button type="button" class="turbo" :class="{ on: turbo }" @click="setTurbo(!turbo)"
+        :title="turbo ? 'Back to one frame a second' : 'As many frames as the link and server allow'">
+        turbo {{ turbo ? 'on' : 'off' }}
+      </button>
       <span class="feed bandwidth" title="Received over the last few seconds, all feeds together">
         <span class="feed-name">total</span>{{ formatRate(bandwidth) }}
       </span>
@@ -50,8 +54,19 @@
 .feed.closed, .feed.connecting {
   color: $beware-orange;
 }
-.bandwidth {
+.turbo {
   margin-left: auto;
+  padding: 0 0.6em;
+  font: inherit;
+  color: var(--fg-inactive);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  &.on {
+    color: $beware-orange;
+    border-color: $beware-orange;
+  }
 }
 .error {
   padding: $medgap $lggap;
@@ -69,6 +84,11 @@ import utils from "@/utils.js";
 // 150 ms round trip; the dark changes so rarely that one is plenty.
 // See "Choosing a window" in viewcam-proto/PROTOCOL.md.
 const WINDOWS = { data: 6, dark: 1, saturation: 6 };
+// Until turbo is switched on, each feed gets at most this many frames a
+// second. At one a second a window of one frame is plenty, and keeps a
+// burst of frames from coming through ahead of the pacing.
+const CAPPED_FPS = 1;
+const CAPPED_WINDOW = 1;
 // Over how many frames the frame rate is averaged.
 const FPS_FRAMES = 10;
 // Over how long the bandwidth is averaged, and how often it is updated.
@@ -98,6 +118,7 @@ export default {
       })),
       error: null,
       bandwidth: 0,
+      turbo: false,
     };
   },
   computed: {
@@ -158,7 +179,8 @@ export default {
       return new ViewcamFeed(utils.buildWebSocketUrl(`ws/viewcam/${encodeURIComponent(feed.name)}`), {
         decode: this.decode,
         onReceive: (bytes) => this.received.push([performance.now(), bytes]),
-        windowFrames: document.hidden ? 0 : WINDOWS[feed.role],
+        windowFrames: this.windowFor(feed),
+        maxFps: this.turbo ? 0 : CAPPED_FPS,
         onStatus: (status) => {
           feed.status = status;
           arrivals.length = 0;
@@ -207,11 +229,24 @@ export default {
       if (bits >= 1e3) return `${(bits / 1e3).toFixed(1)} kbit/s`;
       return `${bits.toFixed(0)} bit/s`;
     },
+    windowFor(feed) {
+      if (document.hidden) return 0;
+      return this.turbo ? WINDOWS[feed.role] : CAPPED_WINDOW;
+    },
+    setTurbo(turbo) {
+      this.turbo = turbo;
+      this.feeds.forEach((feed, i) => {
+        const connection = this.connections[i];
+        if (!connection) return;
+        connection.setMaxFps(turbo ? 0 : CAPPED_FPS);
+        connection.setWindow(this.windowFor(feed));
+      });
+    },
     onVisibilityChange() {
       // A hidden tab pauses its feeds rather than closing them; showing it
       // again brings the newest frames straight away.
       this.feeds.forEach((feed, i) => {
-        this.connections[i].setWindow(document.hidden ? 0 : WINDOWS[feed.role]);
+        this.connections[i].setWindow(this.windowFor(feed));
       });
     },
   },
